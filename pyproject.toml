@@ -1,0 +1,43 @@
+[project]
+name = "knowledgeos"
+version = "0.1.0"
+description = "An internal knowledge system that answers from retrieved evidence — and measures whether it actually did."
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "sqlalchemy>=2.0",
+    "alembic>=1.14",
+    "psycopg[binary]>=3.2",
+]
+
+# Dependencies arrive with the milestone that first imports them, so an
+# install never carries a library the code does not yet use. Deferred on
+# purpose, with the milestone that earns each one:
+#   m2: python-multipart          (upload)
+#   m3: apscheduler               (job runner)
+#   m4: pgvector, sentence-transformers
+#   m8: anthropic
+#   m10: jinja2
+#
+# pgvector is the PostgreSQL extension in m1 and the Python package in m4:
+# the extension is created by migration 0001, and nothing in m1 declares a
+# vector column, so there is nothing for the package to map yet.
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "httpx>=0.28",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
