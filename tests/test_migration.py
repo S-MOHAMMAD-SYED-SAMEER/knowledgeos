@@ -17,8 +17,8 @@ def _tables(url: str) -> set[str]:
         engine.dispose()
 
 
-def test_there_are_exactly_three_migrations() -> None:
-    assert len(list(VERSIONS.glob("*.py"))) == 3
+def test_there_are_exactly_four_migrations() -> None:
+    assert len(list(VERSIONS.glob("*.py"))) == 4
 
 
 def test_upgrade_creates_every_table(migrated_engine: Engine, database_url) -> None:

@@ -16,8 +16,13 @@ cleaned up rather than the one that cannot.
 A crash between step 2 and step 3 leaves an orphan file. That window is real,
 it is not swept in this milestone, and the README says so.
 
-Nothing here promotes a version. A version becomes `active` when its content
-has been indexed, which has not happened yet.
+Nothing in the upload path promotes a version. A version becomes `active`
+when its content has been indexed, which happens in the indexing stage and
+nowhere else.
+
+`POST /documents/{id}/reindex` queues the active version to be run again. It
+creates no new version: re-running rewrites the same chunks with the same
+identifiers, which is what makes re-indexing idempotent.
 """
 
 import logging
@@ -42,7 +47,14 @@ from app.config import Settings, get_settings
 from app.db.session import get_session
 from app.ingestion import service
 from app.ingestion.validation import UploadRejected, validate
-from app.models import Document, DocumentVersion
+from app.models import (
+    TERMINAL_STATUSES,
+    Document,
+    DocumentVersion,
+    IngestionJob,
+    JobStatus,
+    VersionStatus,
+)
 from app.storage import Storage, StorageError, get_storage
 
 logger = logging.getLogger(__name__)
@@ -143,6 +155,71 @@ def upload_version(
         storage.delete(key)
         raise HTTPException(status_code=404, detail="No such document") from exc
     return _accepted(result)
+
+
+@router.post(
+    "/documents/{document_id}/reindex",
+    response_model=UploadAccepted,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def reindex_document(
+    document_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_session)],
+) -> UploadAccepted:
+    """Queue the active version of a document to be parsed and indexed again.
+
+    Targets **only the active version**, and deliberately. The active version
+    is the one answering questions; a draft that never finished indexing is
+    the upload path's business, not this endpoint's, and a superseded version
+    is history. So a document with no active version is a conflict rather than
+    a silent no-op.
+
+    No new document version is created — the same version is re-run. Because
+    `chunk_uid` is derived from the version, the sequence and the text, the
+    rows written are identical to the ones they replace: re-indexing produces
+    the same chunks rather than duplicates, which is the specification's
+    acceptance gate for this feature.
+
+    A version already being re-run is a conflict too. Two jobs racing on one
+    version would have them deleting and rewriting each other's chunks.
+    """
+    document = session.get(Document, document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="No such document")
+
+    version = session.execute(
+        select(DocumentVersion).where(
+            DocumentVersion.document_id == document_id,
+            DocumentVersion.status == VersionStatus.ACTIVE,
+        )
+    ).scalar_one_or_none()
+    if version is None:
+        raise HTTPException(
+            status_code=409,
+            detail="This document has no active version to re-index",
+        )
+
+    outstanding = session.execute(
+        select(IngestionJob).where(
+            IngestionJob.document_version_id == version.id,
+            IngestionJob.status.notin_(TERMINAL_STATUSES),
+        )
+    ).first()
+    if outstanding is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This version is already being ingested",
+        )
+
+    job = IngestionJob(document_version_id=version.id, status=JobStatus.QUEUED)
+    session.add(job)
+    session.commit()
+
+    return UploadAccepted(
+        document=DocumentOut.model_validate(document),
+        version=VersionOut.model_validate(version),
+        job=JobOut.model_validate(job),
+    )
 
 
 @router.get("/documents", response_model=DocumentPage)

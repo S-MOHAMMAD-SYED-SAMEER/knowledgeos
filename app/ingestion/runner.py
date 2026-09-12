@@ -32,17 +32,41 @@ and stopped with it.
 
 import logging
 from dataclasses import dataclass
+from functools import lru_cache
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Settings, get_settings
 from app.db.session import get_sessionmaker
-from app.ingestion.pipeline import StageFailed, run_job
+from app.ingestion.pipeline import StageFailed, run_indexing, run_job
 from app.models import IngestionJob, JobStatus
+from app.providers.embeddings import EmbeddingProvider
 from app.storage import Storage, get_storage
 
 logger = logging.getLogger(__name__)
+
+# The two statuses a runner may pick up. `queued` is where milestone 2 leaves
+# an upload; `indexing` is where milestone 3 leaves a parsed and chunked
+# version, and is this milestone's half of that handoff.
+CLAIMABLE = (JobStatus.QUEUED, JobStatus.INDEXING)
+
+
+@lru_cache
+def get_embedding_provider() -> EmbeddingProvider:
+    """The embedding provider this process uses, built once.
+
+    The real local model. Nothing in the application ever selects the fake
+    one: only a test does, by passing it in.
+    """
+    from app.providers.bge import BgeEmbeddingProvider
+
+    return BgeEmbeddingProvider()
+
+
+def reset_embedding_provider() -> None:
+    """Drop the cached provider. For tests."""
+    get_embedding_provider.cache_clear()
 
 
 @dataclass(frozen=True)
@@ -72,12 +96,15 @@ def claim_next_job(session: Session, *, commit: bool = True) -> IngestionJob | N
     Releasing the row lock at that commit is safe: the job is no longer
     `queued`, and the query above only ever selects jobs that are.
 
+    Two statuses are claimable: `queued`, which starts the parsing stage, and
+    `indexing`, which milestone 3 leaves behind for this one to finish.
+
     `commit=False` exists for the test that has to hold the lock open to
     prove another connection skips the row.
     """
     job = session.execute(
         select(IngestionJob)
-        .where(IngestionJob.status == JobStatus.QUEUED)
+        .where(IngestionJob.status.in_(CLAIMABLE))
         .order_by(IngestionJob.id)
         .limit(1)
         .with_for_update(skip_locked=True)
@@ -87,7 +114,13 @@ def claim_next_job(session: Session, *, commit: bool = True) -> IngestionJob | N
         return None
 
     job.attempts += 1
-    job.status = JobStatus.PARSING
+    # A job waiting at `queued` starts the parsing stage; one waiting at
+    # `indexing` is already at the stage it needs, whether it was left there
+    # by a successful parse or by a process that died mid-index. Both need
+    # the same treatment, and indexing is idempotent, so re-claiming is the
+    # recovery.
+    if job.status == JobStatus.QUEUED:
+        job.status = JobStatus.PARSING
     job.started_at = _now()
     job.stage_error = None
     if commit:
@@ -98,18 +131,32 @@ def claim_next_job(session: Session, *, commit: bool = True) -> IngestionJob | N
 
 
 def process_one(
-    session: Session, storage: Storage, settings: Settings
+    session: Session,
+    storage: Storage,
+    settings: Settings,
+    embeddings: EmbeddingProvider | None = None,
 ) -> Outcome | None:
-    """Claim a job and run it. Returns None when there is nothing queued."""
+    """Claim a job and run whichever stage it is waiting at.
+
+    Returns None when there is nothing outstanding. A document takes two
+    passes: one to parse and chunk, one to index. That costs an attempt from
+    the job's whole-job budget, which is the accepted consequence of
+    `attempts` counting job attempts rather than stage attempts.
+    """
     job = claim_next_job(session)
     if job is None:
         return None
 
     job_id = job.id
     attempts = job.attempts
+    # Whichever stage the claim put it in decides what runs now.
+    stage = JobStatus(job.status)
 
     try:
-        run_job(session, job, storage, settings)
+        if stage == JobStatus.INDEXING:
+            run_indexing(session, job, embeddings or get_embedding_provider())
+        else:
+            run_job(session, job, storage, settings)
     except StageFailed as exc:
         session.rollback()
         return _record_failure(session, job_id, exc.stage, exc.detail, settings)
@@ -119,21 +166,23 @@ def process_one(
         return _record_failure(
             session,
             job_id,
-            JobStatus.PARSING,
+            stage,
             f"an unexpected error occurred ({type(exc).__name__})",
             settings,
         )
 
     job.completed_at = _now()
+    reached = JobStatus(job.status)
     session.commit()
-    logger.info("Job %s reached %s on attempt %d.", job_id, job.status, attempts)
-    return Outcome(job_id=job_id, status=JobStatus.INDEXING, attempts=attempts)
+    logger.info("Job %s reached %s on attempt %d.", job_id, reached, attempts)
+    return Outcome(job_id=job_id, status=reached, attempts=attempts)
 
 
 def run_pending(
     sessions: sessionmaker[Session] | None = None,
     storage: Storage | None = None,
     settings: Settings | None = None,
+    embeddings: EmbeddingProvider | None = None,
     limit: int = 10,
 ) -> list[Outcome]:
     """Drain up to `limit` queued jobs. One session per job.
@@ -144,11 +193,12 @@ def run_pending(
     make_session = sessions or get_sessionmaker()
     resolved = settings or get_settings()
     store = storage or get_storage()
+    provider = embeddings or get_embedding_provider()
 
     outcomes: list[Outcome] = []
     for _ in range(limit):
         with make_session() as session:
-            outcome = process_one(session, store, resolved)
+            outcome = process_one(session, store, resolved, provider)
         if outcome is None:
             break
         outcomes.append(outcome)
@@ -256,9 +306,12 @@ def _now():
 
 
 __all__ = [
+    "CLAIMABLE",
     "IngestionRunner",
     "Outcome",
     "claim_next_job",
+    "get_embedding_provider",
     "process_one",
+    "reset_embedding_provider",
     "run_pending",
 ]

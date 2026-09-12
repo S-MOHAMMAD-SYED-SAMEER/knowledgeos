@@ -6,13 +6,15 @@ The stages, and where this milestone stops:
                   ↓ (either stage)
                 failed, with stage_error
 
-`indexing` is the resting state, not a failure. Parsing and chunking are
-complete; writing embeddings and a full-text vector is milestone 4's work, so
-the job waits at the stage that owns it — exactly as milestone 2's jobs waited
-at `queued` for the runner that had not been written yet. Nothing here marks a
-version `ready`, and nothing here promotes a version to `active`: a version
-becomes active when it can answer a question, which it cannot until it is
-indexed.
+`indexing` is where milestone 3 stopped and where milestone 4 picks up.
+`run_job` takes a job from `queued` through parsing and chunking and leaves it
+at `indexing`; `run_indexing` takes it from there to `ready`, and promotes its
+version to `active`. They are separate claims, so a document takes two passes
+of the runner.
+
+A version becomes `active` only in `run_indexing`, and only once its vectors
+are written — a version that can be retrieved is a version whose content is
+really there.
 
 **The normalized document is produced once** and reused for all three things
 that depend on it — the checksum, the chunk text, and the character offsets.
@@ -38,6 +40,7 @@ from app.ingestion.validation import extension_of
 from app.models import Chunk, DocumentVersion, IngestionJob, JobStatus
 from app.parsing import ParseError, normalize, parser_for
 from app.parsing.base import Block
+from app.providers.embeddings import EmbeddingProvider
 from app.storage import Storage, StorageError
 
 logger = logging.getLogger(__name__)
@@ -240,6 +243,89 @@ def run_job(
     return job
 
 
+def run_indexing(
+    session: Session, job: IngestionJob, embeddings: EmbeddingProvider
+) -> IngestionJob:
+    """Take one job from `indexing` to `ready`, and its version to `active`.
+
+    The ordering is the point, and it is deliberate:
+
+    1. read the version and its chunk texts;
+    2. **end that read transaction**, and only then generate the vectors —
+       the specification requires index *writes* to be transactional, not
+       inference, and a transaction held open across model inference holds a
+       connection and a snapshot for no benefit;
+    3. open the write transaction: write the vectors, flip the job to
+       `ready`, promote the version;
+    4. commit, by the caller.
+
+    **Precondition: the session must have no unwritten changes.** Step 2 ends
+    the read transaction by rolling it back, which would discard them. The
+    runner satisfies this by committing the claim before any work begins; a
+    caller that does not is refused below rather than quietly losing work.
+
+    `tsv` is never written here. PostgreSQL maintains it from `text`, so it
+    is already correct for every chunk and writing to a generated column is
+    an error — one fewer thing that can succeed halfway.
+    """
+    from app.indexing import (
+        IndexingFailed,
+        chunks_to_embed,
+        generate_embeddings,
+        texts_of,
+        write_index,
+    )
+
+    if session.new or session.dirty or session.deleted:
+        raise StageFailed(
+            JobStatus.INDEXING,
+            "the indexing stage was entered with unwritten changes",
+        )
+
+    version = session.get(DocumentVersion, job.document_version_id)
+    if version is None:
+        raise StageFailed(
+            JobStatus.INDEXING, "the document version no longer exists"
+        )
+    version_id = version.id
+
+    # Plain strings, so nothing below can reach the database by lazily
+    # refreshing a row.
+    texts = texts_of(chunks_to_embed(session, version_id))
+
+    # The read is done. Let the transaction go before the model runs.
+    session.rollback()
+
+    try:
+        vectors = generate_embeddings(texts, embeddings)
+    except IndexingFailed as exc:
+        raise StageFailed(JobStatus.INDEXING, str(exc)) from exc
+
+    # The write transaction opens here, with the rows read again inside it.
+    version = session.get(DocumentVersion, version_id)
+    if version is None:
+        raise StageFailed(
+            JobStatus.INDEXING, "the document version no longer exists"
+        )
+    chunks = chunks_to_embed(session, version_id)
+
+    try:
+        write_index(session, version, chunks, vectors)
+    except IndexingFailed as exc:
+        raise StageFailed(JobStatus.INDEXING, str(exc)) from exc
+
+    job.status = JobStatus.READY
+    session.flush()
+
+    logger.info(
+        "Version %s indexed: %d chunk(s) embedded with %s.",
+        version_id,
+        len(chunks),
+        embeddings.model_name,
+    )
+    return job
+
+
 def _checksum(text: str) -> str:
     from hashlib import sha256
 
@@ -266,5 +352,6 @@ __all__ = [
     "parse_and_normalize",
     "pending_chunk_count",
     "replace_chunks",
+    "run_indexing",
     "run_job",
 ]

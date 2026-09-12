@@ -91,16 +91,17 @@ def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
         # for queued ingestion jobs.
         "pypdf",
         "APScheduler",
+        # Milestone 4: the local embedding model, and the SQLAlchemy
+        # integration for PostgreSQL's vector type.
+        "sentence-transformers",
+        "pgvector",
     }
 
 
 @pytest.mark.parametrize(
     "deferred",
     [
-        "sentence_transformers",
         "anthropic",
-        "pgvector",
-        "jinja2",
         # Parsers milestone 3 deliberately did not need: DOCX is read with
         # the standard library, and a signature check needs no library.
         "pypdfium2",
@@ -118,6 +119,26 @@ def test_a_later_milestones_library_is_not_installed(deferred: str) -> None:
     import importlib.util
 
     assert importlib.util.find_spec(deferred) is None
+
+
+def test_no_later_milestones_library_is_declared() -> None:
+    """Jinja2 needs the weaker check: it is importable from milestone 4
+    onwards because **torch pulls it in**, not because this project asked
+    for it. What matters is that it is not a dependency of ours — the user
+    interface it will eventually render is milestone 10's.
+    """
+    import re
+    import tomllib
+
+    declared = {
+        re.split(r"[><=\[]", item)[0].strip().lower()
+        for item in tomllib.loads((ROOT / "pyproject.toml").read_text())["project"][
+            "dependencies"
+        ]
+    }
+
+    assert "jinja2" not in declared
+    assert "anthropic" not in declared
 
 
 def test_the_schema_is_the_four_tables_built_so_far() -> None:

@@ -22,12 +22,21 @@ dependencies = [
     # restart, which is what a job table needs and what an in-process
     # background task cannot give.
     "APScheduler>=3.10",
+    # Milestone 4. The local embedding model named by the specification,
+    # BAAI/bge-small-en-v1.5. It brings a large tree with it — torch,
+    # transformers, tokenizers, numpy, scikit-learn, scipy — which is the
+    # cost of running a model locally rather than calling an API.
+    "sentence-transformers>=3.0",
+    # SQLAlchemy integration for PostgreSQL's vector type. psycopg can carry
+    # the type over raw SQL without this, but mapping the column in the ORM
+    # cleanly is worth one small dependency over a hand-written
+    # UserDefinedType. PostgreSQL + pgvector remains the only vector store.
+    "pgvector>=0.3",
 ]
 
 # Dependencies arrive with the milestone that first imports them, so an
 # install never carries a library the code does not yet use. Deferred on
 # purpose, with the milestone that earns each one:
-#   m4: pgvector, sentence-transformers
 #   m8: anthropic
 #   m10: jinja2
 #

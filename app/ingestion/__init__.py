@@ -21,13 +21,16 @@ from app.ingestion.pipeline import (
     build_chunks,
     parse_and_normalize,
     replace_chunks,
+    run_indexing,
     run_job,
 )
 from app.ingestion.runner import (
     IngestionRunner,
     Outcome,
     claim_next_job,
+    get_embedding_provider,
     process_one,
+    reset_embedding_provider,
     run_pending,
 )
 from app.ingestion.validation import (
@@ -62,6 +65,9 @@ __all__ = [
     "process_one",
     "promote_version",
     "replace_chunks",
+    "get_embedding_provider",
+    "reset_embedding_provider",
+    "run_indexing",
     "run_job",
     "run_pending",
     "sanitize_filename",

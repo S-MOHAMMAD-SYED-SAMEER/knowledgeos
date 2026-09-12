@@ -1,10 +1,19 @@
 """A chunk: one retrievable piece of one version of a document.
 
 Chunks are what retrieval will actually search, and what a citation will
-eventually point at. This milestone produces and stores them; making them
-findable — embeddings and a full-text vector — is milestone 4, so the
-`embedding` and `tsv` columns the specification's row includes are
-deliberately **not** here yet. They arrive with the code that can fill them.
+eventually point at. Milestone 3 produced and stored them; milestone 4 makes
+them findable, and adds the two columns that do it.
+
+`embedding` is a 384-dimensional vector, nullable because a chunk exists from
+the moment it is cut and is embedded a stage later — and because milestone 3
+wrote chunks before embeddings existed at all.
+
+`tsv` is **maintained by PostgreSQL**, not by this application: it is a
+generated stored column over `text`. That means it cannot drift from the text
+it describes and cannot fail independently of the row write, which is one
+fewer half-indexed state to reason about. It is a Postgres full-text search
+vector — **not BM25**, which is a different ranking model this system does not
+implement and must not be described as.
 
 Two unique constraints, both from the specification, and they do different
 jobs. `(document_version_id, sequence)` keeps a version's chunks an ordered
@@ -17,10 +26,12 @@ to the ones it replaced rather than duplicating them.
 import uuid
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -28,10 +39,17 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from pgvector.sqlalchemy import Vector
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.providers.embeddings import DIMENSIONS
+
+# The expression PostgreSQL computes for every row. The two-argument form of
+# `to_tsvector` is IMMUTABLE, which is what a generated column requires; the
+# one-argument form depends on a session setting and is only STABLE.
+TSV_EXPRESSION = "to_tsvector('english', text)"
 
 
 class Chunk(Base):
@@ -44,6 +62,16 @@ class Chunk(Base):
         CheckConstraint("token_count >= 0", name="token_count_non_negative"),
         CheckConstraint("char_end >= char_start", name="offsets_ordered"),
         CheckConstraint("page IS NULL OR page > 0", name="page_positive"),
+        # GIN over the full-text vector. The specification names no index
+        # type for it — GIN is the ordinary choice for a tsvector and is a
+        # physical decision rather than a behavioural one.
+        #
+        # There is deliberately **no index on `embedding`**: the
+        # specification says exact vector search is fast enough at v1 corpus
+        # size and that no HNSW index may be added until a measured latency
+        # number justifies it. No such number can exist before retrieval and
+        # evaluation exist.
+        Index("ix_chunks_tsv", "tsv", postgresql_using="gin"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -80,6 +108,19 @@ class Chunk(Base):
     # Whitespace-delimited words. See app/chunking/chunker.py on why.
     token_count: Mapped[int] = mapped_column(Integer)
 
+    # Written at the indexing stage, so null for a chunk that has been cut
+    # but not yet embedded. The width is the provider's, and a mismatch is
+    # refused before it reaches the database.
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(DIMENSIONS))
+
+    # Maintained by PostgreSQL from `text`. Read-only from here: writing to a
+    # generated column is an error, which is exactly the guarantee wanted.
+    tsv: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        sa.Computed(TSV_EXPRESSION, persisted=True),
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -92,4 +133,4 @@ class Chunk(Base):
         return f"<Chunk {self.sequence} of {self.document_version_id}>"
 
 
-__all__ = ["Chunk"]
+__all__ = ["TSV_EXPRESSION", "Chunk"]

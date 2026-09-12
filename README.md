@@ -122,7 +122,7 @@ multi-hop questions
 
 # Implementation status
 
-**Milestones 1 to 3 of 10 are implemented.** Everything above this line
+**Milestones 1 to 4 of 10 are implemented.** Everything above this line
 describes the system as specified; everything below describes only what exists
 today.
 
@@ -458,8 +458,188 @@ indexed** holds because nothing is promoted at all.
 - **No OCR.** A scanned PDF with no text layer produces no text, and its job
   fails rather than succeeding with nothing.
 - **A chunk that spans pages records only its first page.**
-- **Re-running a job is available in code, not over HTTP.** The endpoint
-  (`POST /documents/{id}/reindex`) belongs to milestone 4.
+- **Re-running a job was available in code, not over HTTP.** The endpoint
+  (`POST /documents/{id}/reindex`) arrived with milestone 4, below.
+
+## What milestone 4 built
+
+Embeddings and full-text vectors — the specification's *index writes*. A
+chunked version becomes searchable, and only then becomes `active`.
+
+```
+queued → parsing → chunking → indexing → ready     ← milestone 4 finishes it
+              ↓ (any stage)                          draft → active
+            failed, with stage_error
+```
+
+- `app/providers/embeddings.py` — the `EmbeddingProvider` interface, the fixed
+  `DIMENSIONS = 384`, and the shape check every implementation runs.
+- `app/providers/bge.py` — `BAAI/bge-small-en-v1.5`, loaded locally through
+  sentence-transformers.
+- `app/providers/fake_embeddings.py` — deterministic vectors from a hash, for
+  unit tests only.
+- `app/indexing/writer.py` — generating the vectors, writing them, and
+  promoting the version.
+- `app/ingestion/pipeline.py` — `run_indexing`, the stage after chunking.
+- `POST /documents/{id}/reindex` in `app/api/documents.py`.
+- `chunks.embedding`, `chunks.tsv` and migration 0004.
+
+**No retrieval.** Nothing here searches: hybrid search, reranking and citations
+are milestone 5 onwards. This milestone only makes the columns a search would
+read.
+
+### The two columns
+
+| Column | Type | Written by |
+| --- | --- | --- |
+| `embedding` | `vector(384)`, nullable | The indexing stage |
+| `tsv` | `tsvector`, `GENERATED ALWAYS AS (to_tsvector('english', text)) STORED` | **PostgreSQL** |
+
+`tsv` is maintained by the database, not by this application, and that is the
+whole reason for the choice: it cannot drift from the text it describes and it
+cannot fail independently of the row write. There is no trigger to forget and
+no backfill to run. Writing to it is an error, and a test asserts the database
+refuses.
+
+The two-argument `to_tsvector('english', text)` is used because a generated
+column requires an `IMMUTABLE` expression; the one-argument form depends on a
+session setting and is only `STABLE`, so PostgreSQL rejects it there.
+
+It is a **PostgreSQL full-text vector, not BM25.** The specification names BM25
+for the keyword half of hybrid retrieval; `ts_rank` is a different ranking
+model. That gap is real, it belongs to milestone 5, and it is recorded in the
+limitations below rather than papered over here.
+
+`embedding` is **nullable**, because a chunk exists from the moment it is cut
+and is embedded a stage later.
+
+There is deliberately **no index on `embedding`**. The specification says exact
+vector search is fast enough at v1 corpus size and that no HNSW index may be
+added until a measured latency number justifies one — and no such number can
+exist before retrieval and evaluation do. A test asserts no vector index has
+crept in. `tsv` has a GIN index, which is a physical decision about a tsvector
+rather than a behavioural one.
+
+### Where the transaction starts
+
+The ordering is the design, and it is asserted rather than described:
+
+1. the job is claimed and **the claim is committed** — so `attempts` survives
+   what follows;
+2. the version's chunk texts are read, and **that read transaction is ended**;
+3. the vectors are generated with no transaction open — a test records
+   `session.in_transaction()` from inside the provider and asserts `False`;
+4. one transaction writes every vector, moves the job to `ready` and promotes
+   the version;
+5. the caller commits.
+
+Inference is not transactional work. Holding a row lock and a pooled connection
+open across a model run would buy nothing and cost both. Index *writes* are
+transactional, which is what the specification actually requires: a failure
+leaves no vectors, no `ready` job and no promotion — none of it, rather than
+some.
+
+`generate_embeddings` takes a list of strings, not rows, so it has nothing it
+could reach the database with. That is the signature doing the work an
+instruction would otherwise have to.
+
+### Promotion
+
+A version becomes `active` in exactly one place: the indexing transaction, once
+its vectors are written. The previous active version becomes `superseded` in
+the same transaction, so default retrieval never sees two and never sees none —
+the partial unique index would refuse the alternative anyway.
+
+The invariant milestone 3 held vacuously now holds for real: **active implies
+indexed.**
+
+### Retries, and what an attempt costs
+
+Milestone 3's whole-job retry is reused unchanged. A failure during indexing
+rolls the work back and returns the job to `queued` below `max_attempts`, or
+leaves it `failed` at the bound.
+
+A document therefore takes **two attempts** to reach `ready`: one claim parses
+and chunks it, a second indexes it. `attempts` counts job attempts rather than
+stage attempts, which is milestone 3's locked behaviour, so `max_attempts` must
+be at least 2. It is 3 by default.
+
+Two consequences, both observed on a live run rather than reasoned about:
+
+- A job that fails at indexing returns to **`queued`**, so its next attempt
+  re-parses and re-chunks before reaching indexing again. Re-chunking is
+  deterministic and rewrites the same rows, so this is wasteful rather than
+  wrong.
+- Because of that, `attempts` can finish one past `max_attempts` — the bound
+  is checked when an attempt *fails*, and the intervening parse attempt
+  succeeds. With `max_attempts=3` and an embedding provider that cannot load,
+  a job fails at attempts 2 and 4 and stops at `failed`. Each failure applies
+  the rule exactly as milestone 3 defines it.
+
+### `POST /documents/{id}/reindex`
+
+Queues the **active** version to be run again. It answers `202` with the
+document, the version and the new job.
+
+| Case | Answer |
+| --- | --- |
+| The document has an active version | `202`, a `queued` job |
+| No such document | `404` |
+| The document has no active version | `409` |
+| A job on that version is already outstanding | `409` |
+
+It creates **no new version**. Re-running rewrites the same chunks: because
+`chunk_uid` is derived from the version, the sequence and the text, the rows
+written are identical to the ones they replaced. Same identifiers, same count,
+no duplicates — asserted end to end.
+
+A draft that never finished indexing is the upload path's business, and a
+superseded version is history, so neither is a target and a document with
+nothing active is a conflict rather than a silent no-op. Two jobs racing on one
+version would delete and rewrite each other's chunks, so that is a conflict
+too.
+
+### The model
+
+`BAAI/bge-small-en-v1.5`, 384 dimensions, run **locally** through
+sentence-transformers. No embedding API, and never Anthropic — which has no
+embeddings API and is used for generation only.
+
+The adapter loads with `local_files_only=True` and raises `EmbeddingError`
+rather than downloading a model at runtime. Nothing in the application selects
+the fake provider; a test asserts that by reading the application's source.
+
+> **The real model has not been exercised in this environment.** The
+> sentence-transformers cache does not contain `BAAI/bge-small-en-v1.5`, and
+> `huggingface.co` is blocked by this network's proxy (a `403` to `CONNECT`,
+> confirmed directly), so the weights could not be fetched. The test that
+> loads the real model and checks it produces 384-dimensional vectors
+> **skips**, and says why in its skip reason. Every other test in this
+> milestone runs against `FakeEmbeddingProvider`, which the specification
+> permits for unit tests. Transactions, state transitions, idempotency and
+> shapes are therefore proven; **the real model's output is not**. Run
+> `pytest tests/test_embeddings.py` on a machine that can reach the model
+> cache and that skip becomes a pass.
+
+### Known limitations
+
+- **The real embedding model has not been run here.** See the box above.
+- **Keyword search will be `ts_rank`, not BM25.** The column this milestone
+  builds is a PostgreSQL `tsvector`. The specification asks for BM25 in hybrid
+  retrieval, and reconciling the two is milestone 5's problem, not something to
+  quietly rename.
+- **English only.** The generated column names the `english` text search
+  configuration, and changing it means a migration.
+- **No vector index**, by specification, until a measured latency number
+  justifies one.
+- **A 512-word chunk is not a 512-token chunk.** BGE truncates at its own
+  limit, so the tail of a long chunk may not be represented in its vector. The
+  chunker counts whitespace words because no tokenizer is specified anywhere;
+  this is what that costs, and it is measurable only once the real model runs.
+- **Re-indexing re-parses.** The endpoint queues an ordinary job, which starts
+  at `queued` and goes through parsing and chunking again. That is correct
+  after a parser fix and wasteful after a model change; a model-only re-embed
+  is not in this milestone.
 
 ## The two probes
 
@@ -475,7 +655,7 @@ process that was working perfectly. `tests/test_health.py` asserts it answers
 {
   "status": "ready",
   "database":   {"ok": true, "detail": "reachable"},
-  "migrations": {"ok": true, "detail": "at head (70c2f52e54ba)"},
+  "migrations": {"ok": true, "detail": "at head (3fdbad950293)"},
   "extension":  {"ok": true, "detail": "vector 0.6.0"}
 }
 ```
@@ -605,8 +785,9 @@ set one explicitly in code, which is how the test fixtures guarantee they never
 touch the development database — they refuse any name not ending in `_test`.
 
 Tests that need PostgreSQL skip when no server answers, so `pytest` still runs
-without one (207 pass, 149 skip). With a database: **356 pass**. No
-credential is needed either way.
+without one (222 pass, 197 skip). With a database: **418 pass, 1 skip** — the
+one skip is the real-embedding-model test described above, which cannot fetch
+its weights in this environment. No credential is needed either way.
 
 KnowledgeOS is a separate application from DocIntel and VoiceDesk in this
 repository: its own package, dependencies, virtualenv, configuration prefix and

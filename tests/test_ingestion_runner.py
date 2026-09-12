@@ -17,6 +17,7 @@ from app.config import Settings
 from app.ingestion import service
 from app.ingestion.runner import IngestionRunner, claim_next_job, process_one, run_pending
 from app.models import Chunk, DocumentVersion, IngestionJob, JobStatus
+from app.providers import FakeEmbeddingProvider
 from app.storage import LocalStorage
 
 from .fixtures import plain_zip_bytes, words
@@ -76,14 +77,31 @@ def test_nothing_is_claimed_when_nothing_is_queued(session, storage) -> None:
     assert claim_next_job(session) is None
 
 
-def test_a_job_that_is_not_queued_is_not_claimed(session, storage) -> None:
-    """Milestone 2's jobs are the only queued ones; a job already running or
-    finished must not be picked up again."""
+def test_a_job_that_is_not_claimable_is_not_claimed(session, storage) -> None:
+    """A finished or failed job must never be picked up again.
+
+    `indexing` is deliberately *not* in this list: milestone 4 claims those,
+    which is how it finishes what milestone 3 started.
+    """
+    result = _queued(session, storage)
+    result.job.status = JobStatus.READY
+    session.commit()
+
+    assert claim_next_job(session) is None
+
+
+def test_a_job_waiting_at_indexing_is_claimable(session, storage) -> None:
+    """The milestone 3 to milestone 4 handoff, from the runner's side."""
     result = _queued(session, storage)
     result.job.status = JobStatus.INDEXING
     session.commit()
 
-    assert claim_next_job(session) is None
+    claimed = claim_next_job(session)
+
+    assert claimed is not None
+    # Claimed where it stood: it does not go back to parsing.
+    assert claimed.status == JobStatus.INDEXING
+    assert claimed.attempts == 1
 
 
 def test_two_connections_do_not_claim_the_same_job(
@@ -288,11 +306,16 @@ def test_several_queued_jobs_are_all_processed(
         _queued(session, storage)
 
     outcomes = run_pending(
-        sessions=sessionmaker(bind=migrated_engine), storage=storage, settings=settings
+        sessions=sessionmaker(bind=migrated_engine),
+        storage=storage,
+        settings=settings,
+        embeddings=FakeEmbeddingProvider(),
     )
 
-    assert len(outcomes) == 3
-    assert all(outcome.status == JobStatus.INDEXING for outcome in outcomes)
+    # Each document takes two passes: parse and chunk, then index.
+    assert len(outcomes) == 6
+    assert [o.status for o in outcomes].count(JobStatus.INDEXING) == 3
+    assert [o.status for o in outcomes].count(JobStatus.READY) == 3
 
 
 def test_draining_stops_when_the_queue_is_empty(
@@ -301,7 +324,10 @@ def test_draining_stops_when_the_queue_is_empty(
     from sqlalchemy.orm import sessionmaker
 
     assert run_pending(
-        sessions=sessionmaker(bind=migrated_engine), storage=storage, settings=settings
+        sessions=sessionmaker(bind=migrated_engine),
+        storage=storage,
+        settings=settings,
+        embeddings=FakeEmbeddingProvider(),
     ) == []
 
 
@@ -321,10 +347,13 @@ def test_a_job_queued_before_the_process_started_is_still_picked_up(
     session.close()
 
     outcomes = run_pending(
-        sessions=sessionmaker(bind=migrated_engine), storage=storage, settings=settings
+        sessions=sessionmaker(bind=migrated_engine),
+        storage=storage,
+        settings=settings,
+        embeddings=FakeEmbeddingProvider(),
     )
 
-    assert [outcome.job_id for outcome in outcomes] == [job_id]
+    assert {outcome.job_id for outcome in outcomes} == {job_id}
 
 
 # --- lifecycle --------------------------------------------------------------

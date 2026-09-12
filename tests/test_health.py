@@ -83,5 +83,6 @@ def test_the_http_surface_is_exactly_what_this_milestone_serves(
         "/documents",
         "/documents/{document_id}",
         "/documents/{document_id}/versions",
+        "/documents/{document_id}/reindex",
         "/ingestion/{job_id}",
     }
