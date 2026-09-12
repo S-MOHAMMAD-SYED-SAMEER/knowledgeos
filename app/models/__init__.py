@@ -12,11 +12,21 @@ from app.models.document import (
     DocumentVersion,
     VersionStatus,
 )
+from app.models.ingestion_job import (
+    ALLOWED_TRANSITIONS,
+    TERMINAL_STATUSES,
+    IngestionJob,
+    JobStatus,
+)
 
 __all__ = [
+    "ALLOWED_TRANSITIONS",
     "SOURCE_TYPES",
     "SOURCE_TYPE_UPLOAD",
+    "TERMINAL_STATUSES",
     "Document",
     "DocumentVersion",
+    "IngestionJob",
+    "JobStatus",
     "VersionStatus",
 ]

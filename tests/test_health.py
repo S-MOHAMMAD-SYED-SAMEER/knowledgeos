@@ -70,9 +70,18 @@ def test_neither_probe_needs_authentication(client: TestClient, path: str) -> No
     assert client.get(path).status_code in (200, 503)
 
 
-def test_the_http_surface_is_exactly_the_two_probes(client: TestClient) -> None:
-    """A scope guard. Documents, ingestion and query belong to later
-    milestones, and this fails loudly if one of them arrives early."""
+def test_the_http_surface_is_exactly_what_this_milestone_serves(
+    client: TestClient,
+) -> None:
+    """A scope guard. Query, retrieval, answer, reindex and delete endpoints
+    belong to later milestones, and this fails loudly if one arrives early."""
     paths = set(client.get("/openapi.json").json()["paths"])
 
-    assert paths == {"/health", "/ready"}
+    assert paths == {
+        "/health",
+        "/ready",
+        "/documents",
+        "/documents/{document_id}",
+        "/documents/{document_id}/versions",
+        "/ingestion/{job_id}",
+    }

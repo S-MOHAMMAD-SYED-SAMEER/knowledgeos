@@ -1,8 +1,10 @@
 """Application entrypoint: `uvicorn app.main:app --reload`.
 
-Milestone 1 serves `GET /health` and `GET /ready`. That is the whole HTTP
-surface, and `tests/test_health.py` asserts it, so a route belonging to a
-later milestone cannot arrive here quietly.
+Milestone 2 serves the two probes, `POST /documents`,
+`POST /documents/{id}/versions`, `GET /documents`, `GET /documents/{id}`
+and `GET /ingestion/{job_id}`. That is the whole HTTP surface, and
+`tests/test_health.py` asserts it, so a route belonging to a later
+milestone cannot arrive here quietly.
 
 `create_app()` takes its settings as an argument so a test can build an
 application on a configuration of its own without reaching into a cache. The
@@ -16,7 +18,7 @@ races the others to do. `/ready` is what notices when it has not happened.
 from fastapi import FastAPI
 
 from app import __version__
-from app.api import health, ready
+from app.api import documents, health, ingestion, ready
 from app.config import Settings, get_settings
 
 
@@ -30,6 +32,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.include_router(health.router)
     app.include_router(ready.router)
+    app.include_router(documents.router)
+    app.include_router(ingestion.router)
     return app
 
 

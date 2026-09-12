@@ -11,12 +11,15 @@ dependencies = [
     "sqlalchemy>=2.0",
     "alembic>=1.14",
     "psycopg[binary]>=3.2",
+    # Multipart form parsing. FastAPI refuses to define an UploadFile
+    # route without it — it is a framework requirement for the upload
+    # endpoint, not a convenience.
+    "python-multipart>=0.0.20",
 ]
 
 # Dependencies arrive with the milestone that first imports them, so an
 # install never carries a library the code does not yet use. Deferred on
 # purpose, with the milestone that earns each one:
-#   m2: python-multipart          (upload)
 #   m3: apscheduler               (job runner)
 #   m4: pgvector, sentence-transformers
 #   m8: anthropic

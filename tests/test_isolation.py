@@ -85,6 +85,8 @@ def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
         "sqlalchemy",
         "alembic",
         "psycopg",
+        # Milestone 2: FastAPI refuses to define an upload route without it.
+        "python-multipart",
     }
 
 
@@ -96,7 +98,12 @@ def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
         "pgvector",
         "jinja2",
         "apscheduler",
-        "multipart",
+        # Parsing libraries: milestone 3 reads document content, not this one.
+        "pypdf",
+        "pypdfium2",
+        "docx",
+        "magic",
+        "filetype",
     ],
 )
 def test_a_later_milestones_library_is_not_installed(deferred: str) -> None:
@@ -107,10 +114,14 @@ def test_a_later_milestones_library_is_not_installed(deferred: str) -> None:
     assert importlib.util.find_spec(deferred) is None
 
 
-def test_the_schema_is_the_two_milestone_one_tables() -> None:
-    """chunks, ingestion_jobs, queries, answers and the rest arrive with the
-    milestones that write them."""
+def test_the_schema_is_the_three_tables_built_so_far() -> None:
+    """chunks, queries, answers and the rest arrive with the milestones that
+    write them."""
     from app.db.base import Base
     import app.models  # noqa: F401
 
-    assert set(Base.metadata.tables) == {"documents", "document_versions"}
+    assert set(Base.metadata.tables) == {
+        "documents",
+        "document_versions",
+        "ingestion_jobs",
+    }

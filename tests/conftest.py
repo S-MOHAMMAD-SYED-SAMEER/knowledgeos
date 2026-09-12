@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db.session import reset_engine
 from app.main import create_app
+from app.storage import reset_storage
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -38,16 +39,28 @@ TEST_DATABASE_URL = os.environ.get(
 
 
 @pytest.fixture
-def settings_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """A clean settings and engine cache, restored afterwards."""
+def settings_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[None]:
+    """A clean settings, engine and storage cache, restored afterwards.
+
+    The storage root points into a temporary directory, so no test can write
+    into the development `var/` — and an upload test that forgot to isolate
+    itself would be leaving real files on a developer's disk.
+    """
     monkeypatch.setenv("KNOWLEDGEOS_ENVIRONMENT", "test")
+    monkeypatch.setenv(
+        "KNOWLEDGEOS_STORAGE_ROOT", str(tmp_path_factory.mktemp("storage"))
+    )
     get_settings.cache_clear()
     reset_engine()
+    reset_storage()
     try:
         yield
     finally:
         get_settings.cache_clear()
         reset_engine()
+        reset_storage()
 
 
 @pytest.fixture
@@ -96,11 +109,16 @@ def migrated_engine(
     database_url: str,
     alembic_config: AlembicConfig,
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[Engine]:
     """A database at head, torn back down to empty afterwards."""
     monkeypatch.setenv("KNOWLEDGEOS_DATABASE_URL", database_url)
+    monkeypatch.setenv(
+        "KNOWLEDGEOS_STORAGE_ROOT", str(tmp_path_factory.mktemp("storage"))
+    )
     get_settings.cache_clear()
     reset_engine()
+    reset_storage()
 
     command.downgrade(alembic_config, "base")
     command.upgrade(alembic_config, "head")
@@ -113,6 +131,7 @@ def migrated_engine(
         command.downgrade(alembic_config, "base")
         get_settings.cache_clear()
         reset_engine()
+        reset_storage()
 
 
 @pytest.fixture

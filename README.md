@@ -3,11 +3,12 @@
 An internal knowledge system that answers from retrieved evidence — and
 measures whether it actually did.
 
-**Status: milestone 1 of 10.** The foundation exists: configuration, the two
-probes, PostgreSQL with pgvector, Alembic, and the document/version schema.
-Nothing is ingested, retrieved, or answered yet. Metrics sections will be
-filled with measured numbers only after the evaluation harness runs. **No
-benchmark figure appears in this README until it is real.**
+**Status: milestone 2 of 10.** Documents can be uploaded, validated, stored
+and versioned, and each upload queues an ingestion job. **Nothing reads what a
+document says yet** — parsing, chunking, embeddings, retrieval and answering
+are milestones 3 onwards. Metrics sections will be filled with measured
+numbers only after the evaluation harness runs. **No benchmark figure appears
+in this README until it is real.**
 
 ## The problem
 
@@ -120,8 +121,9 @@ multi-hop questions
 
 # Implementation status
 
-**Milestone 1 of 10 is implemented.** Everything above this line describes the
-system as specified; everything below describes only what exists today.
+**Milestones 1 and 2 of 10 are implemented.** Everything above this line
+describes the system as specified; everything below describes only what exists
+today.
 
 ## What milestone 1 built
 
@@ -133,10 +135,167 @@ system as specified; everything below describes only what exists today.
 - `documents` and `document_versions` as ORM models under `app/models/`.
 - One Alembic migration creating the `vector` extension and both tables,
   verified to upgrade, downgrade and re-upgrade on a real database.
-- 74 tests against a really-migrated PostgreSQL, not an in-memory stand-in.
+- Tests against a really-migrated PostgreSQL, not an in-memory stand-in.
 
-No upload, no parsing, no chunking, no embeddings, no retrieval, no
-generation, no UI. Those are milestones 2 to 10.
+No parsing, no chunking, no embeddings, no retrieval, no generation, no UI.
+Those are milestones 3 to 10.
+
+## What milestone 2 built
+
+Upload. A file arrives, is checked, is stored under a name this system chose,
+and becomes a document, a version and a queued ingestion job — in one database
+transaction.
+
+```
+POST /documents          →  validate → store → document + version 1 + job
+POST /documents/{id}/versions  →  validate → store → version n+1 + job
+GET  /documents          GET /documents/{id}          GET /ingestion/{job_id}
+```
+
+- `app/storage/` — a four-method `Storage` protocol and `LocalStorage`, the
+  only implementation and the only place in the application that touches the
+  filesystem.
+- `app/ingestion/validation.py` — extension, declared type, signature, UTF-8
+  and size.
+- `app/ingestion/service.py` — version numbering, the queued job, and
+  `promote_version`.
+- `app/api/documents.py`, `app/api/ingestion.py` — the five endpoints.
+- `app/models/ingestion_job.py` and migration 0002.
+
+**No parsing.** Nothing here opens a PDF, reads a DOCX archive, renders
+Markdown or normalises text. That is milestone 3, and the boundary is enforced
+by tests rather than by intention.
+
+### What validation may and may not conclude
+
+Validation looks at bytes; it does not interpret them.
+
+| Format | Extension | Checked |
+| --- | --- | --- |
+| PDF | `.pdf` | extension, declared type, `%PDF-` signature |
+| DOCX | `.docx` | extension, declared type, `PK\x03\x04` (ZIP) signature |
+| Markdown | `.md`, `.markdown` | extension, declared type, decodes as UTF-8 |
+| Plain text | `.txt` | extension, declared type, decodes as UTF-8 |
+
+Plus: an empty file is refused, and the size limit is enforced **while
+reading, in bounded chunks** — never from `Content-Length`, which the client
+chose.
+
+The declared `Content-Type` is evidence, not authority: a client that declares
+nothing useful is not refused for that alone, but one that declares a type
+belonging to a different format is contradicting itself and is.
+
+`PK\x03\x04` proves a ZIP and nothing more. Proving a file is really a Word
+document means opening the archive, which is parsing — so a renamed `.zip` is
+accepted here and fails in milestone 3's parser, recorded as a job error. That
+is the right place for it to fail.
+
+### Storage
+
+```
+<storage_root>/documents/<document_id>/<version_id><ext>
+```
+
+Every component is a UUID this application generated. **The uploaded filename
+never appears in a path** — it is kept as metadata and nothing else, which is
+what makes path traversal impossible rather than merely blocked. It is
+sanitised anyway (POSIX and Windows directory parts stripped, control
+characters and bidirectional overrides removed, trimmed to the column) so it
+cannot carry a surprise into a log line or a page.
+
+`storage_path` is stored relative to the root, so moving the root does not
+invalidate a row.
+
+A write goes to a temporary file in the destination directory, is `fsync`ed,
+and is then `os.replace`d into position — same filesystem, so the rename is
+atomic. A reader never sees a partial file at a real key, and a failed write
+leaves neither a partial file nor a temporary one.
+
+`LocalStorage` refuses any key that is absolute, contains `..`, is not already
+normalised, or resolves outside the root — checked before and after
+resolution, so a symlinked directory cannot lead out either.
+
+### Version lifecycle
+
+The invariant this project depends on:
+
+> **A version is `active` only if its content has been indexed.**
+
+So an uploaded version is a `draft`, and **uploading a new version does not
+supersede the current active one**. Superseding a version that answers
+questions in favour of one that has not been indexed would take a working
+answer away and put nothing in its place — default retrieval filters on
+`status = 'active'`, and the new version has no chunks behind it.
+
+`promote_version()` is the transition, and it is fully implemented and tested
+here: it demotes the incumbent, flushes, then promotes the target, so the
+partial unique index never sees two active versions. **Nothing in milestone 2
+calls it.** The caller arrives with the milestone that can index a version,
+and the docstring says so.
+
+### Version numbering under concurrency
+
+`max(version_number) + 1`, read inside the transaction and **not trusted**.
+Two requests can read the same maximum; the `UNIQUE (document_id,
+version_number)` constraint is what actually decides.
+
+When a request loses that race the **database transaction alone** is retried:
+the file has already been stored under a key built from the version UUID,
+which does not change, so a retry re-reads the maximum and re-inserts the rows.
+It never re-reads the request body, never writes a second file and never
+re-runs validation. `tests/test_ingestion_service.py` proves this with a real
+second connection committing the contested number first, and asserts the file
+was written exactly once.
+
+### Ingestion jobs
+
+Created `queued`, with `attempts = 0`, `started_at` and `completed_at` null.
+**Milestone 2 writes no other state.** The runner that advances a job through
+`parsing → chunking → indexing → ready` is milestone 3; there is no
+`BackgroundTasks`, no scheduler and no worker here. A queued job that nothing
+picks up is the correct state of the system today, and `GET /ingestion/{id}`
+reports it honestly.
+
+`stage_error` records where a job broke, never document content. There is
+deliberately no unique constraint on `document_version_id`, because
+re-indexing creates a second job for the same version.
+
+### Failure, and the one residue that is not swept
+
+The file is written first and the rows last, and a database failure deletes
+the file it had already written.
+
+The ordering is deliberate, because the two possible residues are not equally
+bad. A file with no row is invisible, costs disk, and can be removed. A row
+with no file is a version this system believes it has, and it breaks the
+moment a parser opens it.
+
+| Failure | Result |
+| --- | --- |
+| Validation | Nothing written to disk or database |
+| Storage write | No rows; opaque `500` |
+| Any database failure | Rows rolled back, file deleted, opaque `500` |
+| Job creation | Document and version roll back with it — all three are one transaction |
+
+**Accepted limitation.** A process that dies between the storage write and the
+database commit leaves an orphan file, because the compensating delete never
+runs. Milestone 2 ships no reaper: an unreferenced file costs disk and nothing
+else, which is the cheaper of the two failures. A test asserts this window
+exists rather than pretending it is closed.
+
+Error responses carry a short reason and nothing else — no path, no storage
+root, no exception class, no traceback. `storage_path` appears in no response
+body at all.
+
+### What milestone 2 did not touch
+
+`/health` and `/ready` are unchanged. Storage reachability is deliberately
+**not** a readiness condition: a full disk should fail an upload, not take the
+process out of rotation.
+
+`checksum` and `page_count` stay null. The checksum is defined over normalized
+text and the page count comes from parsing; neither exists until milestone 3,
+and a value invented here would be a plausible-looking lie.
 
 ## The two probes
 
@@ -282,8 +441,8 @@ set one explicitly in code, which is how the test fixtures guarantee they never
 touch the development database — they refuse any name not ending in `_test`.
 
 Tests that need PostgreSQL skip when no server answers, so `pytest` still runs
-without one (36 pass, 38 skip). With a database: **74 pass**. No credential is
-needed either way.
+without one (117 pass, 103 skip). With a database: **220 pass**. No
+credential is needed either way.
 
 KnowledgeOS is a separate application from DocIntel and VoiceDesk in this
 repository: its own package, dependencies, virtualenv, configuration prefix and
