@@ -2,7 +2,8 @@
 
 Settings arrive with the milestone that reads them: a chunk size nothing
 chunks with, or a model name nothing calls, is a promise the code has not
-made yet. Milestone 2 adds three, all of them about the upload boundary.
+made yet. Milestone 2 added three about the upload boundary; milestone 3
+adds four, about turning an uploaded file into chunks.
 
 Every value comes from the environment under the `KNOWLEDGEOS_` prefix, or
 from a `.env` file while developing. Nothing here is a secret yet — there is
@@ -65,6 +66,24 @@ class Settings(BaseSettings):
     # accepted here that nothing can later parse would be a job that fails
     # after the caller has already been told the upload succeeded.
     allowed_extensions: tuple[str, ...] = (".pdf", ".docx", ".md", ".markdown", ".txt")
+
+    # --- Chunking ---
+    # The specification's terminology is "tokens", and these keep its names.
+    # The unit this milestone counts is a **whitespace-delimited word**: no
+    # tokenizer is specified anywhere, and the embedding model's own
+    # tokenizer would mean downloading a model asset, which milestone 3 has
+    # no business doing. See the README for the consequence at milestone 4.
+    chunk_size_tokens: int = Field(default=512, gt=0)
+    chunk_overlap_tokens: int = Field(default=64, ge=0)
+
+    # --- Ingestion runner ---
+    # How often the runner looks for queued work. Polling rather than an
+    # in-process background task, so a job survives a restart.
+    ingestion_poll_seconds: float = Field(default=5.0, gt=0)
+    # How many times a job may be tried before it is left failed. The
+    # specification requires retries to be "bounded by attempts" and names no
+    # number, so the number lives here rather than in the code.
+    max_attempts: int = Field(default=3, gt=0)
 
 
 @lru_cache

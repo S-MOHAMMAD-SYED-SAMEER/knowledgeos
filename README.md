@@ -3,12 +3,11 @@
 An internal knowledge system that answers from retrieved evidence — and
 measures whether it actually did.
 
-**Status: milestone 2 of 10.** Documents can be uploaded, validated, stored
-and versioned, and each upload queues an ingestion job. **Nothing reads what a
-document says yet** — parsing, chunking, embeddings, retrieval and answering
-are milestones 3 onwards. Metrics sections will be filled with measured
-numbers only after the evaluation harness runs. **No benchmark figure appears
-in this README until it is real.**
+**Status: milestone 3 of 10.** Documents can be uploaded, validated, stored,
+versioned, parsed and chunked. **Nothing is searchable yet** — embeddings,
+full-text indexing, retrieval and answering are milestones 4 onwards. Metrics
+sections will be filled with measured numbers only after the evaluation
+harness runs. **No benchmark figure appears in this README until it is real.**
 
 ## The problem
 
@@ -78,10 +77,12 @@ Embeddings and reranking run locally. The only paid dependency is answer
 generation, and the entire evaluation suite runs without it.
 
 Dependencies arrive with the milestone that first imports them, so an install
-never carries a library the code does not yet use. Milestone 1 installs seven
-runtime packages: FastAPI, Uvicorn, Pydantic, pydantic-settings, SQLAlchemy,
-Alembic, psycopg. sentence-transformers, the Anthropic SDK, the `pgvector`
-Python package and Jinja2 are not installed yet.
+never carries a library the code does not yet use. Today that is FastAPI,
+Uvicorn, Pydantic, pydantic-settings, SQLAlchemy, Alembic, psycopg,
+python-multipart, `pypdf` and APScheduler. sentence-transformers, the
+Anthropic SDK, the `pgvector` Python package and Jinja2 are not installed yet;
+DOCX is read with the standard library, so `python-docx` is not installed at
+all.
 
 ## Evaluation methodology
 
@@ -121,7 +122,7 @@ multi-hop questions
 
 # Implementation status
 
-**Milestones 1 and 2 of 10 are implemented.** Everything above this line
+**Milestones 1 to 3 of 10 are implemented.** Everything above this line
 describes the system as specified; everything below describes only what exists
 today.
 
@@ -137,8 +138,8 @@ today.
   verified to upgrade, downgrade and re-upgrade on a real database.
 - Tests against a really-migrated PostgreSQL, not an in-memory stand-in.
 
-No parsing, no chunking, no embeddings, no retrieval, no generation, no UI.
-Those are milestones 3 to 10.
+No embeddings, no retrieval, no generation, no UI. Those are milestones 4
+to 10.
 
 ## What milestone 2 built
 
@@ -297,6 +298,169 @@ process out of rotation.
 text and the page count comes from parsing; neither exists until milestone 3,
 and a value invented here would be a plausible-looking lie.
 
+## What milestone 3 built
+
+Parsing and chunking. A queued job is picked up, the stored file is read, its
+text is normalized once, and that text becomes deterministic chunks in the
+database.
+
+```
+queued → parsing → chunking → indexing        ← milestone 3 stops here
+              ↓ (either stage)
+            failed, with stage_error
+```
+
+- `app/parsing/` — one parser per format, plus the normalizer.
+- `app/chunking/` — the deterministic chunker and `chunk_uid`. Pure functions:
+  no database, no storage, no provider, which is what the specification
+  requires of this package.
+- `app/ingestion/pipeline.py` — the stages, and the one place normalized text
+  is produced.
+- `app/ingestion/runner.py` — APScheduler polling with `FOR UPDATE SKIP LOCKED`.
+- `app/models/chunk.py` and migration 0003.
+
+**No embeddings, no tsvector, no retrieval.** Making chunks findable is
+milestone 4.
+
+### The parsers
+
+| Format | Library | Pages | Sections |
+| --- | --- | --- | --- |
+| PDF | `pypdf` | Real, one block per page | None — a PDF structurally provides none |
+| DOCX | **standard library** (`zipfile` + `ElementTree`) | None — pagination is a rendering property, not in the file | Nearest preceding paragraph styled as a heading |
+| Markdown | standard library | None | Nearest preceding ATX or setext heading |
+| Plain text | standard library | None | None |
+
+`python-docx` was deliberately not added: extracting text from Office Open XML
+needs a ZIP reader and an XML parser, both of which are in the standard
+library, and the package would have pulled `lxml` with it.
+
+**A renamed archive fails here, and that is by design.** Milestone 2 validates
+a `.docx` only as far as its `PK\x03\x04` signature, because proving a file is
+really a Word document means opening it — and opening it is parsing. So a
+`.zip` renamed to `.docx` is accepted at upload and fails at ingestion with a
+recorded stage error. This is the other half of that hand-off.
+
+Missing metadata stays missing. A `.txt` file has no pages, so its page is
+null — not 1. Nothing is invented.
+
+### Normalization
+
+One function, twelve rules, each with its own test, because every `checksum`
+and every `chunk_uid` is computed over its output:
+
+1. CRLF and CR become LF.
+2. Unicode NFC.
+3. Categories `Cc` and `Cf` removed, except LF and TAB — which takes out NUL,
+   zero-width joiners and bidirectional overrides.
+4. Trailing whitespace stripped per line.
+5. Runs of blank lines collapse to one.
+6. Outer whitespace stripped.
+
+And what it does not do: no lowercasing, no punctuation stripping, no
+collapsing of internal spacing, no semantic rewriting. The text stored beside
+a citation should be a quotation from the document, not a paraphrase of it.
+`normalize(normalize(x)) == normalize(x)`, asserted.
+
+### Chunking
+
+512 units with 64 of overlap, both configurable, with a paragraph boundary
+preferred whenever one falls within 20% of the target.
+
+**What a unit is, stated plainly: a whitespace-delimited word.** The
+specification asks for a count of "tokens" and names no tokenizer anywhere.
+The embedding model's own tokenizer would mean downloading a model asset,
+which this milestone has no business doing and which would break the
+offline-by-default posture. The settings keep the specification's `*_tokens`
+names.
+
+> **Known risk, recorded rather than solved.** A whitespace word is longer
+> than a subword token, so 512 words may exceed the embedding model's input
+> window in milestone 4 and be silently truncated. This milestone does not
+> attempt to fix that. Changing the unit later changes every chunk boundary
+> and therefore every `chunk_uid`, which is a full re-index.
+
+Offsets are half-open `[char_start, char_end)` into the **complete normalized
+document text**, so `document_text[char_start:char_end]` is exactly the chunk.
+Not the raw parser output, and not chunk-relative.
+
+**A chunk that spans pages records the page it started on.** The column holds
+one page, the specification asks for no more, and an array would be inventing
+schema. The consequence is real and worth knowing before citations are built
+on it in milestone 8: a citation may name where a chunk begins rather than
+every page it touches.
+
+### `chunk_uid`
+
+```python
+sha256(f"{document_version_id}:{sequence}:{normalized_text}".encode("utf-8")).hexdigest()[:32]
+```
+
+Lower-case hyphenated UUID, plain decimal sequence, literal `:`, UTF-8,
+lower-case hex, first 32 characters. Page, section, document id and offsets
+are **not** inputs — a corrected page leaves a chunk's identity alone.
+
+This is what makes re-indexing idempotent: the identifier is derived from
+content rather than allocated, so a re-run writes rows identical to the ones
+it replaced instead of duplicates. A golden-value test pins the exact string,
+computed outside Python with `sha256sum` so it checks the implementation
+rather than restating it.
+
+### The runner
+
+APScheduler polling, started and stopped by the application's lifespan and
+held on the application rather than in a module-level variable.
+
+Polling rather than a background task attached to the upload request, because
+a job table exists so that work survives: a background task cannot retry after
+a restart and cannot touch jobs queued before the process started — and
+milestone 2 left real queued rows behind.
+
+A job is claimed with `SELECT … FOR UPDATE SKIP LOCKED`: a row another worker
+has already taken is skipped rather than waited for, so the design is safe if
+it is ever run in more than one process, with no broker and no lock table. A
+test proves it with two genuine database connections.
+
+**The claim commits before the work begins.** `attempts` is what bounds
+retrying, so it has to survive the rollback a failure performs — counted
+inside the work's own transaction it would be undone by every failure, and a
+job that always failed would be retried for ever.
+
+### Retries
+
+Every try increments `attempts`. Below `max_attempts` a failed job returns to
+`queued` and is picked up again; at the bound it stops at `failed`. No
+backoff and no retryable/non-retryable classification — the specification asks
+for retries bounded by `attempts` and nothing more. The bound is configuration,
+not a constant.
+
+A stage error names the stage and the failure class. It never carries document
+content, a storage path or a traceback, and a test asserts each.
+
+### Where milestone 3 stops
+
+A successful job ends at **`indexing`**, and the version stays a `draft`.
+
+Parsing and chunking are complete; writing embeddings and a full-text vector
+is milestone 4's work, so the job rests at the stage that owns it — exactly as
+milestone 2's jobs rested at `queued` before this runner existed. `ready` is
+not claimed before indexing has happened, and the invariant **active ⇒
+indexed** holds because nothing is promoted at all.
+
+### Known limitations
+
+- **Chunk size is measured in whitespace words**, with the milestone-4
+  truncation risk described above.
+- **Nothing bounds DOCX decompression.** Milestone 2 caps the size of an
+  upload, not the size of what it expands to, so a crafted archive could
+  expand further than intended. A decompression limit was deliberately left
+  out of this milestone's scope.
+- **No OCR.** A scanned PDF with no text layer produces no text, and its job
+  fails rather than succeeding with nothing.
+- **A chunk that spans pages records only its first page.**
+- **Re-running a job is available in code, not over HTTP.** The endpoint
+  (`POST /documents/{id}/reindex`) belongs to milestone 4.
+
 ## The two probes
 
 `GET /health` is **liveness**. It touches nothing — no database, no provider,
@@ -441,7 +605,7 @@ set one explicitly in code, which is how the test fixtures guarantee they never
 touch the development database — they refuse any name not ending in `_test`.
 
 Tests that need PostgreSQL skip when no server answers, so `pytest` still runs
-without one (117 pass, 103 skip). With a database: **220 pass**. No
+without one (207 pass, 149 skip). With a database: **356 pass**. No
 credential is needed either way.
 
 KnowledgeOS is a separate application from DocIntel and VoiceDesk in this

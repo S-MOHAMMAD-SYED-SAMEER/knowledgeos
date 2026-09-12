@@ -15,12 +15,18 @@ dependencies = [
     # route without it — it is a framework requirement for the upload
     # endpoint, not a convenience.
     "python-multipart>=0.0.20",
+    # Milestone 3. PDF text and page count; pure Python, and on 3.13 it
+    # brings no transitive dependencies of its own.
+    "pypdf>=5.1",
+    # The ingestion job runner polls for queued work. Durable across a
+    # restart, which is what a job table needs and what an in-process
+    # background task cannot give.
+    "APScheduler>=3.10",
 ]
 
 # Dependencies arrive with the milestone that first imports them, so an
 # install never carries a library the code does not yet use. Deferred on
 # purpose, with the milestone that earns each one:
-#   m3: apscheduler               (job runner)
 #   m4: pgvector, sentence-transformers
 #   m8: anthropic
 #   m10: jinja2

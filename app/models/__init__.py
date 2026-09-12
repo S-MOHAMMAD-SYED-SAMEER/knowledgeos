@@ -5,6 +5,7 @@ Importing this package registers all of them on `Base.metadata`, which is what
 against. A model that is not reachable from here is invisible to migrations.
 """
 
+from app.models.chunk import Chunk
 from app.models.document import (
     SOURCE_TYPE_UPLOAD,
     SOURCE_TYPES,
@@ -24,6 +25,7 @@ __all__ = [
     "SOURCE_TYPES",
     "SOURCE_TYPE_UPLOAD",
     "TERMINAL_STATUSES",
+    "Chunk",
     "Document",
     "DocumentVersion",
     "IngestionJob",

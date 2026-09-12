@@ -49,11 +49,23 @@ def test_settings_are_built_once(settings_env) -> None:
 
 
 def test_no_credential_is_needed_to_configure_this_application() -> None:
-    """A fresh clone runs with nothing set. That must stay true."""
+    """A fresh clone runs with nothing set. That must stay true.
+
+    Credential-shaped names, not the bare word "token": milestone 3's
+    `chunk_size_tokens` counts words in a chunk and is nobody's secret.
+    """
     settings = Settings(_env_file=None)
 
+    credentials = (
+        "api_key",
+        "apikey",
+        "secret",
+        "password",
+        "auth_token",
+        "access_token",
+        "credential",
+    )
     for field in Settings.model_fields:
-        assert "key" not in field
-        assert "secret" not in field
-        assert "token" not in field
+        for shape in credentials:
+            assert shape not in field.lower(), field
     assert settings.app_name

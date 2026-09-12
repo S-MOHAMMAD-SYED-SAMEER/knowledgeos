@@ -193,6 +193,11 @@ class DocumentVersion(Base):
     jobs: Mapped[list["IngestionJob"]] = relationship(  # noqa: F821
         back_populates="version", cascade="all, delete-orphan"
     )
+    chunks: Mapped[list["Chunk"]] = relationship(  # noqa: F821
+        back_populates="version",
+        cascade="all, delete-orphan",
+        order_by="Chunk.sequence",
+    )
 
     def __repr__(self) -> str:
         return f"<DocumentVersion v{self.version_number} {self.status}>"

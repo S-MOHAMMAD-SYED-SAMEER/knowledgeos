@@ -6,7 +6,7 @@ from alembic import command
 from sqlalchemy import Engine, create_engine, inspect, text
 
 VERSIONS = pathlib.Path(__file__).resolve().parent.parent / "alembic" / "versions"
-TABLES = {"documents", "document_versions", "ingestion_jobs"}
+TABLES = {"documents", "document_versions", "ingestion_jobs", "chunks"}
 
 
 def _tables(url: str) -> set[str]:
@@ -17,8 +17,8 @@ def _tables(url: str) -> set[str]:
         engine.dispose()
 
 
-def test_there_are_exactly_two_migrations() -> None:
-    assert len(list(VERSIONS.glob("*.py"))) == 2
+def test_there_are_exactly_three_migrations() -> None:
+    assert len(list(VERSIONS.glob("*.py"))) == 3
 
 
 def test_upgrade_creates_every_table(migrated_engine: Engine, database_url) -> None:

@@ -87,6 +87,10 @@ def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
         "psycopg",
         # Milestone 2: FastAPI refuses to define an upload route without it.
         "python-multipart",
+        # Milestone 3: PDF text and page count, and the runner that polls
+        # for queued ingestion jobs.
+        "pypdf",
+        "APScheduler",
     }
 
 
@@ -97,13 +101,15 @@ def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
         "anthropic",
         "pgvector",
         "jinja2",
-        "apscheduler",
-        # Parsing libraries: milestone 3 reads document content, not this one.
-        "pypdf",
+        # Parsers milestone 3 deliberately did not need: DOCX is read with
+        # the standard library, and a signature check needs no library.
         "pypdfium2",
         "docx",
         "magic",
         "filetype",
+        # Brokers the specification forbids outright.
+        "redis",
+        "celery",
     ],
 )
 def test_a_later_milestones_library_is_not_installed(deferred: str) -> None:
@@ -114,9 +120,9 @@ def test_a_later_milestones_library_is_not_installed(deferred: str) -> None:
     assert importlib.util.find_spec(deferred) is None
 
 
-def test_the_schema_is_the_three_tables_built_so_far() -> None:
-    """chunks, queries, answers and the rest arrive with the milestones that
-    write them."""
+def test_the_schema_is_the_four_tables_built_so_far() -> None:
+    """queries, answers and the rest arrive with the milestones that write
+    them."""
     from app.db.base import Base
     import app.models  # noqa: F401
 
@@ -124,4 +130,5 @@ def test_the_schema_is_the_three_tables_built_so_far() -> None:
         "documents",
         "document_versions",
         "ingestion_jobs",
+        "chunks",
     }
