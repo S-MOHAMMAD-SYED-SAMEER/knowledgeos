@@ -85,6 +85,23 @@ class Settings(BaseSettings):
     # number, so the number lives here rather than in the code.
     max_attempts: int = Field(default=3, gt=0)
 
+    # --- Retrieval ---
+    # RRF's own constant. The specification fixes the formula and gives this
+    # a default of 60 while calling it "configurable" — the only part of
+    # retrieval's numbers it says that about. The per-channel candidate limit
+    # (50) and the final count handed to reranking (20) are not settings:
+    # the specification states them as facts about what "top 50" and "top
+    # 20" mean, and a request-tunable version of either would make those
+    # sentences untrue on demand.
+    rrf_k: int = Field(default=60, gt=0)
+
+    # The longest query `POST /query` accepts before answering 422. Nothing
+    # in the specification sets a number; this exists so a very long query is
+    # rejected loudly rather than silently truncated by the embedding
+    # model's own token limit, which would embed a different query than the
+    # one that was typed.
+    query_max_length: int = Field(default=1000, gt=0)
+
 
 @lru_cache
 def get_settings() -> Settings:

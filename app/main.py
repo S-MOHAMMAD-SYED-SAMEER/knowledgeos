@@ -1,10 +1,10 @@
 """Application entrypoint: `uvicorn app.main:app --reload`.
 
-Milestone 3 serves the same routes milestone 2 did — the two probes,
-`POST /documents`, `POST /documents/{id}/versions`, `GET /documents`,
-`GET /documents/{id}` and `GET /ingestion/{job_id}`. That is the whole HTTP
-surface, and `tests/test_health.py` asserts it, so a route belonging to a
-later milestone cannot arrive here quietly.
+Milestone 5 adds one route to what milestone 3 served: `POST /query`,
+alongside the two probes, `POST /documents`, `POST /documents/{id}/versions`,
+`GET /documents`, `GET /documents/{id}` and `GET /ingestion/{job_id}`. That is
+the whole HTTP surface, and `tests/test_health.py` asserts it, so a route
+belonging to a later milestone cannot arrive here quietly.
 
 What is new is behind it: the lifespan starts the ingestion runner, which
 polls for queued jobs and parses and chunks them. The runner is held on the
@@ -26,7 +26,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app import __version__
-from app.api import documents, health, ingestion, ready
+from app.api import documents, health, ingestion, query, ready
 from app.config import Settings, get_settings
 from app.ingestion.runner import IngestionRunner
 
@@ -49,6 +49,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(ready.router)
     app.include_router(documents.router)
     app.include_router(ingestion.router)
+    app.include_router(query.router)
     return app
 
 

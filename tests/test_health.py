@@ -73,8 +73,8 @@ def test_neither_probe_needs_authentication(client: TestClient, path: str) -> No
 def test_the_http_surface_is_exactly_what_this_milestone_serves(
     client: TestClient,
 ) -> None:
-    """A scope guard. Query, retrieval, answer, reindex and delete endpoints
-    belong to later milestones, and this fails loudly if one arrives early."""
+    """A scope guard. Answer, feedback and delete endpoints belong to later
+    milestones, and this fails loudly if one arrives early."""
     paths = set(client.get("/openapi.json").json()["paths"])
 
     assert paths == {
@@ -85,4 +85,5 @@ def test_the_http_surface_is_exactly_what_this_milestone_serves(
         "/documents/{document_id}/versions",
         "/documents/{document_id}/reindex",
         "/ingestion/{job_id}",
+        "/query",
     }

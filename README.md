@@ -505,10 +505,11 @@ The two-argument `to_tsvector('english', text)` is used because a generated
 column requires an `IMMUTABLE` expression; the one-argument form depends on a
 session setting and is only `STABLE`, so PostgreSQL rejects it there.
 
-It is a **PostgreSQL full-text vector, not BM25.** The specification names BM25
-for the keyword half of hybrid retrieval; `ts_rank` is a different ranking
-model. That gap is real, it belongs to milestone 5, and it is recorded in the
-limitations below rather than papered over here.
+It is a **PostgreSQL full-text vector, not BM25.** The specification is
+explicit that Postgres FTS must never be labelled BM25 in code, comments or
+docs — it names `ts_rank_cd` as the ranking function retrieval must use, a
+correction this document got wrong until milestone 5 re-checked it against
+the specification's own text.
 
 `embedding` is **nullable**, because a chunk exists from the moment it is cut
 and is embedded a stage later.
@@ -624,10 +625,11 @@ the fake provider; a test asserts that by reading the application's source.
 ### Known limitations
 
 - **The real embedding model has not been run here.** See the box above.
-- **Keyword search will be `ts_rank`, not BM25.** The column this milestone
-  builds is a PostgreSQL `tsvector`. The specification asks for BM25 in hybrid
-  retrieval, and reconciling the two is milestone 5's problem, not something to
-  quietly rename.
+- **Keyword search is `ts_rank_cd` over PostgreSQL full-text search, not
+  BM25.** The column this milestone builds is a PostgreSQL `tsvector`, and
+  the specification is explicit that this must never be called BM25 — an
+  earlier version of this document got that backwards; milestone 5 uses
+  `ts_rank_cd` exactly as specified.
 - **English only.** The generated column names the `english` text search
   configuration, and changing it means a migration.
 - **No vector index**, by specification, until a measured latency number
