@@ -137,6 +137,33 @@ def test_m9_owned_timing_and_cost_columns_are_null(
     assert query_row.cost_usd is None
 
 
+def test_persist_query_writes_measured_observability_fields_when_given(
+    session, storage, embeddings
+) -> None:
+    """Milestone 9 (D5): a caller with real measurements gets them written
+    through unchanged -- never recomputed, never rounded, here."""
+    normalized, candidates = _reranked_candidates(
+        session, storage, embeddings, query_text="production database access"
+    )
+    uids = [c.evidence.chunk_uid for c in candidates]
+    fake_llm = FakeLLMProvider([valid_json(cited_answer_text(*uids), uids)])
+    answer = generate_answer(
+        query_text=normalized, candidates=candidates, llm=fake_llm,
+        abstention_threshold=None, max_tokens=200, prompt=PROMPT,
+    )
+    query_row, _ = persist_query(
+        session, query_text="q", normalized_text=normalized, filters={},
+        candidates=candidates, answer=answer,
+        retrieval_ms=12.5, rerank_ms=3.25, llm_ms=100.0, total_ms=115.75, cost_usd=0.00042,
+    )
+
+    assert query_row.retrieval_ms == 12.5
+    assert query_row.rerank_ms == 3.25
+    assert query_row.llm_ms == 100.0
+    assert query_row.total_ms == 115.75
+    assert float(query_row.cost_usd) == pytest.approx(0.00042)
+
+
 def test_retrieved_chunks_selected_flag_matches_the_top_eight(
     session, storage, embeddings
 ) -> None:

@@ -70,12 +70,17 @@ def test_the_generation_package_exists_and_citations_stays_provider_free() -> No
 
 
 def test_the_evals_package_exists_and_is_bounded() -> None:
-    """Milestone 7's own package — present, and calling no generation
-    provider. A docstring may still *mention* generation while explaining
-    that it belongs elsewhere, so this checks imports, not prose."""
+    """Milestone 7's own package — present, calling no Anthropic import
+    anywhere under it (including milestone 9's own `evals/answers/`, which
+    legitimately arrived to evaluate milestone 8's Gemini-backed
+    generation — this inverts the guard that used to keep it out, the same
+    way `test_query_persistence_tables_now_exist` below already inverts
+    its own milestone-7-era guard for milestone 8's tables). A docstring
+    may still *mention* generation while explaining that it belongs
+    elsewhere, so this checks imports, not prose."""
     package = ROOT / "evals"
     assert package.exists()
-    assert not (package / "answers").exists()
+    assert (package / "answers").exists()
 
     for path in package.rglob("*.py"):
         for name in _imports(path.read_text()):

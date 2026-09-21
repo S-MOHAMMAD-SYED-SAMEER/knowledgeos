@@ -26,6 +26,17 @@ milestone 8 section for why. None of the three is ever replaced by a fake or
 a passthrough outside a test — a test overrides `embedding_provider`,
 `rerank_provider`, and `llm_provider`, the three FastAPI dependencies this
 module exposes for that purpose.
+
+**Milestone 9 observability (D5).** Retrieval (embed + retrieve, timed as
+one stage), reranking, and generation are each timed with
+`app.observability.timing.stage_timer`, and the three durations plus their
+sum are passed to `persist_query` unchanged — never recomputed or rounded
+here. Cost is computed from the answer's own measured token counts via
+`app.observability.pricing.compute_cost_usd`; an unconfigured or unknown
+model's pricing is a `PricingError`, which is caught here and turns into a
+`None` `cost_usd` rather than a `503` — pricing being unset must never break
+a live query, only leave its cost unmeasured. No timing or cost value is
+ever fabricated: every one is either a real measurement or `None`.
 """
 
 import logging
@@ -56,6 +67,8 @@ from app.generation.generator import GenerationError, generate_answer
 from app.generation.persistence import PersistenceError, persist_query
 from app.ingestion.runner import get_embedding_provider
 from app.models import Answer, Chunk, Query, RetrievedChunk
+from app.observability.pricing import PricingError, compute_cost_usd
+from app.observability.timing import stage_timer
 from app.parsing import normalize
 from app.providers.embeddings import EmbeddingError, EmbeddingProvider
 from app.providers.llm import LLMError, LLMProvider
@@ -135,76 +148,101 @@ def run_query(
     if not normalized_query:
         raise HTTPException(status_code=422, detail="query must not be empty")
 
-    try:
-        query_vector = embeddings.embed([normalized_query])[0]
-    except EmbeddingError as exc:
-        # Never the query text, never a traceback: this is exactly the
-        # boundary the specification's error-response rule exists for.
-        logger.warning("Query embedding failed (%s).", type(exc).__name__)
-        raise HTTPException(
-            status_code=503, detail="the embedding model is unavailable"
-        ) from exc
+    with stage_timer() as retrieval_timer:
+        try:
+            query_vector = embeddings.embed([normalized_query])[0]
+        except EmbeddingError as exc:
+            # Never the query text, never a traceback: this is exactly the
+            # boundary the specification's error-response rule exists for.
+            logger.warning("Query embedding failed (%s).", type(exc).__name__)
+            raise HTTPException(
+                status_code=503, detail="the embedding model is unavailable"
+            ) from exc
 
-    filters = RetrievalFilters(
-        document_id=request.filters.document_id,
-        department=request.filters.department,
-        category=request.filters.category,
-        tags=tuple(request.filters.tags),
-        include_superseded=request.filters.include_superseded,
-    )
-
-    try:
-        result = retrieve(
-            session,
-            normalized_text=normalized_query,
-            query_vector=query_vector,
-            filters=filters,
-            rrf_k=settings.rrf_k,
+        filters = RetrievalFilters(
+            document_id=request.filters.document_id,
+            department=request.filters.department,
+            category=request.filters.category,
+            tags=tuple(request.filters.tags),
+            include_superseded=request.filters.include_superseded,
         )
-    except sqlalchemy.exc.SQLAlchemyError as exc:
-        logger.warning("Retrieval failed (%s).", type(exc).__name__)
-        raise HTTPException(
-            status_code=503, detail="the database is unavailable"
-        ) from exc
+
+        try:
+            result = retrieve(
+                session,
+                normalized_text=normalized_query,
+                query_vector=query_vector,
+                filters=filters,
+                rrf_k=settings.rrf_k,
+            )
+        except sqlalchemy.exc.SQLAlchemyError as exc:
+            logger.warning("Retrieval failed (%s).", type(exc).__name__)
+            raise HTTPException(
+                status_code=503, detail="the database is unavailable"
+            ) from exc
 
     # `rerank()` short-circuits on empty input without calling the
     # provider — safe to call unconditionally, including when nothing was
     # retrieved at all, which is exactly the zero-candidate case
     # `generate_answer` below turns into a pre-LLM abstention rather than a
     # separate branch here.
-    try:
-        reranked = rerank(normalized_query, result.candidates, reranker)
-    except RerankError as exc:
-        # Never the query text, never the chunk text, never a traceback:
-        # the same boundary the embedding failure above observes.
-        logger.warning("Reranking failed (%s).", type(exc).__name__)
-        raise HTTPException(
-            status_code=503, detail="the reranking model is unavailable"
-        ) from exc
+    with stage_timer() as rerank_timer:
+        try:
+            reranked = rerank(normalized_query, result.candidates, reranker)
+        except RerankError as exc:
+            # Never the query text, never the chunk text, never a traceback:
+            # the same boundary the embedding failure above observes.
+            logger.warning("Reranking failed (%s).", type(exc).__name__)
+            raise HTTPException(
+                status_code=503, detail="the reranking model is unavailable"
+            ) from exc
 
-    try:
-        answer = generate_answer(
-            query_text=normalized_query,
-            candidates=reranked,
-            llm=llm,
-            abstention_threshold=settings.abstention_rerank_threshold,
-            max_tokens=settings.llm_max_output_tokens,
-        )
-    except LLMError as exc:
-        logger.warning("Generation failed (%s).", type(exc).__name__)
-        raise HTTPException(
-            status_code=503, detail="the language model is unavailable"
-        ) from exc
-    except (GenerationError, CitationError) as exc:
-        # The specification's own words for an invalid citation: "answer
-        # rejected." Never the raw model output, never the evidence, never
-        # a traceback.
-        logger.warning(
-            "Generated answer failed validation (%s).", type(exc).__name__
-        )
-        raise HTTPException(
-            status_code=502, detail="the model's output could not be validated"
-        ) from exc
+    with stage_timer() as llm_timer:
+        try:
+            answer = generate_answer(
+                query_text=normalized_query,
+                candidates=reranked,
+                llm=llm,
+                abstention_threshold=settings.abstention_rerank_threshold,
+                max_tokens=settings.llm_max_output_tokens,
+            )
+        except LLMError as exc:
+            logger.warning("Generation failed (%s).", type(exc).__name__)
+            raise HTTPException(
+                status_code=503, detail="the language model is unavailable"
+            ) from exc
+        except (GenerationError, CitationError) as exc:
+            # The specification's own words for an invalid citation: "answer
+            # rejected." Never the raw model output, never the evidence, never
+            # a traceback.
+            logger.warning(
+                "Generated answer failed validation (%s).", type(exc).__name__
+            )
+            raise HTTPException(
+                status_code=502, detail="the model's output could not be validated"
+            ) from exc
+
+    # `answer.model_name is None` marks a pre-LLM abstention (zero
+    # candidates, or the score threshold) -- generate_answer never called
+    # the provider, so there is no real generation latency or cost to
+    # report, and `llm_timer.ms` (a few microseconds of Python) would
+    # misrepresent both.
+    llm_ms = llm_timer.ms if answer.model_name is not None else None
+    total_ms = retrieval_timer.ms + rerank_timer.ms + (llm_ms or 0.0)
+
+    cost_usd = None
+    if answer.model_name is not None:
+        try:
+            cost_usd = compute_cost_usd(
+                model=answer.model_name,
+                input_tokens=answer.input_tokens,
+                output_tokens=answer.output_tokens,
+                table=settings.llm_pricing_usd_per_million_tokens,
+            )
+        except PricingError:
+            # Unconfigured pricing must never fail a live query (D7) --
+            # only leave this one query's cost unmeasured.
+            cost_usd = None
 
     try:
         query_row, answer_row = persist_query(
@@ -214,6 +252,11 @@ def run_query(
             filters=request.filters.model_dump(mode="json"),
             candidates=reranked,
             answer=answer,
+            retrieval_ms=retrieval_timer.ms,
+            rerank_ms=rerank_timer.ms,
+            llm_ms=llm_ms,
+            total_ms=total_ms,
+            cost_usd=cost_usd,
         )
     except (PersistenceError, sqlalchemy.exc.SQLAlchemyError) as exc:
         logger.warning("Persisting the query failed (%s).", type(exc).__name__)

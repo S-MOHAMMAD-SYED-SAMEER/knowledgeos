@@ -129,6 +129,18 @@ class Settings(BaseSettings):
     # when it does.
     abstention_rerank_threshold: float | None = None
 
+    # --- Observability / cost (milestone 9) ---
+    # `{"<model name>": {"input": <usd per 1M tokens>, "output": <usd per
+    # 1M tokens>}}`. Empty by default: the specification requires unknown
+    # pricing to raise a config error rather than silently become zero
+    # (§14), and no model's real, published rate has been verified and
+    # entered here — inventing one for an unverified Gemini model is
+    # exactly what this default refuses to do. An operator adds an entry
+    # only once they have confirmed the vendor's current rate.
+    llm_pricing_usd_per_million_tokens: dict[str, dict[str, float]] = Field(
+        default_factory=dict
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:

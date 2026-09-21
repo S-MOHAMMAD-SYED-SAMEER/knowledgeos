@@ -10,6 +10,15 @@ a generation, parsing, or validation failure.
 `chunk_uid -> chunks.id` is resolved by one indexed lookup: milestone 5's
 `ChunkEvidence` never carries the surrogate id, and this is what lets that
 stay true without widening a locked type (see `app/models/retrieved_chunk.py`).
+
+**Milestone 9 (D5).** The five observability columns
+(`retrieval_ms`/`rerank_ms`/`llm_ms`/`total_ms`/`cost_usd`) are all
+optional keyword-only parameters, defaulting to `None` -- a measured value
+from the caller's own stage timing (`app.observability.timing.stage_timer`)
+and cost calculation (`app.observability.pricing.compute_cost_usd`), never
+computed here. Both `POST /query` and `evals/answers/suite.py` call this
+same function; a caller that has not measured a stage, or could not price
+it, passes `None` rather than a fabricated number.
 """
 
 import uuid
@@ -40,6 +49,11 @@ def persist_query(
     filters: dict,
     candidates: list[RerankedChunk],
     answer: GeneratedAnswer,
+    retrieval_ms: float | None = None,
+    rerank_ms: float | None = None,
+    llm_ms: float | None = None,
+    total_ms: float | None = None,
+    cost_usd: float | None = None,
 ) -> tuple[Query, Answer]:
     """Write `queries`, `retrieved_chunks`, and `answers` for one query, in
     one transaction, and commit.
@@ -48,6 +62,11 @@ def persist_query(
     `GeneratedAnswer` — a generation failure never reaches this function at
     all, so there is no failure path here that would leave a partial row
     behind.
+
+    The five observability parameters (milestone 9, D5) are the caller's
+    own measured values, written through unchanged; a caller with nothing
+    measured leaves them at their `None` default rather than this function
+    guessing at zero.
     """
     query_row = Query(
         query_text=query_text,
@@ -57,6 +76,11 @@ def persist_query(
         prompt_version=answer.prompt_version,
         input_tokens=answer.input_tokens,
         output_tokens=answer.output_tokens,
+        retrieval_ms=retrieval_ms,
+        rerank_ms=rerank_ms,
+        llm_ms=llm_ms,
+        total_ms=total_ms,
+        cost_usd=cost_usd,
     )
     session.add(query_row)
     session.flush()  # assigns query_row.id without ending the transaction

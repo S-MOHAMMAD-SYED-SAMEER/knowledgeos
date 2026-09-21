@@ -1,0 +1,89 @@
+# The frozen dev/test split of milestone 7's question set, by question id
+# (locked decision D4). Used only for milestone 9's abstention-threshold
+# calibration (§9: "calibrated on a dev split of the eval questions") —
+# the answer-quality metrics themselves (§13) still run over the whole
+# frozen question set, the same way milestone 7's retrieval suite does.
+#
+# This file assigns ids only. It does not add, remove, or edit a
+# question, a category, an expected_chunk_uids value, an expected_abstain
+# value, or anything in evals/fixtures/knowledge_base/ — none of that is
+# touched by having a split.
+#
+# How it was generated (reproducible, not re-run automatically -- the
+# assignment is frozen once and checked in, per D4):
+#   1. Group question ids by (category, expected_abstain) -- stratified,
+#      so the same category and the same abstain/non-abstain proportion
+#      appears in both halves, not concentrated in one.
+#   2. Within each stratum, sort ids alphabetically (deterministic, no
+#      RNG, no seed to lose).
+#   3. Alternate dev, test, dev, test, ... starting with dev.
+# An odd-sized stratum's extra id always lands in dev under this rule,
+# which is why dev (29) is larger than test (23) rather than exactly even
+# -- an honest consequence of the algorithm, not a hand-tuned choice.
+#
+# The statistical limitation this split does NOT paper over: only 7 of 52
+# questions have expected_abstain: true (6 "insufficient evidence", 1
+# "adversarial"). Splitting them gives dev 4 abstain-positives and test 3.
+# The specification's own abstention-recall gate is "≥ 90%" -- on 3 or 4
+# positives, the only achievable recall values are 0%, 25/33%, 50/67%,
+# 75%, and 100%. No sample this small can distinguish "the calibrated
+# threshold generalizes at 90%" from "one question flipped." Reported
+# numbers from this split are evidence, not proof, and must be presented
+# with that caveat every time they are shown -- never as if 52 frozen
+# questions gave this project statistical power it does not have.
+
+dev:
+  - adv001
+  - adv003
+  - adv005
+  - adv006
+  - am001
+  - am003
+  - am005
+  - cs001
+  - cs003
+  - cs005
+  - cv001
+  - cv003
+  - cv005
+  - da001
+  - da003
+  - da005
+  - da007
+  - da009
+  - da011
+  - ie001
+  - ie003
+  - ie005
+  - md001
+  - md003
+  - md005
+  - mf001
+  - mf003
+  - mf005
+  - mf007
+
+test:
+  - adv002
+  - adv004
+  - am002
+  - am004
+  - cs002
+  - cs004
+  - cv002
+  - cv004
+  - da002
+  - da004
+  - da006
+  - da008
+  - da010
+  - da012
+  - ie002
+  - ie004
+  - ie006
+  - md002
+  - md004
+  - md006
+  - mf002
+  - mf004
+  - mf006

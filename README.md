@@ -3,11 +3,14 @@
 An internal knowledge system that answers from retrieved evidence — and
 measures whether it actually did.
 
-**Status: milestone 3 of 10.** Documents can be uploaded, validated, stored,
-versioned, parsed and chunked. **Nothing is searchable yet** — embeddings,
-full-text indexing, retrieval and answering are milestones 4 onwards. Metrics
-sections will be filled with measured numbers only after the evaluation
-harness runs. **No benchmark figure appears in this README until it is real.**
+**Status: milestone 9 of 10.** Documents can be uploaded, validated, stored,
+versioned, parsed, chunked, indexed, retrieved, reranked and answered, with
+citations, grounding, and abstention. Both evaluation harnesses (retrieval,
+milestone 7; answers, milestone 9) exist and are proven correct against
+fixtures — **neither has been run officially in this environment**, because
+the required real local models are absent from its model cache. **No
+benchmark figure appears in this README until it is real** — see "What
+milestone 9 built" below for the exact blocking reason.
 
 ## The problem
 
@@ -106,7 +109,13 @@ relevance, claim support). The README reports which is which.
 These metrics are evidence about this system's behaviour on this evaluation
 dataset. They are not a claim about general model quality.
 
-**Results: (to be filled after M9)**
+**Results.** No retrieval or answer evaluation number appears anywhere in
+this document. Both harnesses exist and are proven correct against
+fixtures with fake providers (a pytest-only allowance); neither has run
+officially, because the real local models both require are absent from
+this environment's model cache. See "What milestone 9 built" below for
+the exact blocking reason and what "proven correct" does and does not
+mean here.
 
 ## Known limitations
 
@@ -1123,6 +1132,219 @@ retrieved chunk text, the model's raw output, a traceback, or a file path.
   milestone 9's observability work.
 - **An Anthropic adapter is not implemented.** Deferred, not missing by
   oversight — see "The generation provider is Google Gemini" above.
+
+## What milestone 9 built
+
+The answer evaluation harness. Milestone 7 measured whether retrieval found
+the right evidence; this milestone measures whether milestone 8's generation
+actually used it — grounded-answer rate, citation validity and coverage,
+abstention precision/recall, semantic grounding, latency, tokens, and cost —
+over the same frozen corpus and the same 52 questions, run through the real
+retrieve → rerank → generate pipeline, never a second implementation of any
+of the three.
+
+```
+python -m evals.run --suite answers
+```
+
+is the only way this ever runs, extending milestone 7's own CLI rather than
+adding a second entry point — there is still no `/evals/run` HTTP endpoint.
+Every question in the frozen set is evaluated, not just one half of the
+split; the dev/test split exists specifically for calibration (see below),
+because nothing in the specification scopes the answer *metrics* themselves
+to a split, and milestone 7's own retrieval suite already evaluates its
+whole frozen set the same way.
+
+**Official evaluation requires three real providers, not two.** Embedding
+and reranking, the same two milestone 7 already requires, plus Google
+Gemini for generation. All three are canary-checked before anything is
+written — the corpus is never even seeded if one is missing — the same
+zero-footprint-on-failure discipline milestone 7 established.
+
+### The frozen dev/test split — milestone 7's questions, never modified
+
+`evals/fixtures/splits.yaml` assigns each of the 52 existing question ids to
+`dev` (29) or `test` (23), stratified by `(category, expected_abstain)` so
+both halves see every category and both classes of question, and generated
+once, checked in, and never re-stratified afterwards. No question's `id`,
+`text`, `category`, `expected_chunk_uids`, `expected_abstain`, or fixture
+corpus changed to produce it. `evals/answers/splits.py` refuses to run at
+all — raising, not silently drifting — the moment the live question set and
+the frozen split disagree about which ids exist.
+
+**Stated plainly: this split is too small for statistical confidence.**
+Only 7 of the 52 questions have `expected_abstain: true` (4 land in `dev`,
+3 in `test`). A recall figure computed over 3-4 positives is real evidence,
+not proof of generalization — `evals/answers/calibration.py::SAMPLE_SIZE_LIMITATION`
+carries this exact caveat into every calibration result and every report,
+rather than letting a clean-looking recall number imply more precision than
+the sample supports.
+
+### Abstention calibration — a documented method, never a number chosen by taste
+
+The specification's own words: the abstention threshold "is calibrated on a
+dev split of the eval questions, not chosen by taste." `evals/answers/calibration.py`
+implements that literally: `collect_dev_observations` runs the real
+retrieve → rerank pipeline for every `dev`-split question and records its
+top rerank score (or `None`, for zero retrieved candidates, which always
+abstains regardless of threshold); `calibrate_threshold` then sweeps every
+observed score as a candidate cutoff and picks the one that **maximizes
+dev-split abstention recall**, ties broken by precision, ties broken by the
+lowest surviving threshold, for a result that never depends on iteration
+order. The sweep objective itself — maximize recall — is this project's own
+documented choice: the specification states the *procedure* ("calibrated on
+a dev split") but gives no formula for what "calibrated" optimizes, and
+recall is what the specification's own abstention gate (§18: "≥ 90% recall
+on expected-abstain questions") measures directly.
+
+`KNOWLEDGEOS_ABSTENTION_RERANK_THRESHOLD` still has no default. Calibration
+only ever runs as part of an official `--suite answers` run, against the
+real embedding and reranking models this environment does not have — so no
+calibrated threshold exists here, and none was invented to make the gate
+read green. `Settings.abstention_rerank_threshold` stays `None`.
+
+### Semantic grounding — the local cross-encoder as an NLI-style scorer, and the threshold that was never invented
+
+Milestone 8 shipped deterministic grounding only, with
+`grounding_detail.semantic` permanently `{"status": "unavailable"}` in the
+serving path — that stays true forever; semantic grounding is an
+**evaluation-time** computation, never added to `POST /query` itself.
+`evals/answers/semantic.py` implements the specification's own words: "per-
+sentence entailment against its cited chunks, using the local cross-encoder
+as an NLI-style scorer. This is approximate." It reuses
+`cross-encoder/ms-marco-MiniLM-L-6-v2` — the identical model
+`app/providers/cross_encoder.py` already wraps for reranking — for a
+different purpose, entailment-style scoring of one sentence against its own
+cited chunk text, never the reranker's own relevance score treated as if it
+were an entailment signal.
+
+**No unsupported-claim threshold is invented.** `cross-encoder/ms-marco-MiniLM-L-6-v2`
+produces an unbounded relevance logit, not a probability — there is no
+principled absolute cutoff ("this score means supported") without
+empirically calibrating one against real model output, which this build
+cannot do (the model is unavailable here). The authoritative specification
+was searched in full for a formula, threshold, or worked example for
+"unsupported claim" and states none anywhere — this is a genuine
+specification gap, not an oversight. Rather than pick a number "by taste"
+(the same discipline the specification states explicitly for the
+abstention threshold, applied here to an equally undefined one),
+`DEFAULT_UNSUPPORTED_CLAIM_THRESHOLD` is `None`: every cited sentence's
+**raw** entailment score is still computed and reported whenever the
+scorer is available — real, honest data — but the binary supported/
+unsupported classification, and therefore `unsupported_claim_rate`, stays
+`None` until a threshold has actually been calibrated and documented. This
+is an explicit, project-level decision, recorded here because the
+specification does not make it.
+
+Deterministic grounding and semantic grounding are kept as two separate
+reported layers, per the specification's own "kept distinct and reported
+separately" — one never substitutes for the other, and neither is averaged
+into a single combined number.
+
+### Observability — stage timing, token accounting, configurable pricing
+
+`app/observability/timing.py` times three stages independently
+(`retrieval_ms` — embed plus retrieve, as one measured stage — `rerank_ms`,
+`llm_ms`) with a context manager whose `finally` block records elapsed time
+even when the stage raised, so a rejected answer's real retrieval and
+reranking time is still reported rather than left blank. `total_ms` is
+their sum. `app/api/query.py` (`POST /query`) and `evals/answers/suite.py`
+(the evaluation suite) both instrument the identical three stages the same
+way and write through the identical `persist_query` parameters — one
+measurement discipline, not two.
+
+`app/observability/pricing.py` implements the specification's own words
+literally: "unknown pricing raises a config error — it must never silently
+become zero." `Settings.llm_pricing_usd_per_million_tokens`
+(`KNOWLEDGEOS_LLM_PRICING_USD_PER_MILLION_TOKENS`) defaults to an **empty**
+mapping — no model's rate is pre-entered, because none has been verified
+against a real vendor pricing page from this environment. Computing a cost
+for an unconfigured model raises `PricingError`; `POST /query` catches that
+one error and leaves `cost_usd` `NULL` for that query rather than failing
+the request over unset pricing, while the evaluation suite's own cost
+report refuses to publish a cost figure at all when pricing is unconfigured
+(see the integrity box below) — the same fact, handled two different ways
+for two different audiences, one live request and one official report.
+
+### Persistence and reproducibility
+
+`app/models/query.py`'s five observability columns
+(`retrieval_ms`/`rerank_ms`/`llm_ms`/`total_ms`/`cost_usd`) already existed,
+nullable, from milestone 8's own migration — **no new migration was needed
+for this milestone**. An official answer-evaluation run writes one
+`eval_runs` row (`suite="answers"`, `prompt_version` from the versioned
+prompt file, `config` carrying every pinned setting plus the calibration
+result, `metrics` carrying every computed figure) to the same configured
+KnowledgeOS database every other part of the application uses, plus a
+timestamped JSON artifact under `var/eval_runs/` and a console summary —
+all three built from the same result object, so they can never disagree —
+and persists every successful attempt through milestone 8's own,
+unmodified `persist_query`, leaving the identical `queries`/
+`retrieved_chunks`/`answers` trail a live request would, readable back
+through `GET /queries/{id}`.
+
+> **Official answer evaluation has not been run in this environment.**
+> `python -m evals.run --suite answers` was attempted here and failed at
+> its canary check with: *"the embedding model (BAAI/bge-small-en-v1.5) is
+> unavailable: the embedding model BAAI/bge-small-en-v1.5 could not be
+> loaded from the local cache (OSError)"* — the same, unchanged condition
+> milestones 4, 6, 7 and 8 already documented, now blocking this milestone's
+> generation-side evaluation too, before the Gemini credential (also unset
+> here) is ever reached. The run wrote **nothing**: no `eval_runs` row, no
+> JSON artifact, no printed metrics, verified directly against the
+> database and the filesystem after the attempt.
+>
+> What *has* been done, and what it does and does not prove:
+> - **Structural / unit tests** (`tests/test_observability_timing.py`,
+>   `tests/test_pricing.py`, `tests/test_semantic_grounding.py`,
+>   `tests/test_answer_metrics.py`, `tests/test_split_integrity.py`) prove
+>   the pure functions — percentiles, pricing, semantic scoring shape,
+>   metric arithmetic, split integrity — are correct in isolation. No
+>   model, no database.
+> - **Deterministic harness verification** (`tests/test_calibration.py`,
+>   `tests/test_answers_suite.py`, most of `tests/test_answers_cli.py`)
+>   runs the real database, the real fixture corpus, and the real
+>   retrieve → rerank → generate wiring, with `FakeEmbeddingProvider`,
+>   `FakeRerankProvider`, and a reactive citing test double standing in for
+>   the three real models — the specification's own pytest-only allowance.
+>   This proves the harness's *plumbing* is correct: every question
+>   produces one attempt, rejected attempts are excluded from persistence,
+>   timing is threaded through, the CLI writes one `eval_runs` row and one
+>   report. **None of the numbers these tests produce are grounded-answer
+>   rate, unsupported-claim rate, abstention recall, semantic grounding, or
+>   cost in any official sense** — a fake reranker's score carries no
+>   relevance information, exactly as milestone 7 already states for its
+>   own retrieval metrics.
+> - **Official real-provider evaluation** — the only source this project
+>   ever treats as a real result — has not run, for the reason stated
+>   above.
+> - No number from either of the first two categories appears in this
+>   README's "Results" section, and no `eval_runs` row from a fake-provider
+>   run has ever been written outside of a test's own isolated,
+>   transaction-scoped database.
+
+### Known limitations
+
+- **No official answer, grounding, abstention, or cost evaluation has been
+  run.** See the box above for the exact blocking reason.
+- **The calibrated abstention threshold does not exist in this
+  environment.** Calibration is implemented and unit-tested; it has never
+  run against the real models, so `abstention_rerank_threshold` stays
+  `None`, the same as milestone 8 left it.
+- **The dev/test split is too small for statistical confidence in any
+  abstention recall figure it eventually produces.** 7 expected-abstain
+  questions total, split 4/3 — see "The frozen dev/test split" above.
+- **The unsupported-claim rate has no calibrated threshold.** Raw
+  per-sentence entailment scores are computed whenever the scorer is
+  available; the binary unsupported/supported classification is not, by
+  documented project-level decision — see "Semantic grounding" above.
+- **No LLM judge.** The specification's optional third evaluation signal is
+  explicitly deferred; core semantic evaluation is the local cross-encoder
+  layer only.
+- **`POST /query`'s live `cost_usd` is `NULL` for every request in this
+  environment**, because `KNOWLEDGEOS_LLM_PRICING_USD_PER_MILLION_TOKENS`
+  has no entry for any model here — not because pricing computation is
+  unimplemented (see "Observability" above).
 
 ## The two probes
 

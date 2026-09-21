@@ -350,3 +350,99 @@ def test_an_unknown_document_id_filter_matches_nothing(
 
     assert response.status_code == 200
     assert response.json()["candidates"] == []
+
+
+# --- observability (milestone 9, D5) ----------------------------------------
+
+
+def test_a_successful_query_records_measured_stage_timing(
+    fake_client, migrated_engine: Engine, storage, embeddings
+) -> None:
+    """The response shape itself is unchanged (`test_the_response_shape`
+    above) -- these fields are written straight to the `queries` row, not
+    the API response."""
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    body = fake_client.post(
+        "/query", json={"query": "production database access"}
+    ).json()
+
+    from app.models import Query
+
+    with Session(migrated_engine) as session:
+        row = session.get(Query, uuid.UUID(body["query_id"]))
+        assert row.retrieval_ms is not None and row.retrieval_ms >= 0
+        assert row.rerank_ms is not None and row.rerank_ms >= 0
+        assert row.llm_ms is not None and row.llm_ms >= 0
+        assert row.total_ms is not None
+        assert row.total_ms >= row.retrieval_ms + row.rerank_ms
+
+
+def test_a_pre_llm_abstention_records_no_generation_latency(
+    fake_client, migrated_engine: Engine
+) -> None:
+    """Zero candidates -- `generate_answer` never calls the provider, so
+    there is no real generation latency to report."""
+    body = fake_client.post(
+        "/query", json={"query": "nothing has been indexed yet"}
+    ).json()
+
+    from app.models import Query
+
+    with Session(migrated_engine) as session:
+        row = session.get(Query, uuid.UUID(body["query_id"]))
+        assert row.llm_ms is None
+        assert row.retrieval_ms is not None
+        assert row.rerank_ms is not None
+        assert row.total_ms == row.retrieval_ms + row.rerank_ms
+
+
+def test_unconfigured_pricing_leaves_cost_null_without_failing_the_query(
+    fake_client, migrated_engine: Engine, storage, embeddings
+) -> None:
+    """D7: unconfigured pricing must never fail a live query -- only leave
+    its cost unmeasured. This build's default pricing table is empty."""
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    response = fake_client.post(
+        "/query", json={"query": "production database access"}
+    )
+    assert response.status_code == 200
+
+    from app.models import Query
+
+    with Session(migrated_engine) as session:
+        row = session.get(Query, uuid.UUID(response.json()["query_id"]))
+        assert row.cost_usd is None
+
+
+def test_configured_pricing_computes_a_real_cost(
+    fake_client, migrated_engine: Engine, storage, embeddings, monkeypatch
+) -> None:
+    from app.config import get_settings
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    llm = AutoCitingLLMProvider()
+    monkeypatch.setenv(
+        "KNOWLEDGEOS_LLM_PRICING_USD_PER_MILLION_TOKENS",
+        f'{{"{llm.model_name}": {{"input": 1.0, "output": 2.0}}}}',
+    )
+    get_settings.cache_clear()
+    try:
+        response = fake_client.post(
+            "/query", json={"query": "production database access"}
+        )
+        assert response.status_code == 200
+
+        from app.models import Query
+
+        with Session(migrated_engine) as session:
+            row = session.get(Query, uuid.UUID(response.json()["query_id"]))
+            assert row.cost_usd is not None
+            assert row.cost_usd >= 0
+    finally:
+        get_settings.cache_clear()
