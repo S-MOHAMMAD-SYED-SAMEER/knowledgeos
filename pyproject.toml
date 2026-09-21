@@ -38,12 +38,19 @@ dependencies = [
     # specification forbids undocumented dependencies, so it is declared
     # explicitly rather than relied on by accident.
     "PyYAML>=6.0",
+    # Milestone 8. The generation provider for this build is Google Gemini,
+    # not Anthropic — an explicit, documented deviation from the
+    # specification's stack list (§3) and milestone-8 scope wording (§17);
+    # see the README's milestone 8 section. `google-genai` is Google's
+    # current SDK; the older `google-generativeai` package is superseded
+    # and is not used. Imported lazily, only inside
+    # `app/providers/gemini_llm.py`.
+    "google-genai>=2.24",
 ]
 
 # Dependencies arrive with the milestone that first imports them, so an
 # install never carries a library the code does not yet use. Deferred on
 # purpose, with the milestone that earns each one:
-#   m8: anthropic
 #   m10: jinja2
 #
 # pgvector is the PostgreSQL extension in m1 and the Python package in m4:

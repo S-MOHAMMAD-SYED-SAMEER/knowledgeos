@@ -102,6 +102,33 @@ class Settings(BaseSettings):
     # one that was typed.
     query_max_length: int = Field(default=1000, gt=0)
 
+    # --- Generation (milestone 8) ---
+    # Deliberately no default. The generation provider for this build is
+    # Google Gemini (a documented deviation from the specification's
+    # Anthropic wording — see the README's milestone 8 section), and no
+    # model ID is chosen from memory anywhere in this codebase: at the time
+    # this setting was added, no Gemini credential was available in the
+    # build environment to verify one against the live API. An operator who
+    # has verified a model with `client.models.list()` sets it here; a
+    # missing value is a config error the moment generation is attempted
+    # (`app/providers/gemini_llm.py`), not a silently wrong guess.
+    llm_model: str | None = None
+
+    # The specification names no cap on generation length. This exists for
+    # the same reason `query_max_length` does — an explicit limit rather
+    # than whatever the provider's own default happens to be.
+    llm_max_output_tokens: int = Field(default=2048, gt=0)
+
+    # The specification's own words: the abstention threshold "is calibrated
+    # on a dev split of the eval questions, not chosen by taste." No
+    # calibration has been run in this build (it needs the real local
+    # cross-encoder, absent from this environment's model cache — the same
+    # condition milestones 4, 6 and 7 already documented). `None` means the
+    # rerank-score abstention trigger is inactive; only a genuinely
+    # calibrated run may set this, and the calibration must be documented
+    # when it does.
+    abstention_rerank_threshold: float | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

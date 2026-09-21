@@ -70,8 +70,16 @@ Celery, Kubernetes, or React. **Postgres is the only datastore.**
 ## Stack
 
 Python 3.13 · FastAPI · SQLAlchemy 2.x · PostgreSQL 16 + pgvector · psycopg 3 ·
-Alembic · sentence-transformers (local embeddings and reranking) · Anthropic
-SDK behind a provider interface · pytest · Docker
+Alembic · sentence-transformers (local embeddings and reranking) · Google
+Gemini (`google-genai`) behind a provider interface · pytest · Docker
+
+> **Generation provider deviation, stated plainly.** The specification's own
+> stack list and milestone 8 scope line name "Anthropic SDK" / "Anthropic
+> generation". This build uses **Google Gemini** instead — an explicit,
+> authorized, documented deviation from that wording, not from the
+> specification's behavioural requirements for generation (§9), none of
+> which name a vendor. See "What milestone 8 built" below for the full
+> explanation and what stayed provider-agnostic as a result.
 
 Embeddings and reranking run locally. The only paid dependency is answer
 generation, and the entire evaluation suite runs without it.
@@ -79,10 +87,10 @@ generation, and the entire evaluation suite runs without it.
 Dependencies arrive with the milestone that first imports them, so an install
 never carries a library the code does not yet use. Today that is FastAPI,
 Uvicorn, Pydantic, pydantic-settings, SQLAlchemy, Alembic, psycopg,
-python-multipart, `pypdf` and APScheduler. sentence-transformers, the
-Anthropic SDK, the `pgvector` Python package and Jinja2 are not installed yet;
-DOCX is read with the standard library, so `python-docx` is not installed at
-all.
+python-multipart, `pypdf`, APScheduler, sentence-transformers, `PyYAML`,
+`pgvector` and `google-genai`. Jinja2 is not installed yet, and the Anthropic
+SDK is not installed at all — see the deviation note above; DOCX is read with
+the standard library, so `python-docx` is not installed either.
 
 ## Evaluation methodology
 
@@ -879,6 +887,242 @@ for one.
   nothing and scores as "correct" — the metric measures whether filtering
   leaked the wrong department or category into the result, not whether
   filtering found the right one.
+
+## What milestone 8 built
+
+Generation. `POST /query` now answers the question, with inline citations,
+deterministic validation, and an honest abstention when the evidence does
+not support one — finishing what milestone 5 started ("`/query` returning
+evidence only, no answer") rather than adding a second endpoint next to it.
+
+```
+POST /query
+  → normalize → embed → vector retrieval
+                       + lexical retrieval  → RRF → dedupe → top 20
+  → rerank (milestone 6)
+  → select top 8 by final_rank              ← this milestone
+  → abstain (zero candidates, or a calibrated rerank-score threshold)
+  → generate → parse → validate citations → ground
+  → persist queries / retrieved_chunks / answers, one transaction
+  → evidence + grounded, cited answer (or an abstention) — still 200
+```
+
+### The generation provider is Google Gemini, not Anthropic — stated plainly
+
+The specification's stack list (§3) and its milestone 8 scope line (§17)
+name "Anthropic SDK" / "Anthropic generation". This build uses **Google
+Gemini** (`google-genai`) instead. This is an explicit, authorized,
+documented **deviation from that wording** — not from the specification's
+*behavioural* requirements for generation. §9, the section that actually
+specifies what generation must do (a versioned prompt, structured output,
+three citation rules, two grounding layers, abstention on two triggers),
+names no vendor anywhere. Every one of those requirements is implemented
+exactly as specified, unchanged by which vendor answers the request.
+
+What stayed provider-agnostic as a result:
+
+- `app/providers/llm.py` — `LLMProvider.complete(*, system, user, max_tokens)
+  -> LLMResult(text, input_tokens, output_tokens)`. Nothing in this
+  interface, or in anything that calls it, is Anthropic- or Gemini-shaped.
+  It returns **raw text plus token usage**, never a parsed answer — parsing
+  and validating the model's structured output happens in
+  `app/generation/generator.py`, in Python, exactly as the specification's
+  own words require ("Parse and validate in Python"), which is also what
+  makes the mandatory malformed/invalid-citation test fixtures testable at
+  all.
+- `app/generation/` — the entire orchestration package (evidence selection,
+  prompt loading, citation validation, grounding, abstention, persistence)
+  is written against `LLMProvider` alone and does not import
+  `google.genai` anywhere.
+- `app/providers/gemini_llm.py` — the **only** file in this codebase that
+  imports the Gemini SDK, and it does so lazily, inside the method that
+  actually calls it, the same discipline `bge.py` and `cross_encoder.py`
+  already follow for their own local models.
+
+An Anthropic adapter is not implemented. It is **deferred**, the same way
+the specification's own §1 defers a Voyage embeddings adapter without
+building one — a second `LLMProvider` implementation could be added later
+without touching `app/generation/` at all.
+
+### Why Gemini, specifically
+
+No `ANTHROPIC_API_KEY` is available to this project, while a Gemini
+credential is available to whoever operates it. Nothing about the
+provider choice is architectural: `LLMProvider` was designed so that
+whichever credential is actually available decides which adapter is live,
+without changing anything in `app/generation/`.
+
+### The model ID was never chosen from memory
+
+`Settings.llm_model` (env `KNOWLEDGEOS_LLM_MODEL`) has **no default**. At
+the time `app/providers/gemini_llm.py` was written, no Gemini credential
+was available in the build environment to verify a model against the live
+API (`client.models.list()`), so none was guessed. An operator who has
+verified one sets it; `GeminiLLMProvider.complete()` raises a structural
+`LLMError` — never a fabricated model name — if it is unset when generation
+is attempted.
+
+### Evidence selection: top 8, fixed, no threshold
+
+The specification names no selection rule — no top-N, no score threshold,
+no token budget — for which of milestone 6's up-to-20 reranked candidates
+reach the model. This project's own, locked, documented choice
+(`app/generation/evidence.py::SELECTION_LIMIT`): the **top 8** by
+`final_rank`, fixed rather than configurable, the same reasoning the
+specification's own top-50/top-20 retrieval limits are facts rather than
+settings. The other 12 are still retrieved, still recorded in
+`retrieved_chunks.selected = false`, and a citation to one of them is
+invalid (citation rule 3) — evaluated, not merely omitted from the prompt
+by convenience.
+
+### Citations: inline markers, a flat declared list, and three exact rules
+
+The specification's output format gives `citations` as one flat list of
+chunk_uid for the whole answer, with no per-sentence structure. That alone
+cannot support rule 2 ("every sentence containing a factual claim carries
+at least one citation") or the semantic layer's "per-sentence entailment
+against *its* cited chunks" — there is no *its* without a sentence-level
+mapping. This project's locked resolution: the model is instructed to place
+inline `[<chunk_uid>]` markers on every factual sentence, and the declared
+`citations` list must exactly equal the union of markers actually present
+in the answer text. A mismatch is itself an invalid citation.
+
+The three specification rules, plus that agreement check, are all
+deterministic and live in `app/generation/citations.py` — which makes **no
+provider call and performs no I/O beyond nothing at all** (not even the
+database), exactly matching the specification's layering rule (§4), which
+names this file specifically alongside `app/retrieval/` and
+`app/chunking/`:
+
+1. Every cited chunk_uid exists in the retrieved evidence set. If not,
+   invalid citation.
+2. Every sentence carries at least one citation marker — checked by
+   requiring every sentence in a non-abstained answer to carry one; the
+   specification introduces "substantive factual sentence" without
+   defining it, and this project's own choice is exactness over an
+   undefined judgment call (see the module's own docstring for the full
+   reasoning).
+3. Citations pointing to non-selected chunks are invalid.
+
+**"Answer rejected" means exactly that.** A citation violation raises
+`CitationError`, which `POST /query` maps to `502` — nothing is persisted.
+Every `answers` row this milestone ever writes has `citation_valid = true`
+by construction, because an invalid answer never reaches persistence at
+all. `app/generation/generator.py`'s own docstring states this plainly,
+including the consequence for what the column means in practice.
+
+### Grounding: two layers, and the semantic one is honestly unexercised
+
+Deterministic — citation validity, citation coverage, selected-chunk
+validity, abstention-flag consistency — runs on every request and is
+exact by construction: it is a second, independent recomputation of the
+same checks the citation gate already enforced, the same defense-in-depth
+instinct `evals/retrieval/metrics.py` applies to its own
+structurally-unreachable nDCG guard.
+
+Semantic — per-sentence entailment against cited chunks, using the local
+cross-encoder as an NLI-style scorer — is **not implemented in this
+milestone**. `cross-encoder/ms-marco-MiniLM-L-6-v2` is absent from the
+local model cache in this environment, the same, unchanged condition
+milestones 4, 6 and 7 already documented. `grounding_detail.semantic` is
+always `{"status": "unavailable", "reason": ...}` — never a number, and
+never the reranker's own relevance score reused as if it were an entailment
+signal, which the specification permits as a *third* signal but never as
+*the* signal and never authorizes substituting for the real one.
+
+### Abstention: both triggers, and the threshold was never invented
+
+Two independent triggers, per the specification: the top rerank score
+falling below a threshold, or the model's own `sufficient_evidence=false`.
+A third, structurally necessary case this project adds: **zero retrieved
+candidates never reach the model at all** — there is nothing to send.
+
+`KNOWLEDGEOS_ABSTENTION_RERANK_THRESHOLD` has **no default** —
+`app/generation/abstention.py::DEFAULT_ABSTENTION_RERANK_THRESHOLD` is
+`None`, meaning the score-based trigger is inactive. The specification is
+explicit that this threshold "is calibrated on a dev split of the eval
+questions, not chosen by taste," and calibrating one honestly needs the
+real local cross-encoder's scores over a genuine dev/test split of
+milestone 7's question set — neither of which exists in this environment
+(the model is absent; milestone 7's 52 questions were never split). Rather
+than choose a number "by taste," which the specification forbids by name,
+this milestone ships the mechanism with the gate inactive and states so
+here, plainly, rather than quietly.
+
+### Persistence: `queries`, `retrieved_chunks`, `answers` — migration 0006
+
+The specification's own three tables (§5), created together in one
+migration since none of them had anything to write until now. `queries`
+carries what this milestone genuinely produces — `model`, `prompt_version`,
+`input_tokens`, `output_tokens` — and creates the four `*_ms` timing
+columns and `cost_usd` **nullable**, left `NULL` in every row this
+milestone writes: the specification requires unknown pricing to raise a
+config error rather than silently become zero (§14), and this milestone
+measures no stage latency at all. `retrieved_chunks` has a composite
+primary key `(query_id, chunk_id)` — the specification gives it no
+surrogate id, and a query's chunk is already a natural key. `answers` is
+unique on `query_id`: the specification states no explicit rule, but "one
+answer belongs to the query" is this project's own locked invariant, and a
+retried request writing a second row would silently turn "the answer" into
+an arbitrary one.
+
+`chunk_id` is resolved from `chunk_uid` by one indexed lookup at
+persistence time (`app/generation/persistence.py`) rather than carried on
+milestone 5's own `ChunkEvidence`, which stays locked and untouched.
+
+### Transaction boundaries
+
+Retrieval and reranking read the database under ordinary `READ COMMITTED`,
+same as milestone 5 left it. The Gemini call happens with **no database
+transaction open** — a slow external call has no business holding a
+connection. Persistence is a single transaction at the very end, after
+generation has already succeeded and citations have already validated: a
+failed generation, a parsing failure, or a rejected citation leaves **no**
+`queries`, `retrieved_chunks`, or `answers` row behind — there is nothing
+partial to clean up, because nothing was ever written.
+
+### Errors
+
+`503` for a provider that could not be reached — embedding, reranking, or
+generation, the same convention milestones 5 and 6 already established.
+`502` for a model response that parsed as something other than the
+required structure, or whose citations failed validation — distinct from
+`503` so "the vendor is down" and "the vendor answered with something we
+cannot use" are distinguishable in logs. `200` for an abstention, always —
+insufficient evidence is a real, valid answer at this layer, never a
+failure. No response or log line ever carries an API key, the prompt, the
+retrieved chunk text, the model's raw output, a traceback, or a file path.
+
+> **The real Gemini model has not been exercised in this environment
+> either.** No `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) was set in the
+> environment this milestone was built in — the same, unchanged condition
+> milestones 4, 6 and 7 already documented for their own real models, now
+> true of this one too. `tests/test_llm_provider.py`'s one real-model
+> test is opt-in (`KNOWLEDGEOS_RUN_GENERATION_SMOKE_TEST=1`, plus a
+> genuine credential and a `KNOWLEDGEOS_LLM_MODEL` already verified
+> against `client.models.list()`) and skips here, honestly, rather than
+> being silently bypassed. Every other generation test uses the scripted
+> fake or a deterministic, content-derived test double, which the
+> specification permits. No retrieval or answer **evaluation** number
+> appears anywhere in this document: milestone 8 implements generation, it
+> does not run milestone 9's answer eval suite.
+
+### Known limitations
+
+- **Semantic grounding has not been implemented.** See "Grounding" above —
+  the local cross-encoder NLI scorer this needs is absent from this
+  environment's model cache.
+- **The abstention rerank-score threshold has not been calibrated.** See
+  "Abstention" above; only `sufficient_evidence=false` and the
+  zero-candidate case can trigger an abstention here.
+- **No answer evaluation.** Grounded-answer rate, unsupported-claim rate,
+  citation precision/recall, and the specification's answer-side
+  acceptance gates are milestone 9's `evals/answers/` — not built here.
+- **No cost or latency tracking.** `cost_usd` and the four `*_ms` columns
+  exist in the schema (§5) and are `NULL` in every row; computing them is
+  milestone 9's observability work.
+- **An Anthropic adapter is not implemented.** Deferred, not missing by
+  oversight — see "The generation provider is Google Gemini" above.
 
 ## The two probes
 

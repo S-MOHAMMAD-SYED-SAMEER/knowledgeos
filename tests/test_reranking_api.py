@@ -11,12 +11,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from app.api.query import embedding_provider, rerank_provider
+from app.api.query import embedding_provider, llm_provider, rerank_provider
 from app.providers import FakeEmbeddingProvider, FakeRerankProvider
 from app.providers.passthrough_reranker import PassthroughRerankProvider
 from app.providers.reranker import Candidate, RerankError
 from app.storage import LocalStorage
 
+from .generation_fixtures import AutoCitingLLMProvider
 from .retrieval_fixtures import seed_active_version
 
 
@@ -38,11 +39,14 @@ def _seed(session, storage, embeddings, **overrides):
 
 @pytest.fixture
 def passthrough_client(client: TestClient, embeddings: FakeEmbeddingProvider):
-    """`/query` with the fake embedding provider and the real,
+    """`/query` with the fake embedding provider, the real,
     order-preserving passthrough reranker — so `final_rank` is provably
-    still 1..N over the fusion order, and `fusion_rank == final_rank`."""
+    still 1..N over the fusion order, and `fusion_rank == final_rank` — and
+    a generation test double so the request still completes successfully
+    now that `/query` also generates."""
     client.app.dependency_overrides[embedding_provider] = lambda: embeddings
     client.app.dependency_overrides[rerank_provider] = lambda: PassthroughRerankProvider()
+    client.app.dependency_overrides[llm_provider] = lambda: AutoCitingLLMProvider()
     try:
         yield client
     finally:
@@ -51,11 +55,12 @@ def passthrough_client(client: TestClient, embeddings: FakeEmbeddingProvider):
 
 @pytest.fixture
 def reordering_client(client: TestClient, embeddings: FakeEmbeddingProvider):
-    """`/query` with the fake embedding provider and the deterministic fake
+    """`/query` with the fake embedding provider, the deterministic fake
     reranker — genuinely capable of reordering, so `final_rank` and
-    `fusion_rank` can provably differ."""
+    `fusion_rank` can provably differ — and a generation test double."""
     client.app.dependency_overrides[embedding_provider] = lambda: embeddings
     client.app.dependency_overrides[rerank_provider] = lambda: FakeRerankProvider()
+    client.app.dependency_overrides[llm_provider] = lambda: AutoCitingLLMProvider()
     try:
         yield client
     finally:

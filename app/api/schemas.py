@@ -78,6 +78,7 @@ class DocumentPage(BaseModel):
 # detail the specification says error responses must not carry either.
 
 __all__ = [
+    "AnswerDetailOut",
     "DocumentDetail",
     "DocumentOut",
     "DocumentPage",
@@ -85,10 +86,12 @@ __all__ = [
     "QueryFiltersIn",
     "QueryCandidateOut",
     "QueryCounts",
+    "QueryDetailOut",
     "QueryDocumentOut",
     "QueryRequest",
     "QueryResponse",
     "QueryVersionOut",
+    "RetrievedChunkOut",
     "UploadAccepted",
     "VersionOut",
 ]
@@ -132,13 +135,17 @@ class QueryVersionOut(BaseModel):
 
 
 class QueryCandidateOut(BaseModel):
-    """One reranked chunk. Evidence only — no answer, no citation, no
-    selection decision: those belong to milestone 8.
+    """One reranked chunk, and (as of milestone 8) whether it was selected
+    to reach the generation model.
 
     `final_rank` is the chunk's position after reranking — the rank a caller
     actually sees. `fusion_rank` is milestone 5's own `final_rank`: the
     position after RRF fusion, before reranking, kept for transparency about
-    what reranking changed rather than discarded once it runs.
+    what reranking changed rather than discarded once it runs. `selected` is
+    milestone 8's own field: the top 8 candidates by `final_rank`
+    (`app.generation.evidence.SELECTION_LIMIT`) reach the model; the rest
+    are retrieved but not selected, and a citation to one of them is
+    invalid (specification §9, citation rule 3).
     """
 
     chunk_uid: str
@@ -156,6 +163,7 @@ class QueryCandidateOut(BaseModel):
     fusion_rank: int
     rerank_score: float
     final_rank: int
+    selected: bool
 
 
 class QueryCounts(BaseModel):
@@ -169,8 +177,74 @@ class QueryCounts(BaseModel):
 
 
 class QueryResponse(BaseModel):
+    """Evidence (milestones 5-6) plus, as of milestone 8, the generated
+    answer and its validation record. No cost, confidence, or latency
+    field — those belong to milestone 9/10 and are not added here.
+    """
+
     query: str
     normalized_query: str
     filters: QueryFiltersIn
     candidates: list[QueryCandidateOut]
     counts: QueryCounts
+
+    # --- generation (milestone 8) -----------------------------------
+    query_id: uuid.UUID
+    answer_id: uuid.UUID
+    answer: str
+    abstained: bool
+    citations: list[str]
+    citation_valid: bool
+    grounded: bool
+    grounding_detail: dict
+    model: str | None
+    prompt_version: str
+
+
+# --- persisted query detail (milestone 8) -----------------------------
+
+
+class RetrievedChunkOut(BaseModel):
+    """One row of the persisted `retrieved_chunks` retrieval/reranking
+    snapshot, as `GET /queries/{id}` reads it back."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    chunk_uid: str
+    lexical_rank: int | None
+    vector_rank: int | None
+    rrf_score: float
+    rerank_score: float
+    final_rank: int
+    selected: bool
+
+
+class AnswerDetailOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    answer_text: str
+    abstained: bool
+    citations: list[str]
+    citation_valid: bool
+    grounded: bool
+    grounding_detail: dict
+    created_at: datetime
+
+
+class QueryDetailOut(BaseModel):
+    """`GET /queries/{id}` — the persisted query, its retrieval snapshot,
+    and its answer, read back from `queries`/`retrieved_chunks`/`answers`
+    rather than recomputed."""
+
+    id: uuid.UUID
+    query_text: str
+    normalized_text: str
+    filters: QueryFiltersIn
+    model: str | None
+    prompt_version: str | None
+    input_tokens: int | None
+    output_tokens: int | None
+    created_at: datetime
+    retrieved_chunks: list[RetrievedChunkOut]
+    answer: AnswerDetailOut | None

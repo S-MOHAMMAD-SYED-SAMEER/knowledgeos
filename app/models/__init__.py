@@ -5,6 +5,7 @@ Importing this package registers all of them on `Base.metadata`, which is what
 against. A model that is not reachable from here is invisible to migrations.
 """
 
+from app.models.answer import Answer
 from app.models.chunk import Chunk
 from app.models.document import (
     SOURCE_TYPE_UPLOAD,
@@ -20,6 +21,8 @@ from app.models.ingestion_job import (
     IngestionJob,
     JobStatus,
 )
+from app.models.query import Query
+from app.models.retrieved_chunk import RetrievedChunk
 
 __all__ = [
     "ALLOWED_TRANSITIONS",
@@ -27,11 +30,14 @@ __all__ = [
     "SOURCE_TYPES",
     "SOURCE_TYPE_UPLOAD",
     "TERMINAL_STATUSES",
+    "Answer",
     "Chunk",
     "Document",
     "DocumentVersion",
     "EvalRun",
     "IngestionJob",
     "JobStatus",
+    "Query",
+    "RetrievedChunk",
     "VersionStatus",
 ]

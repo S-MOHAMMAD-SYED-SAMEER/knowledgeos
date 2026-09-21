@@ -97,6 +97,10 @@ def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
         "pgvector",
         # Milestone 7: the evaluation question set is specified as YAML.
         "PyYAML",
+        # Milestone 8: the generation provider is Google Gemini, not
+        # Anthropic -- a documented deviation from the specification's
+        # stack wording (§3, §17); see the README's milestone 8 section.
+        "google-genai",
     }
 
 
@@ -143,9 +147,8 @@ def test_no_later_milestones_library_is_declared() -> None:
     assert "anthropic" not in declared
 
 
-def test_the_schema_is_the_five_tables_built_so_far() -> None:
-    """queries, retrieved_chunks, answers and the rest arrive with the
-    milestones that actually write them."""
+def test_the_schema_is_the_eight_tables_built_so_far() -> None:
+    """`feedback` arrives with milestone 10, the only one still deferred."""
     from app.db.base import Base
     import app.models  # noqa: F401
 
@@ -155,4 +158,7 @@ def test_the_schema_is_the_five_tables_built_so_far() -> None:
         "ingestion_jobs",
         "chunks",
         "eval_runs",
+        "queries",
+        "retrieved_chunks",
+        "answers",
     }

@@ -23,13 +23,17 @@ from app.providers.embeddings import (
     check_shape,
 )
 from app.providers.fake_embeddings import FakeEmbeddingProvider
+from app.providers.fake_llm import FAKE_LLM_MODEL_NAME, FakeLLMProvider
 from app.providers.fake_reranker import FakeRerankProvider
+from app.providers.gemini_llm import GeminiLLMProvider
+from app.providers.llm import LLMError, LLMProvider, LLMResult
 from app.providers.passthrough_reranker import PassthroughRerankProvider
 from app.providers.reranker import Candidate, RerankError, RerankProvider, ScoredChunk
 from app.providers.reranker import check_shape as check_rerank_shape
 
 __all__ = [
     "DIMENSIONS",
+    "FAKE_LLM_MODEL_NAME",
     "MODEL_NAME",
     "RERANK_MODEL_NAME",
     "BgeEmbeddingProvider",
@@ -38,7 +42,12 @@ __all__ = [
     "EmbeddingError",
     "EmbeddingProvider",
     "FakeEmbeddingProvider",
+    "FakeLLMProvider",
     "FakeRerankProvider",
+    "GeminiLLMProvider",
+    "LLMError",
+    "LLMProvider",
+    "LLMResult",
     "PassthroughRerankProvider",
     "RerankError",
     "RerankProvider",

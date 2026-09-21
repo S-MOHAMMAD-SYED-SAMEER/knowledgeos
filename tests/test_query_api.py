@@ -1,15 +1,18 @@
 """`POST /query`, end to end against a real database.
 
 The application's real dependencies are the cached `BgeEmbeddingProvider`
-(see `app/api/query.py::embedding_provider`) and, since milestone 6, the
-cached `CrossEncoderRerankProvider` (`app/api/query.py::rerank_provider`).
-Every test here overrides both FastAPI dependencies to inject
-`FakeEmbeddingProvider` and a passthrough or deterministic reranker — the
-same pattern `tests/test_upload_api.py` uses for settings. The application
-itself never makes either substitution; `tests/test_embeddings.py` and
-`tests/test_reranking_scope.py` prove nothing in `app/` names a fake or
-passthrough provider, and one test below proves the unmodified endpoint
-really does reach for the real, currently-unavailable models instead.
+(see `app/api/query.py::embedding_provider`), the cached
+`CrossEncoderRerankProvider` (`app/api/query.py::rerank_provider`), and, as
+of milestone 8, the cached `GeminiLLMProvider`
+(`app/api/query.py::llm_provider`). Every test here overrides all three
+FastAPI dependencies to inject `FakeEmbeddingProvider`, a passthrough or
+deterministic reranker, and a generation test double — the same pattern
+`tests/test_upload_api.py` uses for settings. The application itself never
+makes any of these substitutions; `tests/test_embeddings.py`,
+`tests/test_reranking_scope.py` and `tests/test_llm_provider.py` prove
+nothing in `app/` names a fake or passthrough provider, and one test below
+proves the unmodified endpoint really does reach for the real,
+currently-unavailable models instead.
 """
 
 import uuid
@@ -19,12 +22,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from app.api.query import embedding_provider, rerank_provider
+from app.api.query import embedding_provider, llm_provider, rerank_provider
 from app.providers import EmbeddingError, FakeEmbeddingProvider
 from app.providers.passthrough_reranker import PassthroughRerankProvider
 from app.providers.reranker import RerankError
 from app.storage import LocalStorage
 
+from .generation_fixtures import AutoCitingLLMProvider
 from .retrieval_fixtures import seed_active_version
 
 
@@ -52,11 +56,13 @@ def fake_client(
     embeddings: FakeEmbeddingProvider,
     reranker: PassthroughRerankProvider,
 ):
-    """`/query` through the fake embedding provider and the passthrough
-    reranker — both injected by dependency override, neither chosen by the
-    application."""
+    """`/query` through the fake embedding provider, the passthrough
+    reranker, and a generation test double that cites whatever evidence it
+    was actually given — all three injected by dependency override, none
+    chosen by the application."""
     client.app.dependency_overrides[embedding_provider] = lambda: embeddings
     client.app.dependency_overrides[rerank_provider] = lambda: reranker
+    client.app.dependency_overrides[llm_provider] = lambda: AutoCitingLLMProvider()
     try:
         yield client
     finally:
@@ -95,7 +101,23 @@ def test_the_response_shape(
         "/query", json={"query": "production database access"}
     ).json()
 
-    assert set(body) == {"query", "normalized_query", "filters", "candidates", "counts"}
+    assert set(body) == {
+        "query",
+        "normalized_query",
+        "filters",
+        "candidates",
+        "counts",
+        "query_id",
+        "answer_id",
+        "answer",
+        "abstained",
+        "citations",
+        "citation_valid",
+        "grounded",
+        "grounding_detail",
+        "model",
+        "prompt_version",
+    }
     assert body["candidates"]
     candidate = body["candidates"][0]
     assert set(candidate) == {
@@ -114,17 +136,23 @@ def test_the_response_shape(
         "fusion_rank",
         "rerank_score",
         "final_rank",
+        "selected",
     }
     assert set(candidate["document"]) == {"id", "title", "department", "category", "tags"}
     assert set(candidate["version"]) == {"id", "version_number", "status"}
     assert set(body["counts"]) == {"vector", "lexical", "fused", "returned"}
 
 
-def test_evidence_only_no_answer_no_citations_no_selection_decision(
+def test_the_response_now_carries_the_generated_answer_and_its_validation(
     fake_client, migrated_engine: Engine, storage, embeddings
 ) -> None:
-    """Milestone 6 adds rerank_score and final_rank (now meaning post-rerank
-    rank) — it must add nothing that belongs to milestone 8."""
+    """Milestone 6 added `rerank_score` and `final_rank` (post-rerank rank)
+    and deliberately added nothing belonging to generation. Milestone 8 is
+    what finishes `/query` — this test used to assert the opposite
+    (`answer`/`citations`/`selected` absent); it now asserts milestone 8's
+    own fields are genuinely present and well-formed, the same inversion
+    `tests/test_retrieval_scope.py` already applies to its own guards when
+    a later milestone legitimately arrives."""
     with Session(migrated_engine) as session:
         _seed(session, storage, embeddings)
 
@@ -132,11 +160,13 @@ def test_evidence_only_no_answer_no_citations_no_selection_decision(
         "/query", json={"query": "production database access"}
     ).json()
 
-    assert "answer" not in body
-    assert "citations" not in body
-    assert "sufficient_evidence" not in str(body)
-    assert "selected" not in str(body)
-    assert "abstain" not in str(body).lower()
+    assert "answer" in body and isinstance(body["answer"], str)
+    assert "citations" in body and isinstance(body["citations"], list)
+    assert "abstained" in body and isinstance(body["abstained"], bool)
+    assert "citation_valid" in body and body["citation_valid"] is True
+    assert "grounded" in body
+    assert all("selected" in c for c in body["candidates"])
+    assert body["abstained"] is False  # real evidence was seeded and cited
 
 
 def test_storage_path_never_appears(
