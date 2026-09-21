@@ -1,13 +1,15 @@
 """`POST /query`, end to end against a real database.
 
-The application's real dependency is the cached `BgeEmbeddingProvider` (see
-`app/api/query.py::embedding_provider`), and every test here overrides that
-one FastAPI dependency to inject `FakeEmbeddingProvider` — the same pattern
-`tests/test_upload_api.py` uses for settings. The application itself never
-makes that substitution; `tests/test_embeddings.py` already proves nothing
-in `app/` names `FakeEmbeddingProvider`, and one test below proves the
-unmodified endpoint really does reach for the real, currently-unavailable
-model instead.
+The application's real dependencies are the cached `BgeEmbeddingProvider`
+(see `app/api/query.py::embedding_provider`) and, since milestone 6, the
+cached `CrossEncoderRerankProvider` (`app/api/query.py::rerank_provider`).
+Every test here overrides both FastAPI dependencies to inject
+`FakeEmbeddingProvider` and a passthrough or deterministic reranker — the
+same pattern `tests/test_upload_api.py` uses for settings. The application
+itself never makes either substitution; `tests/test_embeddings.py` and
+`tests/test_reranking_scope.py` prove nothing in `app/` names a fake or
+passthrough provider, and one test below proves the unmodified endpoint
+really does reach for the real, currently-unavailable models instead.
 """
 
 import uuid
@@ -17,8 +19,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from app.api.query import embedding_provider
+from app.api.query import embedding_provider, rerank_provider
 from app.providers import EmbeddingError, FakeEmbeddingProvider
+from app.providers.passthrough_reranker import PassthroughRerankProvider
+from app.providers.reranker import RerankError
 from app.storage import LocalStorage
 
 from .retrieval_fixtures import seed_active_version
@@ -35,10 +39,24 @@ def embeddings() -> FakeEmbeddingProvider:
 
 
 @pytest.fixture
-def fake_client(client: TestClient, embeddings: FakeEmbeddingProvider):
-    """`/query` through the fake provider — injected by dependency override,
-    never chosen by the application."""
+def reranker() -> PassthroughRerankProvider:
+    """The passthrough, not a test-only fake: milestone 6's own SPEC-named
+    "reranking disabled" configuration, used here so these tests exercise
+    the wiring without depending on the real cross-encoder's ordering."""
+    return PassthroughRerankProvider()
+
+
+@pytest.fixture
+def fake_client(
+    client: TestClient,
+    embeddings: FakeEmbeddingProvider,
+    reranker: PassthroughRerankProvider,
+):
+    """`/query` through the fake embedding provider and the passthrough
+    reranker — both injected by dependency override, neither chosen by the
+    application."""
     client.app.dependency_overrides[embedding_provider] = lambda: embeddings
+    client.app.dependency_overrides[rerank_provider] = lambda: reranker
     try:
         yield client
     finally:
@@ -93,6 +111,8 @@ def test_the_response_shape(
         "lexical_rank",
         "vector_rank",
         "rrf_score",
+        "fusion_rank",
+        "rerank_score",
         "final_rank",
     }
     assert set(candidate["document"]) == {"id", "title", "department", "category", "tags"}
@@ -100,9 +120,11 @@ def test_the_response_shape(
     assert set(body["counts"]) == {"vector", "lexical", "fused", "returned"}
 
 
-def test_evidence_only_no_answer_no_citations_no_rerank_score(
+def test_evidence_only_no_answer_no_citations_no_selection_decision(
     fake_client, migrated_engine: Engine, storage, embeddings
 ) -> None:
+    """Milestone 6 adds rerank_score and final_rank (now meaning post-rerank
+    rank) — it must add nothing that belongs to milestone 8."""
     with Session(migrated_engine) as session:
         _seed(session, storage, embeddings)
 
@@ -112,7 +134,9 @@ def test_evidence_only_no_answer_no_citations_no_rerank_score(
 
     assert "answer" not in body
     assert "citations" not in body
-    assert "rerank_score" not in str(body)
+    assert "sufficient_evidence" not in str(body)
+    assert "selected" not in str(body)
+    assert "abstain" not in str(body).lower()
 
 
 def test_storage_path_never_appears(

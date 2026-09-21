@@ -1,9 +1,11 @@
-"""Scope guards for milestone 5: what must not have arrived yet.
+"""Scope guards for the retrieval and reranking pipeline (milestones 5-6).
 
-Milestone 5 is retrieval only. Reranking, generation, evaluation, query
-persistence and an approximate vector index all belong to later milestones
-(or, for `queries`/`retrieved_chunks`, are a locked project decision to
-defer). These tests fail loudly if one of them arrives early.
+Reranking (milestone 6) has arrived and is asserted present, correctly
+wired, and correctly bounded. Generation, citations, abstention, evaluation,
+query persistence and an approximate vector index all still belong to later
+milestones (or, for `queries`/`retrieved_chunks`, are a locked project
+decision to keep deferring). These tests fail loudly if one of them arrives
+early.
 """
 
 import ast
@@ -23,8 +25,35 @@ def _imports(source: str) -> set[str]:
     return names
 
 
-def test_no_reranking_package_exists() -> None:
-    assert not (APP / "reranking").exists()
+def test_the_reranking_package_exists_and_is_bounded() -> None:
+    """Milestone 6's own package — present, and calling no generation
+    provider. A docstring may still *mention* "citations" or "abstention"
+    while explaining that those belong elsewhere (this package's own
+    `__init__.py` does), so this checks imports, not prose."""
+    package = APP / "reranking"
+    assert package.exists()
+
+    for path in package.glob("*.py"):
+        for name in _imports(path.read_text()):
+            assert name != "anthropic" and not name.startswith("anthropic."), (
+                f"{path.name} imports {name}"
+            )
+
+
+def test_retrieval_package_still_imports_no_reranking_provider() -> None:
+    """Milestone 6 must not have put a provider call into `app/retrieval/`
+    to wire reranking in — the layering rule names `app/retrieval/`
+    specifically, and `app/reranking/` exists precisely so retrieval never
+    has to import it."""
+    forbidden_prefixes = ("app.reranking", "app.providers.reranker",
+                           "app.providers.cross_encoder",
+                           "app.providers.passthrough_reranker",
+                           "app.providers.fake_reranker")
+    for module in (APP / "retrieval").glob("*.py"):
+        for name in _imports(module.read_text()):
+            assert not name.startswith(forbidden_prefixes), (
+                f"{module.name} imports {name}"
+            )
 
 
 def test_no_generation_package_exists() -> None:
@@ -85,10 +114,21 @@ def test_no_answer_or_feedback_endpoints_exist() -> None:
     assert not any("/feedback" in path for path in paths)
 
 
-def test_no_rerank_score_field_in_the_query_response() -> None:
-    from app.api.schemas import QueryCandidateOut
+def test_the_query_response_has_no_generation_or_selection_fields() -> None:
+    """`rerank_score` and `final_rank` (post-rerank) are milestone 6's own,
+    legitimate fields. What must still be absent is anything belonging to
+    milestone 8: an answer, citations, or an invented `selected` boolean —
+    the specification names "evidence selection" as a concept but gives no
+    rule for it, and milestone 6 does not invent one (see D6)."""
+    from app.api.schemas import QueryCandidateOut, QueryResponse
 
-    assert "rerank_score" not in QueryCandidateOut.model_fields
+    assert "rerank_score" in QueryCandidateOut.model_fields
+    assert "final_rank" in QueryCandidateOut.model_fields
+    assert "fusion_rank" in QueryCandidateOut.model_fields
+
+    for forbidden in ("answer", "citations", "selected", "sufficient_evidence"):
+        assert forbidden not in QueryCandidateOut.model_fields
+        assert forbidden not in QueryResponse.model_fields
 
 
 def test_no_hnsw_or_ivfflat_index_is_created_by_any_migration() -> None:

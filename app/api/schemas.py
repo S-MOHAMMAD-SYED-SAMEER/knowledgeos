@@ -132,8 +132,14 @@ class QueryVersionOut(BaseModel):
 
 
 class QueryCandidateOut(BaseModel):
-    """One retrieved chunk. Evidence only — no answer, no citation, no
-    rerank score: those belong to milestones 6 and 8."""
+    """One reranked chunk. Evidence only — no answer, no citation, no
+    selection decision: those belong to milestone 8.
+
+    `final_rank` is the chunk's position after reranking — the rank a caller
+    actually sees. `fusion_rank` is milestone 5's own `final_rank`: the
+    position after RRF fusion, before reranking, kept for transparency about
+    what reranking changed rather than discarded once it runs.
+    """
 
     chunk_uid: str
     text: str
@@ -147,6 +153,8 @@ class QueryCandidateOut(BaseModel):
     lexical_rank: int | None
     vector_rank: int | None
     rrf_score: float
+    fusion_rank: int
+    rerank_score: float
     final_rank: int
 
 

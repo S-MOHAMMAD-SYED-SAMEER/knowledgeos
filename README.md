@@ -122,7 +122,7 @@ multi-hop questions
 
 # Implementation status
 
-**Milestones 1 to 4 of 10 are implemented.** Everything above this line
+**Milestones 1 to 6 of 10 are implemented.** Everything above this line
 describes the system as specified; everything below describes only what exists
 today.
 
@@ -643,6 +643,129 @@ the fake provider; a test asserts that by reading the application's source.
   after a parser fix and wasteful after a model change; a model-only re-embed
   is not in this milestone.
 
+## What milestone 6 built
+
+Reranking. Milestone 5's top-20 fused candidates get one more pass — a
+cross-encoder scores each `(query, chunk text)` pair directly, rather than
+comparing two independently-computed vectors the way retrieval does — and
+`/query` returns the reranked order instead of the fusion order.
+
+```
+POST /query
+  → normalize → embed → vector retrieval
+                       + lexical retrieval  → RRF → dedupe → top 20
+  → rerank (this milestone)
+  → evidence, reranked                                  ← no answer, still
+```
+
+- `app/providers/reranker.py` — the `RerankProvider` interface: `rerank(query,
+  candidates) -> list[ScoredChunk]`, exactly as specified, built around plain
+  `Candidate(id, text)` pairs rather than an ORM row or `app.retrieval`'s own
+  types.
+- `app/providers/cross_encoder.py` — `CrossEncoderRerankProvider`,
+  `cross-encoder/ms-marco-MiniLM-L-6-v2`, loaded locally through
+  `sentence_transformers.CrossEncoder`. The specification's default.
+- `app/providers/passthrough_reranker.py` — `PassthroughRerankProvider`,
+  preserving whatever order it is given. Named explicitly by the
+  specification as a shipped configuration — "so the pipeline is testable
+  without the model and so evals can measure what reranking actually adds"
+  — not a test-only convenience.
+- `app/providers/fake_reranker.py` — a deterministic, content-derived scorer
+  for tests only. Passthrough provably never reorders anything by
+  construction, which makes it useless for proving the reranking stage
+  *can* reorder; this exists for exactly that.
+- `app/reranking/` — the orchestration. `pipeline.py::rerank()` maps
+  milestone 5's candidates to `Candidate` pairs, calls whichever provider is
+  configured, sorts by score descending with `chunk_uid` ascending as the
+  tie-break, and assigns `final_rank` 1..N. `provider.py` holds the cached
+  accessor (`get_rerank_provider()`, mirroring
+  `app.ingestion.runner.get_embedding_provider()` exactly), always resolving
+  to the real cross-encoder in production.
+
+**No new dependency.** `sentence-transformers` already provides
+`CrossEncoder` alongside `SentenceTransformer`; both were declared in
+milestone 4.
+
+**No migration, no new table, no new endpoint.** `queries` and
+`retrieved_chunks` remain deferred — the same locked decision milestone 5
+made, extended rather than revisited. `/query` is still the only route this
+adds to; nothing this milestone does needed a fifth migration.
+
+### `app/retrieval/` stayed provider-free
+
+The specification's layering rule names `app/retrieval/`, `app/chunking/`
+and `app/generation/citations.py` as the packages that may hold no provider
+calls. It does not name `app/reranking/` — which is exactly what lets
+`app/reranking/pipeline.py` call a `RerankProvider` while every file under
+`app/retrieval/` stays exactly as milestone 5 left it. Nothing in this
+milestone touches `vector.py`, `lexical.py`, `fusion.py`, `filters.py`, or
+`dedupe.py`; the full milestone 5 test suite passes unmodified, and a test
+asserts `app/retrieval/` still imports no reranking provider.
+
+### `final_rank` changed meaning; `fusion_rank` is what it used to mean
+
+Milestone 5's `final_rank` was the position after RRF fusion — the last
+stage that existed. Once a reranking stage exists, "final" has to mean the
+rank a caller actually sees last, so `final_rank` in the API response is now
+the **post-rerank** position, and the pre-rerank position that milestone 5
+called `final_rank` is exposed as **`fusion_rank`** — never silently
+overloaded onto the same field name. `RetrievedChunk.final_rank` (milestone
+5's own internal type, in `app/retrieval/pipeline.py`) is untouched; the
+rename happens only where `app/reranking/pipeline.py` reads it into
+`RerankedChunk.fusion_rank`.
+
+### Score direction and ties
+
+Higher `rerank_score` is more relevant — the standard convention for this
+model family and for `CrossEncoder.predict()` generally, though the
+specification itself does not state a direction. Candidates are sorted by
+score descending; equal scores (the passthrough's synthetic scores, or two
+genuinely tied real scores) fall back to `chunk_uid` ascending, the same
+tie-break rule milestone 5 already uses in both its own channels.
+
+### Evidence selection
+
+The specification names "evidence selection" as part of this milestone's
+scope but gives no rule anywhere for it — no threshold, no top-N. The one
+threshold the specification does describe (§9, abstention) is explicitly
+calibrated on evaluation data that will not exist until milestone 7 has run.
+Rather than invent a number the specification withholds, milestone 6 does
+not add a `selected` field or a selection cutoff at all: **the reranked
+candidate set itself is the returned evidence.** A real selection rule,
+grounded in calibration data, is milestone 8's problem when it exists to
+solve.
+
+### Failure is loud, never silent
+
+If the real cross-encoder cannot be loaded from the local cache, or
+inference fails, `/query` answers `503` — the same convention milestone 5
+already established for the embedding provider. It never falls back to the
+passthrough, to milestone 5's unreranked order, or to another model; a
+silently degraded reranker would be indistinguishable, from the outside,
+from a working one. Reranking is skipped — not attempted and not faked —
+when retrieval found nothing to score.
+
+> **The real cross-encoder has not been exercised in this environment.**
+> `cross-encoder/ms-marco-MiniLM-L-6-v2` is not in the local
+> sentence-transformers cache, and `huggingface.co` is blocked by this
+> network's proxy — the same, unchanged condition milestone 4 and 5 already
+> documented for the embedding model. `tests/test_reranking.py`'s one
+> real-model test skips, and says why. Every other reranking test uses the
+> passthrough or the deterministic fake, which the specification permits.
+> The live smoke test below confirms the unmodified endpoint reaches for
+> the real provider and answers `503` — never a silent substitution — and
+> separately proves, through explicit dependency injection, that the
+> reranking stage itself can reorder candidates.
+
+### Known limitations
+
+- **The real reranking model has not been run here.** See the box above.
+- **No `selected` field, and no persisted `retrieved_chunks`.** Both remain
+  deferred; see "Evidence selection" above.
+- **A long chunk may be truncated by the cross-encoder's own tokenizer**,
+  for the same reason a long chunk may be truncated by BGE's: chunk size is
+  measured in whitespace words, not the model's real subword tokens.
+
 ## The two probes
 
 `GET /health` is **liveness**. It touches nothing — no database, no provider,
@@ -787,9 +910,10 @@ set one explicitly in code, which is how the test fixtures guarantee they never
 touch the development database — they refuse any name not ending in `_test`.
 
 Tests that need PostgreSQL skip when no server answers, so `pytest` still runs
-without one (222 pass, 197 skip). With a database: **418 pass, 1 skip** — the
-one skip is the real-embedding-model test described above, which cannot fetch
-its weights in this environment. No credential is needed either way.
+without one (311 pass, 259 skip). With a database: **568 pass, 2 skip** — the
+two skips are the real-embedding-model and real-reranking-model tests
+described above and below, neither of which can fetch its weights in this
+environment. No credential is needed either way.
 
 KnowledgeOS is a separate application from DocIntel and VoiceDesk in this
 repository: its own package, dependencies, virtualenv, configuration prefix and
