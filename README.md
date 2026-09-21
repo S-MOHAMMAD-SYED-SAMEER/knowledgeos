@@ -766,6 +766,120 @@ when retrieval found nothing to score.
   for the same reason a long chunk may be truncated by BGE's: chunk size is
   measured in whitespace words, not the model's real subword tokens.
 
+## What milestone 7 built
+
+The retrieval evaluation harness. Everything before this milestone answers
+"does retrieval work at all?" by reading code and a handful of hand-picked
+examples; this milestone answers it with a fixed corpus, a frozen question
+set, and six numbers, on demand rather than by feel.
+
+```
+python -m evals.run --suite retrieval
+```
+
+is the only way this ever runs. There is no `/evals/run` HTTP endpoint —
+evaluation is an offline, operator-run process, never something the running
+application exposes to a caller — and it never touches generation, answers,
+citations, or abstention: those are milestone 8/9's evaluation, once
+milestone 8/9 exist to have something to evaluate.
+
+**What it measures.** Six retrieval metrics, computed over the specification's
+eight question categories (directly answerable, multi-document, ambiguous,
+insufficient evidence, conflicting versions, metadata-filtered,
+citation-sensitive, adversarial):
+
+- **Recall@5**, **Recall@10** — `|expected ∩ returned@k| / |expected|`.
+- **Precision@5** — `|expected ∩ returned@5| / 5`, a fixed denominator.
+- **MRR** — `1 / rank` of the first relevant result over the full returned
+  top-20 list, `0` if none.
+- **nDCG@10** — binary relevance, the standard `DCG@10 / IDCG@10` formula.
+- **Metadata-filter correctness** — the fraction of filtered questions for
+  which zero returned candidates violate the requested filter.
+
+A question with an empty `expected_chunk_uids` (the insufficient-evidence
+category) is excluded from the first four means rather than counted as a
+zero — `evals/retrieval/metrics.py` refuses to compute any of them over an
+empty expected set — and the excluded count is reported alongside the
+aggregates, never folded silently into them.
+
+**Milestone 5 vs. milestone 6, compared honestly.** Every question is
+retrieved exactly once — `retrieve()` runs a single time per question — and
+that identical pre-reranking top-20 candidate list is then reranked twice:
+once by `PassthroughRerankProvider` (milestone 5's own fusion order,
+preserved) and once by `CrossEncoderRerankProvider` (milestone 6's real
+model). Reranking only ever reorders that one list; it cannot add or remove
+a candidate, so the two conditions' metrics differ because of reordering
+alone, never because of a different retrieval. Metadata-filter correctness
+is reported once, not per condition, since it depends only on which chunks
+were retrieved, not on the order reranking put them in.
+
+**The fixture corpus** (`evals/fixtures/knowledge_base/`) is ten policy and
+runbook documents (one of them, the Production Database Access SOP, with a
+second version that materially changes the answer — three-day grants and
+two approvers, instead of the first version's seven days and one approver),
+seeded through the real upload → parse → chunk → embed pipeline, never a
+shortcut. `evals/fixtures/knowledge_base/manifest.yaml` pins every document
+and version UUID, and the chunk configuration (512 tokens, 64 overlap) that
+the frozen question set's `chunk_uid`s were generated under — `chunk_uid`
+is derived from the version id and sequence (`app/chunking/uid.py`), so an
+unpinned id would silently invalidate every expected answer the next time
+the corpus was seeded.
+
+**The question set** (`evals/fixtures/questions/*.yaml`, 52 questions
+across the eight categories) carries exactly six fields per question — `id`,
+`text`, `category`, `expected_chunk_uids`, `expected_abstain`, `filters` —
+enforced by `evals/retrieval/questions.py`. Every `expected_chunk_uid` was
+read back from the real corpus after seeding it, never invented by hand;
+several questions list more than one expected chunk where the fixture
+corpus's own 64-token chunk overlap, or a fact genuinely stated in two
+different documents, means more than one chunk honestly contains the
+answer.
+
+**Persistence.** A successful run writes one row to `eval_runs` (`id`,
+`suite`, `prompt_version` — null for this suite, which has no prompt —
+`config`, `metrics`, `created_at`; migration `0005`) in the same configured
+KnowledgeOS database every other part of the application uses, never a
+second `knowledgeos_evals`-style database, plus a timestamped JSON artifact
+under `var/eval_runs/` and a console summary — all three built from the same
+result, so they can never disagree.
+
+**Official evaluation requires the real local models — no exceptions.**
+`BAAI/bge-small-en-v1.5` for embedding and
+`cross-encoder/ms-marco-MiniLM-L-6-v2` for the cross-encoder condition, both
+read from the local sentence-transformers cache exactly as milestones 4 and
+6 already require. If either is unavailable, `python -m evals.run` exits
+non-zero with a structural message and writes **nothing** — no `eval_runs`
+row, no JSON artifact, no printed metrics — checked with a canary call
+against each model before the fixture corpus is touched at all, so a failed
+run's database footprint is exactly zero. It never substitutes a fake
+provider to produce a number anyway; the specification's "fakes only inside
+pytest tests" allowance is exactly that, and `evals/run.py` never reaches
+for one.
+
+> **Official evaluation has not been run in this environment.** Both
+> required local models are absent from the sentence-transformers cache —
+> the same, unchanged condition milestones 4 and 6 already documented for
+> the embedding and reranking models individually — so `python -m evals.run
+> --suite retrieval` fails at its canary check, exactly as designed. No
+> retrieval metric numbers appear anywhere in this document, and no gate
+> from the specification has been claimed as passed: the harness has been
+> proven correct (`tests/test_evals_*.py`, run against the real fixture
+> corpus and database with deterministic fakes standing in for the two
+> models, per the specification's own pytest-only allowance), not run
+> officially.
+
+### Known limitations
+
+- **The real embedding and cross-encoder models have not been run
+  officially here.** See the box above.
+- **No answer, citation, or abstention evaluation.** Milestone 7 evaluates
+  retrieval only; those require milestone 8/9's generation to exist first.
+- **Metadata-filter correctness only checks presence, not recall.** A
+  question whose retriever returned zero candidates trivially violates
+  nothing and scores as "correct" — the metric measures whether filtering
+  leaked the wrong department or category into the result, not whether
+  filtering found the right one.
+
 ## The two probes
 
 `GET /health` is **liveness**. It touches nothing — no database, no provider,

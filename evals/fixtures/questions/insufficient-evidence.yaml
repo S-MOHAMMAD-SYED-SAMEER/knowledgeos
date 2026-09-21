@@ -1,0 +1,46 @@
+# Questions about things this fixture corpus genuinely does not cover.
+# expected_chunk_uids is empty by design -- these are excluded from the
+# Recall/Precision/MRR/nDCG aggregates (locked decision D4) and instead
+# feed abstention-related checks in a later milestone.
+
+- id: ie001
+  text: "What is the company's policy on using generative AI tools for writing code?"
+  category: insufficient evidence
+  expected_chunk_uids: []
+  expected_abstain: true
+  filters: {}
+
+- id: ie002
+  text: "How much does the company match for charitable donations?"
+  category: insufficient evidence
+  expected_chunk_uids: []
+  expected_abstain: true
+  filters: {}
+
+- id: ie003
+  text: "What is the process for requesting a sabbatical after five years of employment?"
+  category: insufficient evidence
+  expected_chunk_uids: []
+  expected_abstain: true
+  filters: {}
+
+- id: ie004
+  text: "What programming languages are approved for use in production services?"
+  category: insufficient evidence
+  expected_chunk_uids: []
+  expected_abstain: true
+  filters: {}
+
+- id: ie005
+  text: "What is the maximum team off-site budget per employee per year?"
+  category: insufficient evidence
+  expected_chunk_uids: []
+  expected_abstain: true
+  filters: {}
+
+- id: ie006
+  text: "Does the company offer a four-day work week option?"
+  category: insufficient evidence
+  expected_chunk_uids: []
+  expected_abstain: true
+  filters: {}

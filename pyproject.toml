@@ -32,6 +32,12 @@ dependencies = [
     # cleanly is worth one small dependency over a hand-written
     # UserDefinedType. PostgreSQL + pgvector remains the only vector store.
     "pgvector>=0.3",
+    # Milestone 7. The evaluation question set is specified as
+    # `evals/fixtures/questions/*.yaml`. Already present transitively
+    # (huggingface_hub and transformers both depend on it), but the
+    # specification forbids undocumented dependencies, so it is declared
+    # explicitly rather than relied on by accident.
+    "PyYAML>=6.0",
 ]
 
 # Dependencies arrive with the milestone that first imports them, so an

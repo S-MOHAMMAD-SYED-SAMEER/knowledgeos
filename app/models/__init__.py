@@ -13,6 +13,7 @@ from app.models.document import (
     DocumentVersion,
     VersionStatus,
 )
+from app.models.eval_run import RETRIEVAL_SUITE, EvalRun
 from app.models.ingestion_job import (
     ALLOWED_TRANSITIONS,
     TERMINAL_STATUSES,
@@ -22,12 +23,14 @@ from app.models.ingestion_job import (
 
 __all__ = [
     "ALLOWED_TRANSITIONS",
+    "RETRIEVAL_SUITE",
     "SOURCE_TYPES",
     "SOURCE_TYPE_UPLOAD",
     "TERMINAL_STATUSES",
     "Chunk",
     "Document",
     "DocumentVersion",
+    "EvalRun",
     "IngestionJob",
     "JobStatus",
     "VersionStatus",

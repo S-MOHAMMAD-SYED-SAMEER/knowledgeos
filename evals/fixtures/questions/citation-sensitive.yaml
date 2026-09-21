@@ -1,0 +1,42 @@
+# Questions with one precise, narrow numeric fact whose expected chunk is
+# unambiguous -- these exist to test precision at the citation level, not
+# just topical relevance. A retriever that returns a merely-related chunk
+# from the same document (e.g. the wrong severity level, the wrong
+# threshold) rather than the exact chunk containing the cited number should
+# score a miss here, unlike in the "ambiguous" category where several
+# chunks are genuinely, equally correct.
+
+- id: cs001
+  text: "Within how many minutes of declaring a severity-one incident must an executive be notified?"
+  category: citation-sensitive
+  expected_chunk_uids: ["f9cbee4e0939d52e95eebe93a063a85c"]
+  expected_abstain: false
+  filters: {}
+
+- id: cs002
+  text: "What is the minimum required password length in characters under the Security Policy?"
+  category: citation-sensitive
+  expected_chunk_uids: ["e3e91b1f9845f9e5b17e8e375d325dd9"]
+  expected_abstain: false
+  filters: {}
+
+- id: cs003
+  text: "Within how many hours of release must a critical-severity security patch be applied to production systems?"
+  category: citation-sensitive
+  expected_chunk_uids: ["cadfd10c7ce0b82b9b54035419a41eba"]
+  expected_abstain: false
+  filters: {}
+
+- id: cs004
+  text: "If the secondary on-call engineer also fails to acknowledge a page, how many minutes after the page before the incident commander is paged directly?"
+  category: citation-sensitive
+  expected_chunk_uids: ["49446816bd2ba01147d70c4fcfeaa7fc"]
+  expected_abstain: false
+  filters: {}
+
+- id: cs005
+  text: "Below what dollar amount does an expense require only manager approval, with no additional Finance spot-check?"
+  category: citation-sensitive
+  expected_chunk_uids: ["922fa6065681666dbffe4f7cb644da41"]
+  expected_abstain: false
+  filters: {}

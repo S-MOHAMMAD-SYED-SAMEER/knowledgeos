@@ -1,0 +1,94 @@
+# Questions with one clear, unambiguous answer findable in a single chunk.
+# expected_chunk_uids were read back from the real corpus after seeding with
+# the pinned manifest (see evals/fixtures/knowledge_base/manifest.yaml) --
+# never invented by hand.
+
+- id: da001
+  text: "How many days per week may an employee work remotely?"
+  category: directly answerable
+  expected_chunk_uids: ["5a04c330c14efaf8f4da83ebf6d6854f"]
+  expected_abstain: false
+  filters: {}
+
+- id: da002
+  text: "How long is a standard on-call shift?"
+  category: directly answerable
+  expected_chunk_uids: ["bdc1a9ee1fad6334d396205966574a15"]
+  expected_abstain: false
+  filters: {}
+
+- id: da003
+  text: "How many days of paid time off do employees accrue per year during their first three years?"
+  category: directly answerable
+  expected_chunk_uids: ["ad3e426ed2057b246c92f05fa8be0f13"]
+  expected_abstain: false
+  filters: {}
+
+- id: da004
+  text: "How long are database backups retained before they are automatically deleted?"
+  category: directly answerable
+  expected_chunk_uids: ["ac735f6387ca659b3a009e78d98f0118"]
+  expected_abstain: false
+  filters: {}
+
+- id: da005
+  text: "Within how many hours must a vendor notify the company of a security incident on the vendor's side?"
+  category: directly answerable
+  expected_chunk_uids:
+    - 54b5200c0f4ab243c0eb22bd471d9068
+    - 3420a80f00690e841d4060ffde749ba5
+  expected_abstain: false
+  filters: {}
+
+- id: da006
+  text: "How many business days does a written postmortem have to be completed within after a qualifying incident?"
+  category: directly answerable
+  expected_chunk_uids: ["49446816bd2ba01147d70c4fcfeaa7fc"]
+  expected_abstain: false
+  filters: {}
+
+- id: da007
+  text: "What is the maximum number of days of unused time off that can be carried over into the following year?"
+  category: directly answerable
+  expected_chunk_uids: ["ad3e426ed2057b246c92f05fa8be0f13"]
+  expected_abstain: false
+  filters: {}
+
+- id: da008
+  text: "How many engineering managers must currently approve a standard production database access request?"
+  category: directly answerable
+  expected_chunk_uids:
+    - da1cdb5e0e87ad69728e9d2781239d13
+    - 91d4f121536a0880dff84e83193cd833
+  expected_abstain: false
+  filters: {}
+
+- id: da009
+  text: "How long is vendor access granted for at most?"
+  category: directly answerable
+  expected_chunk_uids: ["eee7938e3bf0085d571e51f5a07a0389"]
+  expected_abstain: false
+  filters: {}
+
+- id: da010
+  text: "How many days in advance should a time off request normally be submitted?"
+  category: directly answerable
+  expected_chunk_uids: ["ad3e426ed2057b246c92f05fa8be0f13"]
+  expected_abstain: false
+  filters: {}
+
+- id: da011
+  text: "How many minutes does the primary on-call engineer have to acknowledge a page before it escalates to the secondary?"
+  category: directly answerable
+  expected_chunk_uids:
+    - bdc1a9ee1fad6334d396205966574a15
+    - 49446816bd2ba01147d70c4fcfeaa7fc
+  expected_abstain: false
+  filters: {}
+
+- id: da012
+  text: "For how many years after an employee departs are their HR records retained?"
+  category: directly answerable
+  expected_chunk_uids: ["ac735f6387ca659b3a009e78d98f0118"]
+  expected_abstain: false
+  filters: {}

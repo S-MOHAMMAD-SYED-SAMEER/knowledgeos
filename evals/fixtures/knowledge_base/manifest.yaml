@@ -1,0 +1,129 @@
+# The evaluation fixture corpus, pinned.
+#
+# chunk_uid = sha256(document_version_id : sequence : normalized_text)[:32]
+# (app/chunking/uid.py) -- so a chunk_uid can only ever be reproduced if the
+# document_id and version_id that produced it are the same ones every time.
+# Every id below is therefore fixed, not generated at seed time. Generating
+# them fresh on each run would make yesterday's expected_chunk_uids in the
+# question set wrong today, for text that has not actually changed.
+#
+# `access-sop` is the one document with two versions: v1 is superseded by
+# v2, which changes the approval and duration rules materially (seven days
+# and one approver, versus three days and two approvers) -- the
+# specification's own requirement for "a v2 of one of them with a
+# materially changed answer".
+#
+# department/category here are the metadata this corpus seeds onto
+# `documents` -- the same fields `RetrievalFilters` and the metadata-filter
+# correctness metric read.
+
+documents:
+  - key: handbook
+    document_id: 74973d26-c8bf-44b1-b0ce-a8df35ad2570
+    title: Employee Handbook
+    department: People
+    category: Handbook
+    tags: []
+    versions:
+      - version_id: 355b69ad-623d-40fe-9e64-eca22b01716c
+        file: handbook.md
+
+  - key: security-policy
+    document_id: 67745a14-64de-469e-b5bd-a7f8b1ac5c20
+    title: Security Policy
+    department: Security
+    category: Policy
+    tags: [security]
+    versions:
+      - version_id: 34eea661-5fc9-472b-95c4-38b91e14bac2
+        file: security-policy.md
+
+  - key: access-sop
+    document_id: 2a840e3d-7eea-4fac-85f3-7b5021547cee
+    title: Production Database Access SOP
+    department: Engineering
+    category: SOP
+    tags: [access, security]
+    versions:
+      - version_id: 92ccc318-72d4-4f6f-9e13-6f8030befeda
+        file: access-sop.md
+      - version_id: 1c80c198-11de-4c59-993b-29785f583339
+        file: access-sop-v2.md
+
+  - key: incident-response
+    document_id: e39a89f7-ac0a-4ec4-a574-c2a47b2e3778
+    title: Incident Response Runbook
+    department: Engineering
+    category: Runbook
+    tags: [security, incident]
+    versions:
+      - version_id: 09654c54-87f6-4aa3-b3dc-36c5dceed8b6
+        file: incident-response.md
+
+  - key: remote-work
+    document_id: 1d585afe-7809-45d2-bf8f-2776c736e987
+    title: Remote Work Policy
+    department: People
+    category: Policy
+    tags: [remote]
+    versions:
+      - version_id: bcaf50f4-fe81-41db-a236-3c6bc84fb6c1
+        file: remote-work.md
+
+  - key: expense-policy
+    document_id: 7d0fa89b-a0c8-48d4-8954-714ea255d41b
+    title: Expense Policy
+    department: Finance
+    category: Policy
+    tags: []
+    versions:
+      - version_id: c50c327d-2c8e-47ff-9fed-1047a303b256
+        file: expense-policy.md
+
+  - key: onboarding-guide
+    document_id: 28904576-81f6-418b-8cc5-db8eb4f489bf
+    title: Onboarding Guide
+    department: People
+    category: Handbook
+    tags: [onboarding]
+    versions:
+      - version_id: 5cba7d1e-1094-4f42-9e0e-8a41dedbb9c7
+        file: onboarding-guide.md
+
+  - key: data-retention
+    document_id: 51e44f7b-482a-42a1-99eb-858db0496a11
+    title: Data Retention Policy
+    department: Security
+    category: Policy
+    tags: [security, data]
+    versions:
+      - version_id: 24aa1e6b-3fad-43e4-8620-2247d4a3c66d
+        file: data-retention.md
+
+  - key: vendor-access
+    document_id: d44a32fb-15ad-4450-849b-78e560f951ea
+    title: Vendor Access Policy
+    department: Security
+    category: Policy
+    tags: [security, access, vendor]
+    versions:
+      - version_id: 1d00af61-9c53-4a61-889c-2c0c5afb0586
+        file: vendor-access.md
+
+  - key: on-call-rotation
+    document_id: 4bc2bd85-7374-497a-858e-3e802a0eaf26
+    title: On-Call Rotation
+    department: Engineering
+    category: Runbook
+    tags: [oncall]
+    versions:
+      - version_id: 82be084b-df67-4fb0-9d66-38f3c80f17ae
+        file: on-call-rotation.md
+
+# The chunking configuration this corpus must be seeded and re-seeded with.
+# Pinned here rather than left to whatever KNOWLEDGEOS_CHUNK_SIZE_TOKENS an
+# operator's environment happens to have set, because chunk_uid depends on
+# it -- a different config would silently produce a different corpus with
+# different chunk_uids than the ones frozen into the question set.
+chunk_size_tokens: 512
+chunk_overlap_tokens: 64

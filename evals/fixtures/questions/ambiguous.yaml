@@ -1,0 +1,51 @@
+# Questions where the corpus supports a reasonable answer but the question
+# itself is underspecified -- "access" could mean several different kinds,
+# "the policy" doesn't name which one. expected_chunk_uids lists every
+# chunk a reasonable reading could point to, since a good retriever should
+# surface the plausible candidates rather than guess a single one.
+
+- id: am001
+  text: "What's the approval process for access?"
+  category: ambiguous
+  expected_chunk_uids:
+    - da1cdb5e0e87ad69728e9d2781239d13
+    - eee7938e3bf0085d571e51f5a07a0389
+  expected_abstain: false
+  filters: {}
+
+- id: am002
+  text: "How long does access last?"
+  category: ambiguous
+  expected_chunk_uids:
+    - da1cdb5e0e87ad69728e9d2781239d13
+    - eee7938e3bf0085d571e51f5a07a0389
+  expected_abstain: false
+  filters: {}
+
+- id: am003
+  text: "What's the retention period?"
+  category: ambiguous
+  expected_chunk_uids:
+    - ac735f6387ca659b3a009e78d98f0118
+    - b27f10fcc77b64d06f491ca98fd343c7
+  expected_abstain: false
+  filters: {}
+
+- id: am004
+  text: "Who needs to approve this?"
+  category: ambiguous
+  expected_chunk_uids:
+    - da1cdb5e0e87ad69728e9d2781239d13
+    - 922fa6065681666dbffe4f7cb644da41
+  expected_abstain: false
+  filters: {}
+
+- id: am005
+  text: "What happens after the review?"
+  category: ambiguous
+  expected_chunk_uids:
+    - eee7938e3bf0085d571e51f5a07a0389
+    - 54b5200c0f4ab243c0eb22bd471d9068
+    - 3420a80f00690e841d4060ffde749ba5
+  expected_abstain: false
+  filters: {}

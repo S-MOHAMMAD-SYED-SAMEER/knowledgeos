@@ -1,0 +1,52 @@
+# Questions targeting the one document with two versions: the Production
+# Database Access SOP. v1 (superseded) says seven days and one approving
+# manager; v2 (active) says three days and two approving managers -- a
+# materially changed answer, as the specification requires.
+#
+# Default retrieval (include_superseded: false) must answer from v2 only.
+# The same questions with include_superseded: true may legitimately surface
+# v1 as well, which is exactly what the "superseded versions in default
+# retrieval: 0" gate (specification, acceptance gates) checks for.
+
+- id: cv001
+  text: "How many days does standard production database access last for?"
+  category: conflicting versions
+  expected_chunk_uids: ["da1cdb5e0e87ad69728e9d2781239d13"]
+  expected_abstain: false
+  filters: {}
+
+- id: cv002
+  text: "How many managers must approve a standard production database access request?"
+  category: conflicting versions
+  expected_chunk_uids:
+    - da1cdb5e0e87ad69728e9d2781239d13
+    - 91d4f121536a0880dff84e83193cd833
+  expected_abstain: false
+  filters: {}
+
+- id: cv003
+  text: "How often is the access grant log reviewed by Security Engineering?"
+  category: conflicting versions
+  expected_chunk_uids:
+    - da1cdb5e0e87ad69728e9d2781239d13
+    - 91d4f121536a0880dff84e83193cd833
+  expected_abstain: false
+  filters: {}
+
+- id: cv004
+  text: "How many days does standard production database access last for, including retired versions of the SOP?"
+  category: conflicting versions
+  expected_chunk_uids:
+    - da1cdb5e0e87ad69728e9d2781239d13
+    - eef29ba299e4f0dd72c16e1741ac6928
+  expected_abstain: false
+  filters:
+    include_superseded: true
+
+- id: cv005
+  text: "What did the original, superseded version of the Production Database Access SOP say about how many approvers were required?"
+  category: conflicting versions
+  expected_chunk_uids: ["eef29ba299e4f0dd72c16e1741ac6928"]
+  expected_abstain: false
+  filters:
+    include_superseded: true

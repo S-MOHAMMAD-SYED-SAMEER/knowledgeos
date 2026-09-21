@@ -1,0 +1,50 @@
+# Questions deliberately worded to mislead a retriever that matches on
+# surface keywords rather than actual meaning: a false or outdated premise
+# stated using the exact vocabulary of the WRONG chunk, a paraphrase that
+# avoids the right chunk's vocabulary entirely, or a document named in the
+# question that is not actually where the real answer lives. A retriever
+# that just chases lexical overlap should be expected to fail some of
+# these; expected_chunk_uids reflects the actually-correct answer
+# regardless of what the question's own wording suggests.
+
+- id: adv001
+  text: "If my password uses only letters and numbers and is twelve characters long, does it satisfy the account security requirements?"
+  category: adversarial
+  expected_chunk_uids: ["e3e91b1f9845f9e5b17e8e375d325dd9"]
+  expected_abstain: false
+  filters: {}
+
+- id: adv002
+  text: "Does a standard on-call rotation shift run for a full calendar week rather than something shorter?"
+  category: adversarial
+  expected_chunk_uids: ["bdc1a9ee1fad6334d396205966574a15"]
+  expected_abstain: false
+  filters: {}
+
+- id: adv003
+  text: "The Security Policy says production database access needs sign-off from one engineering manager and lasts seven days. Is that still the current rule?"
+  category: adversarial
+  expected_chunk_uids: ["da1cdb5e0e87ad69728e9d2781239d13"]
+  expected_abstain: false
+  filters: {}
+
+- id: adv004
+  text: "Under the Remote Work Policy, how is mileage for a personal vehicle used on business travel reimbursed?"
+  category: adversarial
+  expected_chunk_uids: ["f3db0cedd94359653e4daa1f0536c9fa"]
+  expected_abstain: false
+  filters: {}
+
+- id: adv005
+  text: "According to the Remote Work Policy, what is the maximum number of unused paid time off days that can be carried over into the following year?"
+  category: adversarial
+  expected_chunk_uids: ["ad3e426ed2057b246c92f05fa8be0f13"]
+  expected_abstain: false
+  filters: {}
+
+- id: adv006
+  text: "The Security Policy requires passwords to be at least twenty characters long -- how often must they be rotated under that rule?"
+  category: adversarial
+  expected_chunk_uids: []
+  expected_abstain: true
+  filters: {}

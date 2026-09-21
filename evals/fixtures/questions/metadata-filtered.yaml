@@ -1,0 +1,60 @@
+# Questions carrying a non-empty `filters`, exercised against the real
+# metadata seeded by the manifest (department/category/tags per document).
+# These feed the metadata-filter-correctness metric: every returned
+# candidate for these questions must satisfy the stated filter.
+
+- id: mf001
+  text: "What is the approval process for production database access?"
+  category: metadata-filtered
+  expected_chunk_uids: ["da1cdb5e0e87ad69728e9d2781239d13"]
+  expected_abstain: false
+  filters:
+    department: Engineering
+
+- id: mf002
+  text: "How long is data retained?"
+  category: metadata-filtered
+  expected_chunk_uids: ["ac735f6387ca659b3a009e78d98f0118"]
+  expected_abstain: false
+  filters:
+    category: Policy
+
+- id: mf003
+  text: "How is on-call compensation calculated?"
+  category: metadata-filtered
+  expected_chunk_uids: ["bdc1a9ee1fad6334d396205966574a15"]
+  expected_abstain: false
+  filters:
+    department: Engineering
+
+- id: mf004
+  text: "How should a suspected security incident be reported?"
+  category: metadata-filtered
+  expected_chunk_uids: ["cadfd10c7ce0b82b9b54035419a41eba"]
+  expected_abstain: false
+  filters:
+    tags: ["security"]
+
+- id: mf005
+  text: "What happens when a vendor engagement ends?"
+  category: metadata-filtered
+  expected_chunk_uids: ["eee7938e3bf0085d571e51f5a07a0389"]
+  expected_abstain: false
+  filters:
+    department: Security
+
+- id: mf006
+  text: "What equipment is provided for remote work?"
+  category: metadata-filtered
+  expected_chunk_uids: ["5a04c330c14efaf8f4da83ebf6d6854f"]
+  expected_abstain: false
+  filters:
+    department: People
+
+- id: mf007
+  text: "What is the Production Database Access SOP, restricted to this specific document?"
+  category: metadata-filtered
+  expected_chunk_uids: ["da1cdb5e0e87ad69728e9d2781239d13"]
+  expected_abstain: false
+  filters:
+    document_id: 2a840e3d-7eea-4fac-85f3-7b5021547cee

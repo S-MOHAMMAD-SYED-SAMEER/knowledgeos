@@ -60,8 +60,19 @@ def test_no_generation_package_exists() -> None:
     assert not (APP / "generation").exists()
 
 
-def test_no_evals_package_exists() -> None:
-    assert not (ROOT / "evals").exists()
+def test_the_evals_package_exists_and_is_bounded() -> None:
+    """Milestone 7's own package — present, and calling no generation
+    provider. A docstring may still *mention* generation while explaining
+    that it belongs elsewhere, so this checks imports, not prose."""
+    package = ROOT / "evals"
+    assert package.exists()
+    assert not (package / "answers").exists()
+
+    for path in package.rglob("*.py"):
+        for name in _imports(path.read_text()):
+            assert name != "anthropic" and not name.startswith("anthropic."), (
+                f"{path.name} imports {name}"
+            )
 
 
 def test_no_anthropic_import_anywhere_in_the_application() -> None:
@@ -81,8 +92,9 @@ def test_no_query_persistence_tables() -> None:
     assert "retrieved_chunks" not in Base.metadata.tables
 
 
-def test_the_schema_is_still_the_four_tables_built_so_far() -> None:
-    """Milestone 5 needs no migration: everything it reads already exists."""
+def test_the_schema_is_the_five_tables_built_so_far() -> None:
+    """Milestones 5 and 6 needed no migration; milestone 7's `eval_runs` is
+    the first table added since milestone 4."""
     import app.models  # noqa: F401
     from app.db.base import Base
 
@@ -91,12 +103,13 @@ def test_the_schema_is_still_the_four_tables_built_so_far() -> None:
         "document_versions",
         "ingestion_jobs",
         "chunks",
+        "eval_runs",
     }
 
 
-def test_there_are_still_exactly_four_migrations() -> None:
+def test_there_are_exactly_five_migrations() -> None:
     versions = (ROOT / "alembic" / "versions").glob("*.py")
-    assert len(list(versions)) == 4
+    assert len(list(versions)) == 5
 
 
 def test_no_get_queries_endpoint_exists() -> None:
@@ -173,8 +186,11 @@ def test_no_second_datastore_is_declared() -> None:
         assert forbidden not in declared
 
 
-def test_milestone_five_added_no_dependency() -> None:
-    """The inspection concluded no new dependency was required."""
+def test_milestones_five_and_six_added_no_dependency() -> None:
+    """Milestone 5's inspection concluded no new dependency was required,
+    and milestone 6's cross-encoder came from a package milestone 4 already
+    declared. Milestone 7 is the first of the three to add one: PyYAML, for
+    the specification's own `*.yaml` question files."""
     import tomllib
 
     declared = {
@@ -197,7 +213,66 @@ def test_milestone_five_added_no_dependency() -> None:
         "APScheduler",
         "sentence-transformers",
         "pgvector",
+        "PyYAML",
     }
+
+
+def test_no_evals_run_http_endpoint_exists() -> None:
+    """The specification's own command is `python -m evals.run --suite
+    retrieval` — an offline CLI, never something the running application
+    exposes. No router anywhere may add a path under `/evals`."""
+    from app.main import create_app
+
+    paths = create_app().openapi()["paths"]
+    assert not any(path.startswith("/evals") for path in paths)
+
+
+def test_no_api_module_imports_the_evals_package() -> None:
+    """The application itself never calls into `evals/` — evaluation reads
+    the application's code, not the other way around."""
+    for module in APP.rglob("*.py"):
+        for name in _imports(module.read_text()):
+            assert not name.startswith("evals"), f"{module} imports {name}"
+
+
+def test_evals_fixtures_contain_no_python() -> None:
+    """Fixture data (`evals/fixtures/knowledge_base/*.md`,
+    `evals/fixtures/questions/*.yaml`) must stay data — a `.py` file in
+    either directory would mean a provider or the database could be reached
+    from what is supposed to be static content."""
+    fixtures = ROOT / "evals" / "fixtures"
+    assert fixtures.exists()
+    assert not list(fixtures.rglob("*.py"))
+
+
+def test_evals_package_has_no_second_database_configured() -> None:
+    """D11, locked: the evaluation harness uses the one configured
+    KnowledgeOS database, never a `knowledgeos_evals`-style second one."""
+    for path in (ROOT / "evals").rglob("*.py"):
+        source = path.read_text()
+        assert "knowledgeos_evals" not in source
+        assert "create_engine" not in source
+
+
+def test_readme_m7_section_has_no_fabricated_metric_numbers() -> None:
+    """D14, locked: the README documents what milestone 7 measures, never a
+    result it did not actually produce. A real result, had one been
+    recorded, would look like the four-decimal numbers
+    `evals/retrieval/report.py` prints (`0.7000`) or a percentage — neither
+    pattern may appear in this section, and the section must say plainly
+    that official evaluation has not been run here."""
+    import re
+
+    text = (ROOT / "README.md").read_text()
+    start = text.index("## What milestone 7 built")
+    end = text.index("\n## ", start + 1)
+    section = text[start:end]
+
+    assert "has not been run" in section
+    assert not re.search(r"\b\d\.\d{2,4}\b", section)
+    assert "%" not in section
+    for forbidden in ("gates passed", "evaluation passed", "all gates pass"):
+        assert forbidden not in section.lower()
 
 
 def test_bm25_never_describes_postgres_full_text_search() -> None:

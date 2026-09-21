@@ -95,6 +95,8 @@ def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
         # integration for PostgreSQL's vector type.
         "sentence-transformers",
         "pgvector",
+        # Milestone 7: the evaluation question set is specified as YAML.
+        "PyYAML",
     }
 
 
@@ -141,9 +143,9 @@ def test_no_later_milestones_library_is_declared() -> None:
     assert "anthropic" not in declared
 
 
-def test_the_schema_is_the_four_tables_built_so_far() -> None:
-    """queries, answers and the rest arrive with the milestones that write
-    them."""
+def test_the_schema_is_the_five_tables_built_so_far() -> None:
+    """queries, retrieved_chunks, answers and the rest arrive with the
+    milestones that actually write them."""
     from app.db.base import Base
     import app.models  # noqa: F401
 
@@ -152,4 +154,5 @@ def test_the_schema_is_the_four_tables_built_so_far() -> None:
         "document_versions",
         "ingestion_jobs",
         "chunks",
+        "eval_runs",
     }

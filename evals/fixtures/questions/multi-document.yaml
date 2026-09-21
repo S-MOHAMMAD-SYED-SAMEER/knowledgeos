@@ -1,0 +1,56 @@
+# Questions whose answer draws on chunks from more than one document.
+
+- id: md001
+  text: "If I'm on call and need production database access during an active incident, what's the process, and does it require the same approval as a normal request?"
+  category: multi-document
+  expected_chunk_uids:
+    - f9cbee4e0939d52e95eebe93a063a85c
+    - da1cdb5e0e87ad69728e9d2781239d13
+  expected_abstain: false
+  filters: {}
+
+- id: md002
+  text: "How does remote work affect the approval requirements for production database access?"
+  category: multi-document
+  expected_chunk_uids:
+    - 5a04c330c14efaf8f4da83ebf6d6854f
+    - da1cdb5e0e87ad69728e9d2781239d13
+  expected_abstain: false
+  filters: {}
+
+- id: md003
+  text: "How long are access grant logs retained, and how does that compare to how long postmortems are kept?"
+  category: multi-document
+  expected_chunk_uids:
+    - ac735f6387ca659b3a009e78d98f0118
+    - da1cdb5e0e87ad69728e9d2781239d13
+  expected_abstain: false
+  filters: {}
+
+- id: md004
+  text: "What happens to an employee's equipment and system access when they resign, and how does the notice period interact with the offboarding process?"
+  category: multi-document
+  expected_chunk_uids:
+    - 1520a2137d9557a94fc05784da189fc0
+    - e3e91b1f9845f9e5b17e8e375d325dd9
+  expected_abstain: false
+  filters: {}
+
+- id: md005
+  text: "How is vendor access to a vendor-managed service like a payment processor approved and how long does it last, and how does that compare to the standard internal production access process?"
+  category: multi-document
+  expected_chunk_uids:
+    - eee7938e3bf0085d571e51f5a07a0389
+    - 54b5200c0f4ab243c0eb22bd471d9068
+    - da1cdb5e0e87ad69728e9d2781239d13
+  expected_abstain: false
+  filters: {}
+
+- id: md006
+  text: "What security training must an engineer complete before they can be granted production database access, and when in onboarding does that training happen?"
+  category: multi-document
+  expected_chunk_uids:
+    - fa6a8fa3ff7c9abfd858f139e55ab66d
+    - b63716038fc7ad343c814ed2e3cdc563
+  expected_abstain: false
+  filters: {}
