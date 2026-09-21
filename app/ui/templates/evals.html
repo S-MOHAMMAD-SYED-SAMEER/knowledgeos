@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Evaluation results &mdash; KnowledgeOS{% endblock %}
+{% block content %}
+  <h1>Evaluation results</h1>
+
+  {% if runs %}
+    <p class="muted">{{ runs | length }} recorded evaluation run(s), newest first. Every number below is read verbatim from the persisted <code>eval_runs</code> row that produced it.</p>
+    {% for run in runs %}
+      <h2>{{ run.suite }} &mdash; {{ run.created_at }}</h2>
+      <p class="muted">
+        eval_run_id: {{ run.id }}
+        {% if run.prompt_version %} &middot; prompt_version: {{ run.prompt_version }}{% endif %}
+      </p>
+      <h3>Config</h3>
+      <pre>{{ run.config | tojson(indent=2) }}</pre>
+      <h3>Metrics</h3>
+      <pre>{{ run.metrics | tojson(indent=2) }}</pre>
+    {% endfor %}
+  {% else %}
+    <p class="muted">
+      No evaluation run has been recorded in this database. This is an
+      honest empty state, not a placeholder: KnowledgeOS never displays a
+      fabricated or estimated evaluation number here. Once
+      <code>python -m evals.run --suite retrieval</code> or
+      <code>python -m evals.run --suite answers</code> has been run
+      successfully against the real models, its results appear on this
+      page automatically.
+    </p>
+  {% endif %}
+{% endblock %}

@@ -46,12 +46,17 @@ dependencies = [
     # and is not used. Imported lazily, only inside
     # `app/providers/gemini_llm.py`.
     "google-genai>=2.24",
+    # Milestone 10. The server-rendered UI (`app/ui/`). Already present
+    # transitively from milestone 4 onward (torch depends on it), but the
+    # specification forbids undocumented dependencies (§18), so it is
+    # declared explicitly now that this project actually imports it,
+    # rather than relied on by accident the way `PyYAML` was before
+    # milestone 7 declared it.
+    "jinja2>=3.1",
 ]
 
 # Dependencies arrive with the milestone that first imports them, so an
-# install never carries a library the code does not yet use. Deferred on
-# purpose, with the milestone that earns each one:
-#   m10: jinja2
+# install never carries a library the code does not yet use.
 #
 # pgvector is the PostgreSQL extension in m1 and the Python package in m4:
 # the extension is created by migration 0001, and nothing in m1 declares a

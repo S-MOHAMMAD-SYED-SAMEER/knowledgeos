@@ -2,11 +2,15 @@
 
 Milestone 5 added `POST /query`; milestone 8 adds `GET /queries/{id}`
 alongside it, on the same router — both retrieval-and-generation routes live
-in `app/api/query.py`. The whole HTTP surface is those two, the two probes,
-`POST /documents`, `POST /documents/{id}/versions`, `GET /documents`,
-`GET /documents/{id}` and `GET /ingestion/{job_id}`, and `tests/test_health.py`
-asserts it, so a route belonging to a later milestone cannot arrive here
-quietly.
+in `app/api/query.py`. Milestone 10 adds `POST /answers/{id}/feedback`
+(`app/api/feedback.py`) and the server-rendered UI (`app/ui/routes.py`,
+mounted under `/ui`, `include_in_schema=False` on every route — it never
+appears in `/openapi.json` and `tests/test_health.py`'s own exact-path
+guard proves it). The JSON API's HTTP surface is those routes, the two
+probes, `POST /documents`, `POST /documents/{id}/versions`, `GET
+/documents`, `GET /documents/{id}` and `GET /ingestion/{job_id}`, and
+`tests/test_health.py` asserts it, so a route belonging to a later
+milestone cannot arrive here quietly.
 
 What is new is behind it: the lifespan starts the ingestion runner, which
 polls for queued jobs and parses and chunks them. The runner is held on the
@@ -28,9 +32,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app import __version__
-from app.api import documents, health, ingestion, query, ready
+from app.api import documents, feedback, health, ingestion, query, ready
 from app.config import Settings, get_settings
 from app.ingestion.runner import IngestionRunner
+from app.ui import routes as ui_routes
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -52,6 +57,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(documents.router)
     app.include_router(ingestion.router)
     app.include_router(query.router)
+    app.include_router(feedback.router)
+    app.include_router(ui_routes.router)
     return app
 
 

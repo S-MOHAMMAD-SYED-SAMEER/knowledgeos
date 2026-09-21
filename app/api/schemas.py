@@ -7,8 +7,11 @@ become a public field.
 
 import uuid
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.models.feedback import MAX_REASON_LENGTH
 
 
 class DocumentOut(BaseModel):
@@ -82,6 +85,8 @@ __all__ = [
     "DocumentDetail",
     "DocumentOut",
     "DocumentPage",
+    "FeedbackIn",
+    "FeedbackOut",
     "JobOut",
     "QueryFiltersIn",
     "QueryCandidateOut",
@@ -248,3 +253,26 @@ class QueryDetailOut(BaseModel):
     created_at: datetime
     retrieved_chunks: list[RetrievedChunkOut]
     answer: AnswerDetailOut | None
+
+
+# --- feedback (milestone 10) -------------------------------------------
+
+
+class FeedbackIn(BaseModel):
+    """The two ratings are the specification's own words (§5), never a
+    free-form string — a third value would need a migration to become
+    possible to store, and this keeps the API from accepting one the
+    database would reject anyway."""
+
+    rating: Literal["helpful", "not_helpful"]
+    reason: str | None = Field(default=None, max_length=MAX_REASON_LENGTH)
+
+
+class FeedbackOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    answer_id: uuid.UUID
+    rating: str
+    reason: str | None
+    created_at: datetime

@@ -1,0 +1,36 @@
+# Git metadata -- never needed inside the image, and the history is not
+# something a running container should be able to read.
+.git
+.gitignore
+
+# Python environment and caches.
+.venv
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets and local configuration. `.env` never leaves the host; only
+# `.env.example` (which carries no real value) is meant to be read at
+# all, and even that is not needed inside the image -- configuration
+# arrives through the container's own environment at run time.
+.env
+.env.*
+!.env.example
+
+# Local data: uploads, rendered pages, eval report artifacts.
+var/
+
+# Everything test-related. Never shipped in the production image; the
+# Dockerfile's own COPY list is already explicit about what it takes
+# (app/, alembic/, alembic.ini, evals/, pyproject.toml, README.md), and
+# this is defense in depth against a future COPY becoming broader.
+tests/
+.pytest_cache/
+
+# Editor/OS noise.
+.DS_Store
+*.swp

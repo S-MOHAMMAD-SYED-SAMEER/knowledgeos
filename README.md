@@ -3,14 +3,18 @@
 An internal knowledge system that answers from retrieved evidence — and
 measures whether it actually did.
 
-**Status: milestone 9 of 10.** Documents can be uploaded, validated, stored,
-versioned, parsed, chunked, indexed, retrieved, reranked and answered, with
-citations, grounding, and abstention. Both evaluation harnesses (retrieval,
-milestone 7; answers, milestone 9) exist and are proven correct against
-fixtures — **neither has been run officially in this environment**, because
-the required real local models are absent from its model cache. **No
-benchmark figure appears in this README until it is real** — see "What
-milestone 9 built" below for the exact blocking reason.
+**Status: milestone 10 of 10 — v1 complete.** Documents can be uploaded,
+validated, stored, versioned, parsed, chunked, indexed, retrieved, reranked
+and answered, with citations, grounding, and abstention, a feedback
+endpoint, and a minimal server-rendered UI over all of it. Both evaluation
+harnesses (retrieval, milestone 7; answers, milestone 9) exist and are
+proven correct against fixtures — **neither has been run officially in this
+environment**, because the required real local models are absent from its
+model cache, and no Docker image has been built here either (the Docker
+daemon itself is unavailable in this sandbox). **No benchmark figure
+appears in this README until it is real, and no Docker build/runtime claim
+appears until one has actually run** — see "What milestone 9 built" and
+"What milestone 10 built" below for the exact blocking reasons.
 
 ## The problem
 
@@ -63,6 +67,13 @@ Ingest → Parse → Chunk → Index → Retrieve → Rerank → Generate → Ci
   retrieved set. Invalid citations are rejected, not displayed.
 - **Evaluation** — separate retrieval and answer suites, runnable offline with
   no API credentials.
+- **Server-rendered UI** — Jinja2, no build step: document list, document
+  detail with version history, a query box, an answer page with citations and
+  retrieved evidence side by side, and an evaluation results page.
+- **Feedback** — `POST /answers/{id}/feedback` records a helpful/not-helpful
+  rating and an optional reason against a generated answer.
+- **Deployment** — a Dockerfile, `docker-compose.yml`, and a CI workflow that
+  runs the whole suite with no external credential.
 
 ## What it deliberately is not
 
@@ -74,7 +85,8 @@ Celery, Kubernetes, or React. **Postgres is the only datastore.**
 
 Python 3.13 · FastAPI · SQLAlchemy 2.x · PostgreSQL 16 + pgvector · psycopg 3 ·
 Alembic · sentence-transformers (local embeddings and reranking) · Google
-Gemini (`google-genai`) behind a provider interface · pytest · Docker
+Gemini (`google-genai`) behind a provider interface · Jinja2 (server-rendered
+UI) · pytest · Docker
 
 > **Generation provider deviation, stated plainly.** The specification's own
 > stack list and milestone 8 scope line name "Anthropic SDK" / "Anthropic
@@ -91,7 +103,9 @@ Dependencies arrive with the milestone that first imports them, so an install
 never carries a library the code does not yet use. Today that is FastAPI,
 Uvicorn, Pydantic, pydantic-settings, SQLAlchemy, Alembic, psycopg,
 python-multipart, `pypdf`, APScheduler, sentence-transformers, `PyYAML`,
-`pgvector` and `google-genai`. Jinja2 is not installed yet, and the Anthropic
+`pgvector`, `google-genai` and, as of milestone 10, `jinja2` — already
+present transitively since milestone 4 (torch depends on it), now finally
+declared on purpose because `app/ui/` actually imports it. The Anthropic
 SDK is not installed at all — see the deviation note above; DOCX is read with
 the standard library, so `python-docx` is not installed either.
 
@@ -1346,6 +1360,249 @@ through `GET /queries/{id}`.
   has no entry for any model here — not because pricing computation is
   unimplemented (see "Observability" above).
 
+## What milestone 10 built
+
+The server-rendered UI, the feedback endpoint, and deployment: a Dockerfile,
+`docker-compose.yml`, and a CI workflow. The last milestone in the
+specification's own table (§17) — nothing here changes retrieval, reranking,
+generation, citation validation, grounding, abstention, or either evaluation
+harness; every one of those is reused exactly as milestone 8/9 left it.
+
+### Five pages, mounted under `/ui`, never in the JSON API's contract
+
+The specification (§12): "Jinja2, server-rendered, minimal: document list,
+document detail with version history, query box, answer page showing
+citations and the retrieved evidence side by side, eval results page. No
+React, no build step." All five exist, at exactly those routes
+(`app/ui/routes.py`), and nowhere else:
+
+```
+GET  /ui/                          document list
+GET  /ui/documents/{id}            document detail + version history
+GET  /ui/query                     the query box
+POST /ui/query                     runs the pipeline, 303 → the answer page
+GET  /ui/answers/{query_id}        answer, citations, evidence, feedback form
+POST /ui/answers/{answer_id}/feedback   the feedback form's own target
+GET  /ui/evals                     evaluation results
+```
+
+Every one of them is `include_in_schema=False` — `/ui/*` never appears in
+`/openapi.json`, and `tests/test_health.py`'s own exact-path guard (unchanged
+in spirit since milestone 1, extended each milestone a new endpoint
+legitimately arrived) proves the JSON API's contract is unaffected by this
+package's existence at all. The UI is a separate, purely additive layer, not
+a second copy of the API with a different response format.
+
+### Reuse, not a second implementation
+
+`POST /ui/query` calls `app.api.query.run_query` **directly** — the identical
+function `POST /query` calls, with providers sourced through the identical
+`Depends(embedding_provider)` / `Depends(rerank_provider)` /
+`Depends(llm_provider)` dependencies `run_query` itself declares. Declaring
+them as dependencies on the UI route, rather than calling the accessor
+functions directly, is what makes them overridable in tests the same way
+`tests/test_query_api.py` already overrides them for the JSON API — calling
+`embedding_provider()` directly would silently always reach for the real,
+cached provider, in a test or in production alike, and no test could ever
+prove the UI's query flow works against anything else. Nothing about
+retrieval, reranking, generation, citation validation, grounding, or
+abstention is reimplemented anywhere in `app/ui/`.
+
+The document list and detail pages call `app.api.documents.list_documents`
+and `get_document` directly for the same reason — one query, one place it is
+written.
+
+**The answer page's evidence view is a new read, not new retrieval.**
+`GET /queries/{id}` (the JSON API) deliberately does not carry chunk text or
+document/version metadata — it is a ranking record, not an evidence viewer.
+The answer page needs both, so `app/ui/routes.py` reads `retrieved_chunks`
+joined to `chunks`, `document_versions` and `documents` — a read-only join
+over rows milestone 8's own `persist_query` already wrote, never a second
+call into `app.retrieval` or `app.reranking`.
+
+### POST/redirect/GET, and reused validation for feedback
+
+`POST /ui/query` ends in a `303` redirect to `/ui/answers/{query_id}`, so
+reloading the answer page never resubmits the query. The feedback form on
+that page posts to `/ui/answers/{answer_id}/feedback`, which shares one
+write path (`app.api.feedback.create_feedback`) with the JSON
+`POST /answers/{id}/feedback` endpoint below — an existence check, a rating
+check, an insert, written once and called from both places.
+
+### Escaping: autoescaped by default, `|safe` used nowhere
+
+Every template extends `app/ui/templates/base.html` through Starlette's
+`Jinja2Templates`, whose environment autoescapes `.html` templates by
+default (`autoescape=jinja2.select_autoescape()` — verified against the
+installed library, not assumed). Model answers, document titles, chunk
+text, and feedback reasons are interpolated as plain Python strings and
+escaped by the template engine — **no template in this package uses `|safe`
+anywhere**, and `tests/test_ui.py::test_no_template_uses_the_safe_filter`
+checks the committed template source directly rather than trusting a
+one-time read. A citation is linked to its evidence block only by an
+already-validated `chunk_uid` (32 lower-case hex characters,
+`app/generation/citations.py`'s own validated shape) used as an HTML anchor
+fragment — never by injecting raw model output as a link or as markup.
+`tests/test_ui.py` seeds a document title and chunk text each containing
+`<script>...</script>` and asserts the raw tag never appears in the
+rendered response, only its escaped form.
+
+Every UI error path renders `error.html` with the same sanitized
+`HTTPException.detail` string the JSON API already returns to its own
+callers — never a traceback, a file path, a raw provider error, or a
+secret. `tests/test_ui.py` asserts this for a 404 (unknown document/query),
+a 422 (an empty query, an invalid feedback rating), and a 503 (the real,
+unavailable embedding model, reached with no dependency override at all).
+
+### The evaluation results page never fabricates a number
+
+`GET /ui/evals` reads `eval_runs` through `app.models.EvalRun` — the ORM
+model, never `evals/` itself. `tests/test_retrieval_scope.py`'s existing
+guard (no `app` module may import `evals`) is unchanged and still passes;
+`tests/test_ui.py` adds a second, static check of `app/ui/routes.py`'s own
+imports for the same property. With zero recorded rows it renders one
+honest sentence — no placeholder number, no estimate, no percentage sign
+anywhere on the page. With a recorded row, it renders that row's `config`
+and `metrics` JSON verbatim, exactly as `evals/run.py` wrote it — reading a
+persisted fact, never recomputing or approximating one.
+
+### Feedback: the specification's last deferred table
+
+`feedback` (`app/models/feedback.py`, migration `9176dca9861f`) is the
+specification's own last column list (§5) — `id`, `answer_id` FK, `rating`
+(`helpful`/`not_helpful`), `reason`, `created_at` — append-only, since the
+specification states no uniqueness rule and a second opinion on the same
+answer is not an error. `rating` is validated twice: the pydantic `Literal`
+type at `POST /answers/{id}/feedback` (`app/api/schemas.py::FeedbackIn`),
+and a database `CHECK` constraint in the migration itself, so a write that
+bypassed the API still cannot store a third value. `reason` is bounded to
+2000 characters (`app/models/feedback.py::MAX_REASON_LENGTH`) at both
+layers — the specification names no limit; an unbounded column is this
+project's own choice to avoid, the same reasoning `query_max_length`
+already applies to `POST /query`.
+
+### `DELETE /documents/{id}` — deliberately still not built
+
+The specification's v1 API list (§11) includes it, and no milestone's scope
+line ever assigns it (locked decision D1). It is destructive — cascading to
+every version, chunk, query and answer belonging to a document — and its
+ownership is genuinely ambiguous rather than merely deferred. Milestone 10
+does not resolve that ambiguity unilaterally; it is recorded here, not
+implemented.
+
+### Docker
+
+`Dockerfile`, `docker-compose.yml`, `.dockerignore`. A non-root user (uid
+10001), `/health` as the `HEALTHCHECK` target — deliberately not `/ready`,
+which would have an orchestrator restart a perfectly healthy process merely
+because migrations have not been applied yet — an absolute
+`KNOWLEDGEOS_STORAGE_ROOT` (`/var/lib/knowledgeos/storage`) mounted as a
+volume in compose, and no secret of any kind as a literal value in either
+file: `KNOWLEDGEOS_DATABASE_URL` inside compose points at the compose
+network's own `db` service using the same local-development credentials the
+database container itself defines (not a real secret); `KNOWLEDGEOS_LLM_MODEL`,
+`GEMINI_API_KEY` and `GOOGLE_API_KEY` are read from the shell environment at
+`docker compose up` time and are never written as literal values anywhere in
+either file.
+
+**The database image is `pgvector/pgvector:pg16`, not plain `postgres:16`**
+(locked decision D7) — the extension migration 0001 already requires needs
+to actually be installable in the server image, which the sibling
+`docintel`/`voicedesk` projects in this monorepo never needed and plain
+`postgres:16` does not provide.
+
+**Migrations are never run automatically** (locked decision D8, and
+`app/main.py`'s own decision, unchanged since milestone 1): "Migrations are
+not run from here." `docker compose run --rm app alembic upgrade head` is
+a separate, documented command; `/ready` is what notices when it has not
+been run yet, exactly as it already does outside a container.
+
+**CPU-only PyTorch, investigated and documented, not build-verified here**
+(locked decision D6). `sentence-transformers` (`pyproject.toml`) declares
+`torch>=2.2` and does not care which build satisfies it; the local
+embedding and cross-encoder models this image serves are CPU inference
+only, so the CUDA build a plain `pip install .` would otherwise resolve
+buys the image several gigabytes of unused GPU libraries for nothing. The
+Dockerfile installs `torch` from `https://download.pytorch.org/whl/cpu`
+*before* `pip install .`, so the later, unconstrained `torch` requirement
+is already satisfied and is never silently upgraded to a different build.
+This environment's own network policy blocks `download.pytorch.org` with
+the identical CONNECT-tunnel refusal that blocks the HuggingFace weights
+below — so this line has been checked against sentence-transformers' own
+declared constraint (confirmed compatible) but never actually executed
+here. It is the standard, widely-documented method for a CPU-only PyTorch
+install; if the index were unreachable in a real build environment, `pip
+install` would fail loudly and the build would stop, never silently fall
+back to a different, unintended build.
+
+> **No Docker image has been built, and no container has been run, in this
+> environment.** `docker info` fails outright: "Cannot connect to the
+> Docker daemon at unix:///var/run/docker.sock" — confirmed directly, not
+> assumed, and `sudo service docker start` itself fails
+> (`ulimit: error setting limit (Operation not permitted)`, an unprivileged
+> nested-container restriction of this sandbox). Every claim made about
+> `Dockerfile`, `docker-compose.yml`, and `.dockerignore` in this section is
+> a **static** one — the committed file's own content, read and checked by
+> `tests/test_docker_assets.py` (non-root `USER`, the `/health` healthcheck
+> target, no secret literal, a pgvector-capable database image, persistent
+> volumes for both the database and document storage) — never a claim that
+> an image was built or a container actually ran, here or anywhere else.
+
+### CI
+
+`.github/workflows/ci.yml` (locked decision D9): one focused job — install,
+start a `pgvector/pgvector:pg16` service container, run `pytest`. No lint
+step, no build step, no deployment step. `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`,
+`GOOGLE_API_KEY` and `OPENAI_API_KEY` are never set anywhere in the workflow
+— the specification's own words, "CI must pass with `ANTHROPIC_API_KEY`
+unset" (§16), extended to every provider credential this project has ever
+named, none of which it uses to pass. `HF_HUB_OFFLINE=1` and
+`TRANSFORMERS_OFFLINE=1` are set explicitly so the real-model tests **skip**
+in CI exactly as they already do in this development sandbox
+(`tests/test_embeddings.py`, `tests/test_reranking.py`) — proven directly:
+with those two variables set, `BgeEmbeddingProvider().embed(...)` fails
+cleanly and immediately, the same `EmbeddingError` this environment's own
+missing cache already produces, rather than CI silently downloading several
+gigabytes of model weights on a runner that happens to have internet
+access, which would make "CI passes" mean a different, nondeterministic
+thing on every run.
+
+### Configuration
+
+`.env.example` now documents the full milestone 1-10 surface, including
+milestone 8's `KNOWLEDGEOS_LLM_MODEL` (no default, required before
+generation works), milestone 9's `KNOWLEDGEOS_ABSTENTION_RERANK_THRESHOLD`
+and `KNOWLEDGEOS_LLM_PRICING_USD_PER_MILLION_TOKENS`, and milestone 10's own
+deployment notes (the absolute storage root and the compose network's
+database host, both already set for you inside `docker-compose.yml`) — every
+entry names a configuration key, never a real value, and the Gemini
+credential is documented as read directly from the process environment,
+never as a `KNOWLEDGEOS_`-prefixed setting, because `app/providers/gemini_llm.py`
+itself never reads one.
+
+### Known limitations
+
+- **No Docker image has been built or run in this environment.** See the
+  box above for the exact, confirmed reason. Every Docker-related claim in
+  this section is static file verification, not a build or runtime result.
+- **CPU-only PyTorch has been investigated and documented, not
+  build-verified.** See "Docker" above.
+- **The real embedding and cross-encoder models remain unavailable here**,
+  the same, unchanged condition every milestone since 4 has documented —
+  the UI's query flow inherits this exactly: `POST /ui/query` against the
+  real, un-overridden providers returns the identical `503` `POST /query`
+  already does, proven by `tests/test_ui.py`.
+- **No official evaluation numbers appear on the evaluation results page**,
+  because none have been recorded in this environment's database — see
+  milestone 9's own section above for why, unchanged by this milestone.
+- **`DELETE /documents/{id}` remains unbuilt.** See its own section above;
+  the ambiguity is recorded, not resolved.
+- **No enterprise-grade security is claimed anywhere in this document.**
+  The UI has no authentication; anyone who can reach `/ui/query` can ask a
+  question and anyone who can reach an answer's URL can leave feedback on
+  it — the same trust boundary every other v1 endpoint already has, stated
+  plainly rather than implied away.
+
 ## The two probes
 
 `GET /health` is **liveness**. It touches nothing — no database, no provider,
@@ -1490,15 +1747,56 @@ set one explicitly in code, which is how the test fixtures guarantee they never
 touch the development database — they refuse any name not ending in `_test`.
 
 Tests that need PostgreSQL skip when no server answers, so `pytest` still runs
-without one (311 pass, 259 skip). With a database: **568 pass, 2 skip** — the
-two skips are the real-embedding-model and real-reranking-model tests
-described above and below, neither of which can fetch its weights in this
-environment. No credential is needed either way.
+without one (588 pass, 362 skip). With a database: **947 pass, 3 skip** — the
+three skips are the real-embedding-model and real-reranking-model tests
+described above and below, plus the generation smoke test
+(`tests/test_llm_provider.py`, opt-in only), none of which can reach their
+real model or credential in this environment. No credential is needed
+either way. Both figures were measured directly against this checkout, not
+carried over from an earlier milestone.
 
 KnowledgeOS is a separate application from DocIntel and VoiceDesk in this
 repository: its own package, dependencies, virtualenv, configuration prefix and
 database. Nothing is shared between them, and `tests/test_isolation.py` asserts
 it.
+
+## Deployment
+
+```bash
+cp .env.example .env   # then set KNOWLEDGEOS_LLM_MODEL and a Gemini credential
+
+docker compose up --build -d db
+docker compose run --rm app alembic upgrade head    # migrations: a separate
+                                                      # step, always — see
+                                                      # "What milestone 10
+                                                      # built" above
+docker compose up --build app
+curl localhost:8000/health
+curl localhost:8000/ready
+```
+
+`docker-compose.yml` builds the application image from the `Dockerfile` in
+this repository and starts it alongside `pgvector/pgvector:pg16` (locked
+decision D7 — plain `postgres:16` has no `vector` extension to offer).
+`KNOWLEDGEOS_LLM_MODEL`, `GEMINI_API_KEY` and `GOOGLE_API_KEY` are read from
+the shell environment `docker compose` runs in, never written into either
+file as literal values — see `.env.example`.
+
+**No image has been built and no container has been run from these files in
+this environment** — the Docker daemon itself is unavailable here (`docker
+info`: "Cannot connect to the Docker daemon"), a sandbox limitation
+confirmed directly rather than assumed. `tests/test_docker_assets.py`
+verifies every claim this section and "What milestone 10 built" make about
+`Dockerfile`/`docker-compose.yml`/`.dockerignore` **statically** — reading
+the committed file, never a build or run result — and this README makes no
+claim beyond what that static check actually proves.
+
+The local sentence-transformers model cache is not baked into the image
+(see "What milestone 10 built" for why) and is not populated by anything in
+this repository either; an operator with real HuggingFace access mounts a
+pre-populated cache volume at `/home/knowledgeos/.cache/huggingface` (see
+`docker-compose.yml`'s own `hf-cache` volume) or lets the first `/query`
+request download it, exactly as running `uvicorn` directly would.
 
 ## Implementation specification
 

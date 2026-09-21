@@ -73,8 +73,13 @@ def test_neither_probe_needs_authentication(client: TestClient, path: str) -> No
 def test_the_http_surface_is_exactly_what_this_milestone_serves(
     client: TestClient,
 ) -> None:
-    """A scope guard. Answer, feedback and delete endpoints belong to later
-    milestones, and this fails loudly if one arrives early."""
+    """A scope guard. `DELETE /documents/{id}` remains unbuilt — its
+    milestone ownership is ambiguous (locked decision D1, milestone 10) and
+    it is not added without separate authorization. Milestone 10's own
+    `/ui/*` routes never appear here at all: every one is
+    `include_in_schema=False` (locked decision D2), so this JSON API
+    surface is unchanged by their existence — this guard would fail loudly
+    if one leaked into the OpenAPI contract."""
     paths = set(client.get("/openapi.json").json()["paths"])
 
     assert paths == {
@@ -87,4 +92,5 @@ def test_the_http_surface_is_exactly_what_this_milestone_serves(
         "/ingestion/{job_id}",
         "/query",
         "/queries/{query_id}",
+        "/answers/{answer_id}/feedback",
     }

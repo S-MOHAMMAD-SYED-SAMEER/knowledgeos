@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ detail.document.title }} &mdash; KnowledgeOS{% endblock %}
+{% block content %}
+  <p><a href="/ui/">&larr; Documents</a></p>
+  <h1>{{ detail.document.title }}</h1>
+  <p class="muted">
+    {% if detail.document.department %}Department: {{ detail.document.department }} &nbsp;{% endif %}
+    {% if detail.document.category %}Category: {{ detail.document.category }} &nbsp;{% endif %}
+    {% if detail.document.tags %}Tags: {{ detail.document.tags | join(", ") }}{% endif %}
+  </p>
+
+  <h2>Version history</h2>
+  {% if detail.versions %}
+    <table>
+      <thead>
+        <tr>
+          <th>Version</th>
+          <th>Status</th>
+          <th>Filename</th>
+          <th>Effective date</th>
+          <th>Pages</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for version in detail.versions %}
+          <tr>
+            <td>v{{ version.version_number }}</td>
+            <td><span class="badge {{ version.status }}">{{ version.status }}</span></td>
+            <td>{{ version.original_filename }}</td>
+            <td>{{ version.effective_date or "—" }}</td>
+            <td>{{ version.page_count if version.page_count is not none else "—" }}</td>
+            <td class="muted">{{ version.created_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">No versions recorded.</p>
+  {% endif %}
+{% endblock %}

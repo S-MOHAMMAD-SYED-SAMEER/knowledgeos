@@ -15,6 +15,13 @@ from app.models.document import (
     VersionStatus,
 )
 from app.models.eval_run import RETRIEVAL_SUITE, EvalRun
+from app.models.feedback import (
+    MAX_REASON_LENGTH,
+    RATINGS,
+    RATING_HELPFUL,
+    RATING_NOT_HELPFUL,
+    Feedback,
+)
 from app.models.ingestion_job import (
     ALLOWED_TRANSITIONS,
     TERMINAL_STATUSES,
@@ -26,6 +33,10 @@ from app.models.retrieved_chunk import RetrievedChunk
 
 __all__ = [
     "ALLOWED_TRANSITIONS",
+    "MAX_REASON_LENGTH",
+    "RATINGS",
+    "RATING_HELPFUL",
+    "RATING_NOT_HELPFUL",
     "RETRIEVAL_SUITE",
     "SOURCE_TYPES",
     "SOURCE_TYPE_UPLOAD",
@@ -35,6 +46,7 @@ __all__ = [
     "Document",
     "DocumentVersion",
     "EvalRun",
+    "Feedback",
     "IngestionJob",
     "JobStatus",
     "Query",

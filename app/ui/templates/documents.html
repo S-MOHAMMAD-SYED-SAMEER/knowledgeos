@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Documents &mdash; KnowledgeOS{% endblock %}
+{% block content %}
+  <h1>Documents</h1>
+
+  {% if page.documents %}
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Department</th>
+          <th>Category</th>
+          <th>Tags</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for document in page.documents %}
+          <tr>
+            <td><a href="/ui/documents/{{ document.id }}">{{ document.title }}</a></td>
+            <td>{{ document.department or "—" }}</td>
+            <td>{{ document.category or "—" }}</td>
+            <td>{{ document.tags | join(", ") if document.tags else "—" }}</td>
+            <td class="muted">{{ document.created_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted">Showing {{ page.documents | length }} document(s), offset {{ page.offset }}, limit {{ page.limit }}.</p>
+  {% else %}
+    <p class="muted">No documents have been uploaded yet.</p>
+  {% endif %}
+{% endblock %}

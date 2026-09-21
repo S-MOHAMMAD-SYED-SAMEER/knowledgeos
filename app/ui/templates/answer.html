@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Answer &mdash; KnowledgeOS{% endblock %}
+{% block content %}
+  <p><a href="/ui/query">&larr; Ask another question</a></p>
+  <h1>Question</h1>
+  <p>{{ query.query_text }}</p>
+
+  {% if answer %}
+    <h1>Answer</h1>
+    <p>
+      {% if answer.abstained %}
+        <span class="badge abstained">Abstained &mdash; insufficient evidence</span>
+      {% else %}
+        <span class="badge answered">Answered</span>
+      {% endif %}
+      <span class="badge">grounded: {{ answer.grounded }}</span>
+      <span class="badge">citation_valid: {{ answer.citation_valid }}</span>
+    </p>
+    <p>{{ answer.answer_text }}</p>
+
+    <h2>Citations</h2>
+    {% if answer.citations %}
+      <ul>
+        {% for uid in answer.citations %}
+          <li><a href="#evidence-{{ uid }}">{{ uid }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No citations.</p>
+    {% endif %}
+
+    <h2>Grounding detail</h2>
+    <pre>{{ answer.grounding_detail | tojson(indent=2) }}</pre>
+
+    <h2>Model</h2>
+    <p class="muted">
+      model: {{ query.model or "—" }} &nbsp;
+      prompt_version: {{ query.prompt_version or "—" }}
+    </p>
+  {% else %}
+    <p class="muted">No answer was recorded for this query.</p>
+  {% endif %}
+
+  <h1>Retrieved evidence</h1>
+  {% if evidence %}
+    {% for row in evidence %}
+      <div class="evidence{% if row.selected %} selected{% endif %}" id="evidence-{{ row.chunk_uid }}">
+        <p>
+          <strong>#{{ row.final_rank }}</strong> &nbsp;
+          <span class="badge">{{ "selected" if row.selected else "not selected" }}</span> &nbsp;
+          <span class="muted">rerank score {{ "%.3f"|format(row.rerank_score) }}</span>
+        </p>
+        <p class="muted">
+          {{ row.document_title }} &mdash; v{{ row.version_number }}
+          <span class="badge {{ row.version_status }}">{{ row.version_status }}</span>
+          {% if row.document_department %} &middot; {{ row.document_department }}{% endif %}
+          {% if row.document_category %} &middot; {{ row.document_category }}{% endif %}
+          {% if row.page %} &middot; page {{ row.page }}{% endif %}
+          {% if row.section %} &middot; {{ row.section }}{% endif %}
+        </p>
+        <p>{{ row.text }}</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="muted">No evidence was retrieved for this query.</p>
+  {% endif %}
+
+  {% if answer %}
+    <h1>Feedback</h1>
+    <form class="feedback" method="post" action="/ui/answers/{{ answer.id }}/feedback">
+      <fieldset>
+        <legend>Was this answer helpful?</legend>
+        {% for value in ratings %}
+          <label>
+            <input type="radio" name="rating" value="{{ value }}" required>
+            {{ value }}
+          </label>
+        {% endfor %}
+        <p>
+          <label for="reason">Reason (optional)</label><br>
+          <textarea id="reason" name="reason" rows="2" maxlength="{{ max_reason_length }}" style="width: 100%;"></textarea>
+        </p>
+        <button type="submit">Submit feedback</button>
+      </fieldset>
+    </form>
+
+    {% if feedback_rows %}
+      <h2>Previous feedback</h2>
+      <ul>
+        {% for item in feedback_rows %}
+          <li>
+            <span class="badge">{{ item.rating }}</span>
+            {% if item.reason %}&mdash; {{ item.reason }}{% endif %}
+            <span class="muted">({{ item.created_at }})</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endif %}
+{% endblock %}

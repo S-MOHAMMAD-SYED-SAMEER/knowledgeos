@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}KnowledgeOS{% endblock %}</title>
+  <style>
+    :root { color-scheme: light; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      line-height: 1.5;
+      color: #1a1a1a;
+    }
+    nav { margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid #ddd; }
+    nav a { margin-right: 1rem; color: #0b5fff; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    h1, h2, h3 { line-height: 1.25; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; vertical-align: top; }
+    .muted { color: #666; font-size: 0.9em; }
+    .badge {
+      display: inline-block;
+      padding: 0.1rem 0.5rem;
+      border-radius: 0.75rem;
+      font-size: 0.8em;
+      background: #eee;
+    }
+    .badge.active { background: #d5f5d5; }
+    .badge.superseded { background: #f5e5c8; }
+    .badge.draft { background: #eee; }
+    .badge.abstained { background: #f8d7da; }
+    .badge.answered { background: #d5f5d5; }
+    .evidence { border: 1px solid #ddd; border-radius: 0.4rem; padding: 0.75rem; margin: 0.75rem 0; }
+    .evidence.selected { border-color: #0b5fff; }
+    pre { background: #f6f6f6; padding: 0.75rem; overflow-x: auto; border-radius: 0.4rem; }
+    form.feedback { margin-top: 1rem; }
+    fieldset { border: 1px solid #ddd; border-radius: 0.4rem; padding: 0.75rem; }
+    .error-box { background: #f8d7da; border: 1px solid #f1aeb5; border-radius: 0.4rem; padding: 1rem; }
+    footer { margin-top: 2rem; padding-top: 0.75rem; border-top: 1px solid #ddd; color: #666; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/ui/">Documents</a>
+    <a href="/ui/query">Query</a>
+    <a href="/ui/evals">Evaluation results</a>
+  </nav>
+  {% block content %}{% endblock %}
+  <footer>KnowledgeOS &mdash; answers only from retrieved, cited evidence.</footer>
+</body>
+</html>

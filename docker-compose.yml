@@ -1,0 +1,73 @@
+# Local, reproducible stack: PostgreSQL 16 with pgvector, plus the
+# application.
+#
+#   docker compose up --build -d db                    # database only
+#   docker compose run --rm app alembic upgrade head    # migrate (a
+#                                                        # separate step,
+#                                                        # locked decision
+#                                                        # D8 -- never run
+#                                                        # automatically)
+#   docker compose up --build app                       # start the app
+#   curl localhost:8000/health                          # liveness
+#   curl localhost:8000/ready                            # 503 until the
+#                                                        # migration step
+#                                                        # above has run
+#
+# Development convenience only. The database credentials below are local
+# defaults, not secrets -- KnowledgeOS's own real deployment credentials
+# (KNOWLEDGEOS_DATABASE_URL against a managed database, KNOWLEDGEOS_LLM_MODEL,
+# GEMINI_API_KEY) are read from the shell environment at `docker compose up`
+# time and are never written as literal values in this file. See
+# .env.example.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: knowledgeos
+      POSTGRES_PASSWORD: knowledgeos
+      POSTGRES_DB: knowledgeos
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knowledgeos"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.13-slim}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KNOWLEDGEOS_DATABASE_URL: postgresql+psycopg://knowledgeos:knowledgeos@db:5432/knowledgeos
+      # Both read from the shell environment (`docker compose up`'s own
+      # variable substitution); an unset value here is an empty string,
+      # never a literal credential. See .env.example -- KNOWLEDGEOS_LLM_MODEL
+      # is required before generation works at all (no default, by
+      # locked project decision -- see app/config.py); GEMINI_API_KEY (or
+      # GOOGLE_API_KEY, which the SDK prefers) is read by the Gemini SDK
+      # itself, never by this application's own code.
+      KNOWLEDGEOS_LLM_MODEL: ${KNOWLEDGEOS_LLM_MODEL:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - storage:/var/lib/knowledgeos/storage
+      # The local sentence-transformers cache. BAAI/bge-small-en-v1.5 and
+      # cross-encoder/ms-marco-MiniLM-L-6-v2 are downloaded from
+      # HuggingFace on first use, never baked into the image -- see the
+      # README's milestone 10 section on why this is documented, not
+      # papered over. Mounting a volume here means the download happens
+      # once, not on every container recreation, in an environment that
+      # actually has HuggingFace access.
+      - hf-cache:/home/knowledgeos/.cache/huggingface
+
+volumes:
+  db-data:
+  storage:
+  hf-cache:

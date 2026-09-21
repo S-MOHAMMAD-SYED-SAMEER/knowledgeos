@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Query &mdash; KnowledgeOS{% endblock %}
+{% block content %}
+  <h1>Ask a question</h1>
+  <p class="muted">Answers come only from retrieved, cited evidence. If the knowledge base does not contain the answer, the system says so rather than inventing one.</p>
+  <form method="post" action="/ui/query">
+    <p>
+      <label for="query">Question</label><br>
+      <textarea id="query" name="query" rows="3" style="width: 100%;" required></textarea>
+    </p>
+    <button type="submit">Ask</button>
+  </form>
+{% endblock %}

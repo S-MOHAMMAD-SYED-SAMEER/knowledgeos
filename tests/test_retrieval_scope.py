@@ -107,10 +107,11 @@ def test_query_persistence_tables_now_exist() -> None:
     assert "answers" in Base.metadata.tables
 
 
-def test_the_schema_is_the_eight_tables_built_so_far() -> None:
-    """Milestone 8 adds `queries`, `retrieved_chunks` and `answers` — the
-    specification's own three generation tables (§5), all deferred until
-    now. `feedback` remains milestone 10's."""
+def test_the_schema_is_the_nine_tables_built_so_far() -> None:
+    """Milestone 8 added `queries`, `retrieved_chunks` and `answers` — the
+    specification's own three generation tables (§5). Milestone 10 adds
+    the last deferred table, `feedback` — this inverts the guard that used
+    to keep it out."""
     import app.models  # noqa: F401
     from app.db.base import Base
 
@@ -123,12 +124,13 @@ def test_the_schema_is_the_eight_tables_built_so_far() -> None:
         "queries",
         "retrieved_chunks",
         "answers",
+        "feedback",
     }
 
 
-def test_there_are_exactly_six_migrations() -> None:
+def test_there_are_exactly_seven_migrations() -> None:
     versions = (ROOT / "alembic" / "versions").glob("*.py")
-    assert len(list(versions)) == 6
+    assert len(list(versions)) == 7
 
 
 def test_get_queries_endpoint_now_exists() -> None:
@@ -142,15 +144,14 @@ def test_get_queries_endpoint_now_exists() -> None:
     assert "/queries/{query_id}" in paths
 
 
-def test_no_answer_or_feedback_endpoints_exist() -> None:
-    """`POST /answers/{id}/feedback` remains milestone 10's — a route
-    under `/answers` is still absent even though the `answers` table now
-    exists."""
+def test_the_feedback_endpoint_now_exists() -> None:
+    """Milestone 10 implements `POST /answers/{id}/feedback` (§11), the
+    last v1 endpoint left unbuilt — this inverts the guard that used to
+    keep every `/answers`-or-`/feedback` path out."""
     from app.main import create_app
 
     paths = create_app().openapi()["paths"]
-    assert not any("/answers" in path for path in paths)
-    assert not any("/feedback" in path for path in paths)
+    assert "/answers/{answer_id}/feedback" in paths
 
 
 def test_the_query_response_now_carries_generation_and_selection_fields() -> None:
@@ -218,14 +219,16 @@ def test_no_second_datastore_is_declared() -> None:
         assert forbidden not in declared
 
 
-def test_milestones_five_through_eight_added_only_the_dependencies_they_needed() -> None:
+def test_milestones_five_through_ten_added_only_the_dependencies_they_needed() -> None:
     """Milestone 5's inspection concluded no new dependency was required,
     and milestone 6's cross-encoder came from a package milestone 4 already
     declared. Milestone 7 added PyYAML for the specification's own
-    `*.yaml` question files. Milestone 8 adds `google-genai` — the
+    `*.yaml` question files. Milestone 8 added `google-genai` — the
     generation provider is Google Gemini, not Anthropic, a documented
     deviation from the specification's stack wording; see the README's
-    milestone 8 section."""
+    milestone 8 section. Milestone 10 adds `jinja2` for the server-rendered
+    UI — already present transitively (torch depends on it) but now
+    declared on purpose."""
     import tomllib
 
     declared = {
@@ -250,6 +253,7 @@ def test_milestones_five_through_eight_added_only_the_dependencies_they_needed()
         "pgvector",
         "PyYAML",
         "google-genai",
+        "jinja2",
     }
 
 

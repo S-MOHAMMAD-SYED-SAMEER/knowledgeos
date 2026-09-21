@@ -101,6 +101,8 @@ def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
         # Anthropic -- a documented deviation from the specification's
         # stack wording (§3, §17); see the README's milestone 8 section.
         "google-genai",
+        # Milestone 10: the server-rendered UI.
+        "jinja2",
     }
 
 
@@ -127,12 +129,12 @@ def test_a_later_milestones_library_is_not_installed(deferred: str) -> None:
     assert importlib.util.find_spec(deferred) is None
 
 
-def test_no_later_milestones_library_is_declared() -> None:
-    """Jinja2 needs the weaker check: it is importable from milestone 4
-    onwards because **torch pulls it in**, not because this project asked
-    for it. What matters is that it is not a dependency of ours — the user
-    interface it will eventually render is milestone 10's.
-    """
+def test_jinja2_is_now_a_declared_dependency() -> None:
+    """Milestone 10 is what finally asks for it on purpose, rather than
+    relying on torch pulling it in as a transitive dependency of
+    `sentence-transformers` — this inverts the guard that used to keep it
+    undeclared. `anthropic` stays permanently excluded; see the README's
+    milestone 8 section on the Gemini deviation."""
     import re
     import tomllib
 
@@ -143,12 +145,13 @@ def test_no_later_milestones_library_is_declared() -> None:
         ]
     }
 
-    assert "jinja2" not in declared
+    assert "jinja2" in declared
     assert "anthropic" not in declared
 
 
-def test_the_schema_is_the_eight_tables_built_so_far() -> None:
-    """`feedback` arrives with milestone 10, the only one still deferred."""
+def test_the_schema_is_the_nine_tables_built_so_far() -> None:
+    """`feedback` arrives with milestone 10 — the specification's own last
+    deferred table (§5) — inverting the guard that used to keep it out."""
     from app.db.base import Base
     import app.models  # noqa: F401
 
@@ -161,4 +164,5 @@ def test_the_schema_is_the_eight_tables_built_so_far() -> None:
         "queries",
         "retrieved_chunks",
         "answers",
+        "feedback",
     }

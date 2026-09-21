@@ -15,6 +15,7 @@ TABLES = {
     "queries",
     "retrieved_chunks",
     "answers",
+    "feedback",
 }
 
 
@@ -26,8 +27,8 @@ def _tables(url: str) -> set[str]:
         engine.dispose()
 
 
-def test_there_are_exactly_six_migrations() -> None:
-    assert len(list(VERSIONS.glob("*.py"))) == 6
+def test_there_are_exactly_seven_migrations() -> None:
+    assert len(list(VERSIONS.glob("*.py"))) == 7
 
 
 def test_upgrade_creates_every_table(migrated_engine: Engine, database_url) -> None:
