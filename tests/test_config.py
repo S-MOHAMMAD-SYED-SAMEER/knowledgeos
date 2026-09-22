@@ -12,7 +12,8 @@ import pytest
 from app.config import DEFAULT_DATABASE_URL, Settings, get_settings
 
 
-def test_the_defaults_are_what_milestone_one_says() -> None:
+def test_the_defaults_are_what_milestone_one_says(monkeypatch) -> None:
+    monkeypatch.delenv("KNOWLEDGEOS_DATABASE_URL", raising=False)
     settings = Settings(_env_file=None)
 
     assert settings.app_name == "KnowledgeOS"
