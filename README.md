@@ -8,9 +8,14 @@ checked programmatically before the answer is shown, and an explicit refusal
 when the knowledge base does not contain the answer.
 
 **Status: milestone 10 of 10 — v1 complete.**
-**GitHub** `[link placeholder]` ·
-**Live demo** `[placeholder — not deployed; see Demo Mode]` ·
+**GitHub** [S-MOHAMMAD-SYED-SAMEER/knowledgeos](https://github.com/S-MOHAMMAD-SYED-SAMEER/knowledgeos) ·
+**Live demo** No public instance is deployed — run the local, keyless [Demo Mode](docs/DEMO.md) instead ·
 **[Engineering deep dive](docs/ENGINEERING.md)**
+
+> **Demo Mode.** A deterministic, keyless local demo that exercises the real
+> query pipeline — no Gemini credential, no runtime model download. Five
+> minutes from a fresh clone to a cited, grounded answer:
+> **[docs/DEMO.md](docs/DEMO.md)**.
 
 ---
 
@@ -108,10 +113,13 @@ reports say which is which. Both suites run offline from the CLI:
 
 **Results.** No retrieval or answer-quality number appears anywhere in this
 repository. Both harnesses exist and are proven correct against fixtures with
-deterministic test providers, but **neither has been run officially**, because
-the real local models they require are absent from this build environment. A
-run that cannot happen produces no `eval_runs` row, no report artifact and no
-number — see [docs/ENGINEERING.md](docs/ENGINEERING.md) for the exact reason.
+deterministic test providers, but **neither has been run officially** against
+the full evaluation corpus — no `python -m evals.run --suite retrieval |
+answers` invocation has produced a committed report or an `eval_runs` row.
+(The real BGE and cross-encoder models have since been run directly, once
+each, to generate Demo Mode's fixtures — see **Running modes** below — but
+that is fixture generation, not an evaluation suite run.) See
+[docs/ENGINEERING.md](docs/ENGINEERING.md) for the full detail.
 
 ## Running modes
 
@@ -120,21 +128,31 @@ number — see [docs/ENGINEERING.md](docs/ENGINEERING.md) for the exact reason.
 | **Demo Mode** | None | **Implemented** |
 | **Live Mode** | Gemini key + local models | Implemented |
 
-**Demo Mode — implemented (P3, `demo/`).** A self-contained, keyless
-walkthrough of the real query pipeline: committed real-model fixtures
-(`demo/fixtures/`) stand in for the embedding, reranking, and generation
-providers, so the same five flagship scenarios (normal retrieval,
-citation-sensitive reranking, conflicting versions, multi-document
-evidence, insufficient-evidence abstention) run deterministically, with
-no API key and no model download at runtime — through the exact same
-`app.main.create_app()` and `POST /query`/`/ui/query` routes Live Mode
-uses, never a second implementation. No public demo URL is deployed; run
-it locally with `uvicorn demo.app:app` — full walkthrough in
-[docs/DEMO.md](docs/DEMO.md).
+**Demo Mode — implemented (P3, `demo/`).**
+- Committed, deterministic fixture providers (`demo/fixtures/`) replay real,
+  precomputed BGE embeddings, real precomputed cross-encoder reranking
+  scores, and curated answer fixtures — never invented or hash-derived data.
+- No Gemini credential; no BGE/cross-encoder download at runtime.
+- Runs through the exact same `app.main.create_app()` and
+  `POST /query`/`/ui/query` routes Live Mode uses — `demo/app.py` overrides
+  the three provider dependencies at the same FastAPI seam a test already
+  does, **never a second implementation** of retrieval, reranking, or
+  generation.
+- Five flagship scenarios (normal retrieval, citation-sensitive reranking,
+  conflicting versions, multi-document evidence, insufficient-evidence
+  abstention), reproducible every run.
+- No public demo URL is deployed; run it locally with `uvicorn demo.app:app`
+  — full walkthrough in [docs/DEMO.md](docs/DEMO.md).
 
-**Live Mode — implemented.** Real generation through Google Gemini
-(`GEMINI_API_KEY` or `GOOGLE_API_KEY`, plus `KNOWLEDGEOS_LLM_MODEL`) with the
-real local embedding and reranking models, when those are available.
+**Live Mode — implemented.**
+- Real local `BgeEmbeddingProvider` and `CrossEncoderRerankProvider` —
+  require `BAAI/bge-small-en-v1.5` and `cross-encoder/ms-marco-MiniLM-L-6-v2`
+  in the local sentence-transformers cache.
+- Real generation through Google Gemini (`GEMINI_API_KEY` or
+  `GOOGLE_API_KEY`, plus `KNOWLEDGEOS_LLM_MODEL` — no credential is
+  configured in this build environment).
+- The production default for every provider dependency; Demo Mode only ever
+  overrides them, at the same seam, never inside `app/` itself.
 
 ## Verified project facts
 
@@ -142,20 +160,32 @@ Measured directly against this checkout — nothing estimated.
 
 | Fact | Value |
 | --- | --- |
-| Test suite, with PostgreSQL | **947 passed, 3 skipped** |
+| P3 demo test suite (`tests/test_demo_*.py`) | **88 passed** |
+| Full suite, with PostgreSQL (this Windows dev environment) | **1026 passed, 11 failed, 1 skipped** |
 | Test suite, without PostgreSQL | **588 passed, 362 skipped** |
 | Alembic migrations / database tables | 7 / 9 |
 | Continuous integration | Configured — full suite, no external API key |
 | Retrieval / answer-quality metrics | **None produced** |
 
-The three skips are the real-embedding-model test, the real-reranking-model
-test and the opt-in generation smoke test — none can reach its model or
-credential here, and each says so rather than silently passing.
+The 11 failures on this Windows dev environment are pre-existing and
+environment-dependent, not P3 regressions: three assume the real BGE/reranker
+providers are unavailable here, which they no longer are (P1/P3 ran both
+directly to generate Demo Mode's fixtures); four more in the evaluation CLI
+tests make that same now-outdated assumption; three are Windows
+`cp1252`-encoding failures reading a UTF-8 documentation file; one is a
+Windows symlink-privilege restriction. See
+[docs/ENGINEERING.md](docs/ENGINEERING.md) for the full breakdown. The one
+remaining skip is the opt-in Gemini generation smoke test — no credential has
+been configured in this environment.
 
 ## Current limitations
 
-- **The BGE embedding model and the cross-encoder are unavailable in this
-  build environment**, so neither has been exercised end to end here.
+- **BGE and the cross-encoder have each been run for real, once**, to
+  generate Demo Mode's precomputed fixtures (`demo/fixtures/`) — neither is
+  "unavailable" in this build environment any more. **A full Live Mode query
+  — all three real providers together, including Gemini — has not been
+  exercised end to end here**: no Gemini credential has ever been configured
+  in this environment.
 - **No official evaluation numbers have been produced**, and none are claimed.
 - **No Docker image has been built and no container run** from the committed
   Docker assets here — the daemon is unavailable, so those files are verified

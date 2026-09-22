@@ -1467,6 +1467,186 @@ itself never reads one.
   it — the same trust boundary every other v1 endpoint already has, stated
   plainly rather than implied away.
 
+## P3 — Deterministic Keyless Demo
+
+Milestones 1–10 are the frozen v1 engineering core, above. P3 (`demo/`,
+outside `app/`) is presentation and packaging around that core, not a
+change to it — every file this section describes lives under `demo/` or
+`tests/test_demo_*.py`, and `app/`, `evals/`, and `alembic/` are byte-for-
+byte what milestone 10 left them.
+
+### 1. Objective
+
+A reviewer of this repository — a recruiter, a hiring manager, another
+engineer — should be able to run the real query pipeline and see all five
+of the product's claims (retrieved correctly, ranked correctly, answered
+from evidence, cited correctly, abstained when insufficient) without a
+Gemini credential, without downloading `BAAI/bge-small-en-v1.5` or
+`cross-encoder/ms-marco-MiniLM-L-6-v2` at run time, and with the same
+result on every run. P1–P3 built exactly that: a keyless, deterministic,
+reproducible demo that exercises production code, not a simplified
+stand-in for it.
+
+### 2. Architecture
+
+```
+demo.app.create_demo_app()
+    -> app.main.create_app()                (unmodified)
+    -> the same production routes            (health, ready, documents,
+                                               ingestion, /query, feedback, ui)
+    -> FastAPI app.dependency_overrides       (the same seam
+                                               tests/test_query_api.py and
+                                               tests/test_ui.py already use)
+    -> DemoEmbeddingProvider
+       DemoRerankProvider
+       DemoLLMProvider
+    -> the unchanged retrieval -> reranking -> generation -> citation
+       -> grounding pipeline (app/retrieval/, app/reranking/,
+       app/generation/, all untouched)
+```
+
+Production code was not forked or duplicated for Demo Mode. `demo/app.py`
+calls `app.main.create_app()` — the identical factory `uvicorn
+app.main:app` runs — and overrides exactly three FastAPI dependencies
+(`embedding_provider`, `rerank_provider`, `llm_provider`, all declared in
+`app/api/query.py`) on that one application instance. The override lives
+on the instance's own `dependency_overrides` dict; it never mutates those
+three shared functions, so a second, independently-built production `app`
+in the same process is completely unaffected
+(`tests/test_demo_app.py::test_creating_the_demo_app_does_not_mutate_app_api_query_module`).
+Every route a demo request reaches — `POST /query`, `POST /ui/query`, and
+everything downstream of them — is the real, unmodified route.
+
+### 3. Deterministic provider design
+
+Three providers, one per model boundary, each following the same
+discipline:
+
+- **`demo/providers.py::DemoEmbeddingProvider`** replays real
+  `BAAI/bge-small-en-v1.5` output from `demo/fixtures/embeddings.json`,
+  generated once by `demo/generate_embeddings.py` in an environment with
+  the model available.
+- **`demo/reranking.py::DemoRerankProvider`** replays real
+  `cross-encoder/ms-marco-MiniLM-L-6-v2` scores from
+  `demo/fixtures/reranker_scores.json`, generated once by
+  `demo/generate_reranker_scores.py` — scored against exactly the 20
+  real, RRF-fused candidates each of the five flagship queries actually
+  produces against the seeded demo corpus (100 `(query, chunk)` pairs
+  total, not a blind corpus-wide cross product).
+- **`demo/llm.py::DemoLLMProvider`** replays `demo/fixtures/answers.yaml`'s
+  real, hand-verified answers — mechanically transformed to carry inline
+  `[<chunk_uid>]` citation markers (never a reworded claim, never an
+  invented citation) so the real, unmodified
+  `app.generation.citations.validate_citations()` and
+  `app.generation.grounding.deterministic_grounding()` genuinely run
+  against this output and genuinely decide `citation_valid`/`grounded`,
+  rather than those fields being hand-set.
+
+**Precision on what "real" means here, stated once, plainly:** the real
+BGE and cross-encoder models were each run directly, once, during fixture
+generation — that inference genuinely happened, on real model weights.
+Demo Mode's *runtime* never repeats it: `demo/providers.py`,
+`demo/reranking.py`, `demo/llm.py`, and `demo/app.py` import none of
+`sentence_transformers`, `torch`, `google`, or `genai` at module level
+(verified statically by
+`tests/test_demo_reranking.py::test_the_demo_provider_never_imports_the_real_model_loading_code`
+and `tests/test_demo_llm.py::test_the_demo_provider_never_imports_a_real_or_network_provider`),
+so a demo request cannot download or run either model even if it wanted
+to.
+
+Every lookup is deterministic and exact: each provider keys its fixture
+by the SHA-256 of the exact text it was asked to score (query text, chunk
+text), and raises the interface's own error (`EmbeddingError`,
+`RerankError`, `LLMError`) for any input outside the pinned fixture set —
+never a silent, arbitrary, or approximate result for unrecognized input.
+
+### 4. Five flagship scenarios
+
+Pinned in `demo/generate_embeddings.py::FLAGSHIP_QUERIES` and
+`demo/fixtures/answers.yaml`:
+
+- **`da001`** — "How many days per week may an employee work remotely?"
+  Normal retrieval: the golden chunk surfaces among the real RRF-fused
+  candidates, and the answer is grounded and cited from it.
+- **`cs001`** — "Within how many minutes of declaring a severity-one
+  incident must an executive be notified?" Citation-sensitive reranking:
+  raw RRF fusion alone ranks a same-document neighbor chunk ahead of the
+  golden one (a finding from the P1 triage); the real, precomputed
+  cross-encoder scores correct that, and the demo replays the correction.
+- **`cv001`** — "How many days does standard production database access
+  last for?" Conflicting versions: the active `access-sop` v2 chunk
+  answers; the superseded v1 chunk (kept in the corpus specifically to
+  prove this) never reaches reranking at all, because milestone 5's
+  default retrieval already excludes it.
+- **`md001`** — a question whose answer draws on two different documents
+  (incident response and database access). Multi-document evidence: both
+  chunks are retrieved, cited, and grounded together.
+- **`ie001`** — "What is the company's policy on using generative AI
+  tools for writing code?" Insufficient evidence: the corpus genuinely
+  does not cover this; the demo LLM provider returns
+  `sufficient_evidence: false`, and the real, unmodified post-LLM
+  abstention path takes it from there — no fabricated substantive answer.
+
+### 5. End-to-end verification
+
+`tests/test_demo_e2e.py` drives all five scenarios through the real HTTP
+route, `POST /query`, on `demo.app.create_demo_app()` — never a direct
+call to `run_query()`, `retrieve()`, `rerank()`, or `generate_answer()`.
+Every request in that file runs with `unittest.mock.patch.object` guards
+on `BgeEmbeddingProvider.embed`, `CrossEncoderRerankProvider.rerank`, and
+`GeminiLLMProvider.complete`, each raising `AssertionError` if invoked —
+so a passing test is direct proof the demo overrides, not the real
+providers, served the request. Combined with the fixture/provider-level
+tests in `tests/test_demo_fixtures.py`, `tests/test_demo_reranking.py`,
+`tests/test_demo_llm.py`, and the wiring tests in `tests/test_demo_app.py`,
+the P3 demo-focused suite is:
+
+**88 tests passed.**
+
+### 6. Live verification
+
+Beyond the automated suite, the documented demo commands were run for
+real once, against a disposable database, and the result observed
+directly rather than assumed: a real PostgreSQL + pgvector instance,
+migrated to head with `alembic upgrade head`, seeded with
+`demo.seed.seed_demo_corpus` (30 active chunks across 10 documents),
+served with `uvicorn demo.app:app`, and queried:
+
+```
+GET  /health  -> 200 {"status":"ok",...}
+GET  /ready   -> 200 {"status":"ready","database":{"ok":true},...}
+POST /query   -> 200, da001's exact question, citing the golden chunk,
+                 citation_valid: true, grounded: true,
+                 model: "demo-fixture-replay (no live model)"
+```
+
+The server and the disposable database were both torn down afterward,
+leaving no residue. **No hosted deployment exists or is claimed** — this
+was a local, one-time verification run, not a running service.
+
+### 7. Why this architecture matters
+
+The dependency-override seam is not new machinery built for the demo —
+it is the same `app.dependency_overrides` mechanism
+`tests/test_query_api.py` and `tests/test_ui.py` were already using to
+inject test doubles before P3 existed. P3's contribution is proving that
+seam is a real architectural boundary, not just a testing convenience: a
+production route can be pointed at entirely different provider
+implementations — offline, deterministic, credential-free ones — with
+zero change to `app/retrieval/`, `app/reranking/`, `app/generation/`, or
+`app/api/query.py` itself. That is what "every provider sits behind an
+interface" (this document's own recurring claim, since milestone 4)
+actually buys: not a promise, but a second, independently-verified
+implementation running through the identical pipeline.
+
+**This is not a claim of production model quality.** The demo's answers
+are the same five, real, hand-verified fixture answers on every run,
+scored by the same real (but fixed, precomputed) cross-encoder output —
+it demonstrates the architecture and the product's behavioral guarantees
+(citation validity, grounding, abstention), not a live model's ongoing
+accuracy on novel questions. That is exactly what Live Mode, with real
+inference on arbitrary input, is for.
+
 ## The two probes
 
 `GET /health` is **liveness**. It touches nothing — no database, no provider,

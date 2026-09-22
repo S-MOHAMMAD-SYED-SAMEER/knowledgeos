@@ -21,18 +21,32 @@ P1") rather than re-deriving scope from scratch each time.
 ## Current State
 
 - Standalone repository: `S-MOHAMMAD-SYED-SAMEER/knowledgeos`
-- Current HEAD: `42448986979f24a38ed65c0d6e8e9180024cc67e`
+- Current HEAD: `3b8b10555bc922e1dc321398834ac3585d3afa6f` — pushed to
+  `origin/main`.
 - M1–M10 complete/frozen.
-- Current verified regression: **947 passed, 3 skipped**.
-- 11 original KnowledgeOS commits preserved, plus the standalone
-  `.gitignore` commit.
-- BGE embedding model unavailable in the development sandbox.
-- Cross-encoder unavailable in the development sandbox.
-- Gemini credential unavailable in the development sandbox.
-- Demo Mode is currently not implemented.
-- No demo embeddings are currently committed.
-- No demo package currently exists.
-- No screenshots are currently tracked.
+- **P1 (demo embeddings), P2 (UI polish), and P3 (demo wiring &
+  verification) are all complete.** A deterministic, keyless Demo Mode
+  exists (`demo/`), commit `3b8b105` (`feat(demo): add deterministic
+  keyless demo`).
+  - Committed embedding fixtures (`demo/fixtures/embeddings.json`, real
+    precomputed BGE output), reranker fixtures
+    (`demo/fixtures/reranker_scores.json`, real precomputed cross-encoder
+    output), and answer fixtures (`demo/fixtures/answers.yaml`) all exist
+    and are committed.
+  - The five flagship scenarios (`da001`, `cs001`, `cv001`, `md001`,
+    `ie001`) have end-to-end HTTP tests (`tests/test_demo_e2e.py`),
+    driven through the real `POST /query` route on
+    `demo.app.create_demo_app()`.
+  - Demo documentation exists: [docs/DEMO.md](docs/DEMO.md) (run
+    instructions) and `docs/ENGINEERING.md`'s "P3 — Deterministic Keyless
+    Demo" section (architecture detail).
+  - P3 demo-focused test suite: 88 passed.
+- BGE and the cross-encoder have each been run for real, once, during P1/P3
+  fixture generation — neither is "unavailable" in this build environment
+  any more. A full Live Mode query (all three real providers together,
+  including Gemini) has not been exercised end to end here.
+- Gemini credential still unavailable in the development sandbox.
+- No screenshots are currently tracked (P4 remains optional — see below).
 - `FakeEmbeddingProvider` is **not** acceptable as the public demo retrieval
   foundation: a verified five-scenario probe against the real fixture
   corpus, through the real `retrieve()` pipeline, failed 3 of 5 flagship
@@ -41,7 +55,8 @@ P1") rather than re-deriving scope from scratch each time.
   than the top-50 retrieval limit, injecting a random permutation into RRF
   fusion that the lexical channel cannot reliably correct). This was
   reproduced independently twice, in two separate checkouts, with
-  identical results both times.
+  identical results both times. This finding is why P1 built real,
+  precomputed fixture providers instead.
 
 ## Product / Engineering Goal
 
