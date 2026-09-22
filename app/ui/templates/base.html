@@ -17,6 +17,14 @@
     nav { margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid #ddd; }
     nav a { margin-right: 1rem; color: #0b5fff; text-decoration: none; }
     nav a:hover { text-decoration: underline; }
+    nav a.nav-primary {
+      background: #0b5fff;
+      color: #fff;
+      padding: 0.3rem 0.75rem;
+      border-radius: 0.3rem;
+      font-weight: 600;
+    }
+    nav a.nav-primary:hover { text-decoration: none; background: #0949cc; }
     h1, h2, h3 { line-height: 1.25; }
     table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
     th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; vertical-align: top; }
@@ -33,19 +41,41 @@
     .badge.draft { background: #eee; }
     .badge.abstained { background: #f8d7da; }
     .badge.answered { background: #d5f5d5; }
+    .badge.positive { background: #d5f5d5; }
+    .badge.negative { background: #f8d7da; }
     .evidence { border: 1px solid #ddd; border-radius: 0.4rem; padding: 0.75rem; margin: 0.75rem 0; }
     .evidence.selected { border-color: #0b5fff; }
     pre { background: #f6f6f6; padding: 0.75rem; overflow-x: auto; border-radius: 0.4rem; }
+    details { margin: 1rem 0; }
+    details summary { cursor: pointer; color: #0b5fff; }
     form.feedback { margin-top: 1rem; }
     fieldset { border: 1px solid #ddd; border-radius: 0.4rem; padding: 0.75rem; }
     .error-box { background: #f8d7da; border: 1px solid #f1aeb5; border-radius: 0.4rem; padding: 1rem; }
+    .cta-box {
+      background: #eef4ff;
+      border: 1px solid #cddcff;
+      border-radius: 0.5rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .cta-box h2 { margin-top: 0; }
+    .button {
+      display: inline-block;
+      background: #0b5fff;
+      color: #fff;
+      padding: 0.4rem 0.9rem;
+      border-radius: 0.3rem;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .button:hover { background: #0949cc; }
     footer { margin-top: 2rem; padding-top: 0.75rem; border-top: 1px solid #ddd; color: #666; font-size: 0.85em; }
   </style>
 </head>
 <body>
   <nav>
+    <a href="/ui/query" class="nav-primary">Ask a question</a>
     <a href="/ui/">Documents</a>
-    <a href="/ui/query">Query</a>
     <a href="/ui/evals">Evaluation results</a>
   </nav>
   {% block content %}{% endblock %}

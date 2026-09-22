@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Documents &mdash; KnowledgeOS{% endblock %}
 {% block content %}
+  <div class="cta-box">
+    <h2>Ask a question</h2>
+    <p>The fastest way to explore KnowledgeOS is to ask it something &mdash; answers come only from retrieved, cited evidence.</p>
+    <a class="button" href="/ui/query">Ask a question &rarr;</a>
+  </div>
+
   <h1>Documents</h1>
 
   {% if page.documents %}

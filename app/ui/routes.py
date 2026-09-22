@@ -173,6 +173,14 @@ class EvidenceRow:
     version_status: str
 
 
+def _citation_label(row: EvidenceRow) -> str:
+    """A non-engineering-reviewer-facing label for one cited chunk, built
+    only from evidence fields already fetched by `_evidence_for` -- never
+    the raw `chunk_uid` itself, which stays reserved for the anchor id/href
+    pair (`#evidence-{chunk_uid}`) that links a citation to its evidence."""
+    return f"{row.document_title} — {row.section or 'General'}"
+
+
 def _evidence_for(session: Session, query_id: uuid.UUID) -> list[EvidenceRow]:
     rows = session.execute(
         select(RetrievedChunk, Chunk, DocumentVersion, Document)
@@ -218,6 +226,7 @@ def ui_answer_page(
     ).scalar_one_or_none()
 
     evidence = _evidence_for(session, query_id)
+    citation_labels = {row.chunk_uid: _citation_label(row) for row in evidence}
     feedback_rows = []
     if answer_row is not None:
         feedback_rows = list(
@@ -237,6 +246,7 @@ def ui_answer_page(
             "query": query_row,
             "answer": answer_row,
             "evidence": evidence,
+            "citation_labels": citation_labels,
             "feedback_rows": feedback_rows,
             "ratings": RATINGS,
             "max_reason_length": MAX_REASON_LENGTH,

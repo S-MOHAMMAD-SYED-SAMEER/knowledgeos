@@ -13,8 +13,16 @@
       {% else %}
         <span class="badge answered">Answered</span>
       {% endif %}
-      <span class="badge">grounded: {{ answer.grounded }}</span>
-      <span class="badge">citation_valid: {{ answer.citation_valid }}</span>
+      {% if answer.grounded %}
+        <span class="badge positive">Grounded in evidence</span>
+      {% else %}
+        <span class="badge negative">Not grounded in evidence</span>
+      {% endif %}
+      {% if answer.citation_valid %}
+        <span class="badge positive">Citations verified</span>
+      {% else %}
+        <span class="badge negative">Citation issue detected</span>
+      {% endif %}
     </p>
     <p>{{ answer.answer_text }}</p>
 
@@ -22,15 +30,17 @@
     {% if answer.citations %}
       <ul>
         {% for uid in answer.citations %}
-          <li><a href="#evidence-{{ uid }}">{{ uid }}</a></li>
+          <li><a href="#evidence-{{ uid }}">{{ citation_labels.get(uid, "Cited source") }}</a></li>
         {% endfor %}
       </ul>
     {% else %}
       <p class="muted">No citations.</p>
     {% endif %}
 
-    <h2>Grounding detail</h2>
-    <pre>{{ answer.grounding_detail | tojson(indent=2) }}</pre>
+    <details>
+      <summary>Technical detail (grounding check)</summary>
+      <pre>{{ answer.grounding_detail | tojson(indent=2) }}</pre>
+    </details>
 
     <h2>Model</h2>
     <p class="muted">
