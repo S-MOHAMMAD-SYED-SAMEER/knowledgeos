@@ -26,4 +26,29 @@ def seed_demo_corpus(session: Session, storage: Storage) -> CorpusSeedResult:
     return ensure_corpus_seeded(session, storage, embeddings)
 
 
+def _main() -> None:
+    """`python -m demo.seed` -- the same call docs/DEMO.md's manual snippet
+    makes by hand, as a one-line command for Docker/Compose's own seed
+    step. Builds the engine and storage the same way `app/` itself does
+    (`app.db.session.get_engine`, `app.storage.get_storage`), both already
+    driven by `KNOWLEDGEOS_DATABASE_URL`/`KNOWLEDGEOS_STORAGE_ROOT` -- no
+    new configuration surface, no second seeding path.
+    """
+    from app.db.session import get_engine
+    from app.storage import get_storage
+
+    with Session(get_engine()) as session:
+        result = seed_demo_corpus(session, get_storage())
+        print(
+            f"seeded {result.total_active_chunks} active chunks "
+            f"across {len(result.documents)} documents "
+            f"({result.newly_seeded} newly seeded, "
+            f"{result.skipped_existing} already present)"
+        )
+
+
+if __name__ == "__main__":
+    _main()
+
+
 __all__ = ["seed_demo_corpus"]

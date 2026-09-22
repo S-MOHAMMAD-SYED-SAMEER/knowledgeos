@@ -42,7 +42,51 @@ or weakens it.
   seam the test suite already uses — nothing in `app/` changes selection
   logic or knows Demo Mode exists.
 
-## 2. Prerequisites
+## 2. Quick start (Docker) — the recommended path
+
+The fastest way to see Demo Mode: clone, then one command. Nothing else
+to install — no local PostgreSQL, no Python environment, no manual
+migration or seeding step. This uses only the existing image build
+(`Dockerfile`) and the existing `demo/` package; `docker-compose.demo.yml`
+adds no new seeding logic and no new demo code.
+
+```bash
+git clone https://github.com/S-MOHAMMAD-SYED-SAMEER/knowledgeos.git
+cd knowledgeos
+docker compose -f docker-compose.demo.yml up --build
+```
+
+That one command, in order:
+
+1. Starts PostgreSQL 16 with pgvector and waits for it to report healthy.
+2. Runs the existing Alembic migrations (`alembic upgrade head`) against a
+   dedicated `knowledgeos_demo` database.
+3. Seeds the existing demo corpus through the existing
+   `demo.seed.seed_demo_corpus` — the same function §5 (below) describes,
+   invoked here as `python -m demo.seed`.
+4. Only then starts `demo.app:app` — each step above is gated on the
+   previous one's success, so the app is never reachable before its data
+   is.
+
+Wait for a line like `Uvicorn running on http://0.0.0.0:8000`, then open
+**<http://localhost:8000/ui/query>** and run any of the five flagship
+scenarios in §6. No credential is requested anywhere in this path —
+`docker-compose.demo.yml` declares none, the same way `demo/llm.py`
+itself never reads one.
+
+To stop and remove the demo's containers (its PostgreSQL data and seeded
+corpus live in Docker volumes local to this compose file, separate from
+Live Mode's own `docker-compose.yml` volumes):
+
+```bash
+docker compose -f docker-compose.demo.yml down
+```
+
+Prefer to run it without Docker, or already have a local PostgreSQL you'd
+rather reuse? The manual path in §3–§5 below does exactly the same thing
+by hand.
+
+## 3. Manual setup (fallback, no Docker)
 
 Same as Live Mode (see the README's own **Running locally** section for
 the full walkthrough) — Demo Mode adds no new prerequisite and removes
@@ -70,7 +114,7 @@ one:
   (`tests/test_demo_app.py::test_no_credential_or_network_setting_is_required_to_build_the_demo_app`
   proves this directly).
 
-## 3. Demo startup
+## 4. Demo startup (manual)
 
 The entrypoint is `demo/app.py`, built by P3 Step 4:
 `demo.app.create_demo_app()` — the real `app.main.create_app()`, with
@@ -89,7 +133,7 @@ curl localhost:8000/health   # liveness: touches nothing
 curl localhost:8000/ready    # readiness: database, migrations, extension
 ```
 
-## 4. Demo data initialization
+## 5. Demo data initialization (manual)
 
 The demo corpus is seeded through the exact same function P1 built and
 P3's own tests already exercise — `demo.seed.seed_demo_corpus`, which
@@ -119,7 +163,18 @@ Idempotent: re-running it against an already-seeded database skips every
 version already present (`ensure_corpus_seeded`'s own contract) rather
 than duplicating it.
 
-## 5. Demo scenarios
+The inline snippet above and `python -m demo.seed` (what
+`docker-compose.demo.yml`'s `seed` step in §2 runs) call the exact same
+`seed_demo_corpus` function — `demo/seed.py`'s own `__main__` block is
+nothing but that snippet, so either works identically against a local,
+non-Docker PostgreSQL too:
+
+```bash
+KNOWLEDGEOS_DATABASE_URL=postgresql+psycopg://knowledgeos:knowledgeos@localhost:5432/knowledgeos_demo \
+  python -m demo.seed
+```
+
+## 6. Demo scenarios
 
 Five flagship questions, pinned in
 `demo/generate_embeddings.py::FLAGSHIP_QUERIES` and answered in
@@ -134,7 +189,7 @@ the same five `tests/test_demo_e2e.py` verifies end to end:
 | `md001` | multi-document evidence | "If I'm on call and need production database access during an active incident, what's the process, and does it require the same approval as a normal request?" |
 | `ie001` | insufficient evidence / abstention | "What is the company's policy on using generative AI tools for writing code?" |
 
-## 6. Expected behavior
+## 7. Expected behavior
 
 For each of `da001`, `cs001`, `cv001`, `md001`, `POST /query` (or the UI
 query box) returns:
@@ -166,10 +221,11 @@ text — no substantive claim is fabricated in its place.
 chunk never appears in `candidates` at all — milestone 5's own
 current-version-only default, exercised unchanged.
 
-## 7. UI/API access
+## 8. UI/API access
 
 Demo Mode serves the **existing, unmodified** UI and JSON API — nothing
-new was built for either. With the server from §3 running:
+new was built for either. With the server running (either the Docker
+quick start in §2 or the manual startup in §4):
 
 - **UI:** `http://localhost:8000/ui/query` — the same query form P2
   polished, POSTing to the same `/ui/query` route, landing on the same
@@ -190,7 +246,7 @@ No separate demo UI exists or was built — this is the production
 template set, rendering whatever the demo-provider-backed pipeline
 returns.
 
-## 8. Runtime guarantees
+## 9. Runtime guarantees
 
 - No Gemini/Google API key is required or read.
 - No external LLM request is ever made — `demo.llm.DemoLLMProvider`
@@ -213,30 +269,42 @@ returns.
   supplies different *instances* at the existing dependency-injection
   seam.
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
+- **`docker compose -f docker-compose.demo.yml up` exits with `migrate`
+  or `seed` showing a non-zero exit code** — run `docker compose -f
+  docker-compose.demo.yml logs migrate` (or `logs seed`) for the actual
+  error. The `app` service never starts in this case (it depends on
+  `seed` completing successfully), so there is no half-seeded state to
+  clean up — fix the reported error and `up` again; both steps are
+  idempotent.
 - **`curl: (7) Failed to connect`** — PostgreSQL is not reachable, or the
-  demo server did not start. Confirm PostgreSQL is running
-  (`pg_isready`) before starting `uvicorn`.
+  demo server did not start. Under Docker, `docker compose -f
+  docker-compose.demo.yml ps` shows which service is not `Up`/healthy.
+  Manually, confirm PostgreSQL is running (`pg_isready`) before starting
+  `uvicorn`.
 - **`/ready` returns a non-200 status** — the database exists but has not
-  been migrated (or the `vector` extension is missing). Run `alembic
-  upgrade head` against `knowledgeos_demo` (§2) before seeding. This is
-  the same readiness check and the same failure mode the main README
-  documents for Live Mode — Demo Mode does not change it.
+  been migrated (or the `vector` extension is missing). Manually, run
+  `alembic upgrade head` against `knowledgeos_demo` (§3) before seeding.
+  This is the same readiness check and the same failure mode the main
+  README documents for Live Mode — Demo Mode does not change it.
 - **`CREATE EXTENSION vector` fails during migration** — the database
   role is not privileged enough to create the extension; see the main
   README's **Running locally** section and
   [docs/ENGINEERING.md](ENGINEERING.md) for the one-time superuser
-  bootstrap. Identical in Demo Mode.
+  bootstrap. Identical in Demo Mode. (The Docker path's `db` service
+  always has this privilege — this applies to the manual path only.)
 - **Address already in use** — another process is already listening on
-  port 8000. Pass `--port 8001` (or any free port) to the `uvicorn`
-  command in §3.
+  port 8000. Under Docker, change the host-side port in
+  `docker-compose.demo.yml`'s `app.ports` (e.g. `"8001:8000"`). Manually,
+  pass `--port 8001` (or any free port) to the `uvicorn` command in §4.
 - **Every flagship question abstains, including `da001`** — the demo
   corpus was never seeded (or was seeded against a different database
-  than `KNOWLEDGEOS_DATABASE_URL` points the server at). Re-run §4
-  against the exact same `KNOWLEDGEOS_DATABASE_URL` the server in §3
-  uses; `result.total_active_chunks` printed by that snippet should read
-  `30`.
+  than `KNOWLEDGEOS_DATABASE_URL` points the server at). Under Docker
+  this should not happen (`seed` is a required, gated step); manually,
+  re-run §5 against the exact same `KNOWLEDGEOS_DATABASE_URL` the server
+  in §4 uses — `result.total_active_chunks` printed by that command
+  should read `30`.
 - **A question other than the five above always fails** — expected and
   by design: `DemoEmbeddingProvider`, `DemoRerankProvider`, and
   `DemoLLMProvider` each raise rather than silently improvising for any
@@ -245,7 +313,7 @@ returns.
   module). Demo Mode is five specific, verifiable scenarios, not a
   general-purpose keyless deployment.
 
-## 10. Production vs. Demo
+## 11. Production vs. Demo
 
 | | Production (Live Mode) | Demo Mode |
 | --- | --- | --- |

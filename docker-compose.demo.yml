@@ -1,0 +1,94 @@
+# Docker Compose for KnowledgeOS Demo Mode (P3): the deterministic,
+# keyless walkthrough of the real query pipeline, launchable with nothing
+# beyond Docker itself. See docs/DEMO.md for the full walkthrough and the
+# five flagship scenarios.
+#
+#   docker compose -f docker-compose.demo.yml up --build
+#
+# That one command starts PostgreSQL+pgvector, waits for it to report
+# healthy, runs the existing Alembic migrations, seeds the existing demo
+# corpus through the existing `demo.seed.seed_demo_corpus`, and only then
+# starts `demo.app:app` -- each step gated on the previous one's success
+# (`condition: service_completed_successfully`), so the app is never
+# reachable before its database and data are ready.
+#
+# No credential is read or required anywhere in this file: unlike
+# docker-compose.yml (Live Mode), no LLM_MODEL or Gemini/Google key is
+# declared here at all -- Demo Mode's three fixture providers never read
+# them (see docs/DEMO.md and demo/llm.py's own guard test). This file
+# does not modify docker-compose.yml or its own Live Mode behaviour;
+# it is an entirely separate, additive stack, on its own network,
+# database name and volumes, so the two can even run side by side.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: knowledgeos
+      POSTGRES_PASSWORD: knowledgeos
+      POSTGRES_DB: knowledgeos_demo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knowledgeos"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - demo-db-data:/var/lib/postgresql/data
+
+  # Migrations are a separate, explicit step here too (locked decision
+  # D8, same as docker-compose.yml) -- never run from the app's own
+  # startup path.
+  migrate:
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.13-slim}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KNOWLEDGEOS_DATABASE_URL: postgresql+psycopg://knowledgeos:knowledgeos@db:5432/knowledgeos_demo
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  # Seeds the existing demo corpus through the existing
+  # `demo.seed.seed_demo_corpus` -- no second seeding implementation.
+  # Idempotent (`ensure_corpus_seeded`'s own contract), so re-running this
+  # stack against the same volume never duplicates the corpus.
+  seed:
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.13-slim}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      KNOWLEDGEOS_DATABASE_URL: postgresql+psycopg://knowledgeos:knowledgeos@db:5432/knowledgeos_demo
+    command: ["python", "-m", "demo.seed"]
+    volumes:
+      - demo-storage:/var/lib/knowledgeos/storage
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.13-slim}
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    environment:
+      KNOWLEDGEOS_DATABASE_URL: postgresql+psycopg://knowledgeos:knowledgeos@db:5432/knowledgeos_demo
+    ports:
+      - "8000:8000"
+    volumes:
+      - demo-storage:/var/lib/knowledgeos/storage
+    # Overrides the image's own default CMD (`uvicorn app.main:app`,
+    # Live Mode) to serve the demo entrypoint instead -- the only
+    # difference from docker-compose.yml's `app` service. No Dockerfile
+    # CMD change, so Live Mode's own default is untouched.
+    command: ["uvicorn", "demo.app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  demo-db-data:
+  demo-storage:

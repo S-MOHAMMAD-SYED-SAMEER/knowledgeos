@@ -25,6 +25,14 @@ COPY alembic.ini ./
 # `[tool.setuptools.packages.find]` in pyproject.toml) -- plain source
 # next to `app/`, run with `python -m` from this WORKDIR.
 COPY evals ./evals
+# Demo Mode (P3) and its committed, precomputed fixtures -- the same
+# `demo.app:app` and `python -m demo.seed` this image can now serve and
+# seed, so the deterministic keyless demo runs from this image as well as
+# from a local checkout. Not an installed package, same reasoning as
+# `evals/` above -- plain source, run with `python -m`/`uvicorn` from
+# this WORKDIR. Adds no new dependency: `demo/` only imports packages
+# `app/` already requires.
+COPY demo ./demo
 
 # CPU-only PyTorch (locked decision D6). `sentence-transformers`
 # (pyproject.toml) declares `torch>=2.2` and is agnostic to which build
