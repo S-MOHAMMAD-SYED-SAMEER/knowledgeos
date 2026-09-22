@@ -1,0 +1,841 @@
+{
+  "model_name": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+  "candidates_per_query": 20,
+  "queries": [
+    {
+      "id": "da001",
+      "text": "How many days per week may an employee work remotely?",
+      "text_sha256": "f12f8bbcd76a1bfd418a7b72f7b7e42d33fb5735f1db8d6d2b3b08ca185039d4",
+      "candidates": [
+        {
+          "chunk_uid": "5a04c330c14efaf8f4da83ebf6d6854f",
+          "chunk_text_sha256": "a3cc0c8d239c42fbd5a63f5f29495989f1da8a26438324b311d91de22977f5cc",
+          "document_title": "Remote Work Policy",
+          "sequence": 0,
+          "fusion_rank": 1,
+          "rerank_score": 4.192285537719727
+        },
+        {
+          "chunk_uid": "eeee995d9289e3401502bfc86c516b30",
+          "chunk_text_sha256": "ab4281335fddc16bece028893d8cccf5f78111800dee09553b1e13419f93cb96",
+          "document_title": "Remote Work Policy",
+          "sequence": 1,
+          "fusion_rank": 2,
+          "rerank_score": -3.099514961242676
+        },
+        {
+          "chunk_uid": "3027fe56edb8a271d3c2c248a764ee3f",
+          "chunk_text_sha256": "8a42104c132dd35a2b952c83ee0f269ccca2efabb8fb6266e7131aa035d1c2b3",
+          "document_title": "Employee Handbook",
+          "sequence": 2,
+          "fusion_rank": 3,
+          "rerank_score": -8.70573616027832
+        },
+        {
+          "chunk_uid": "922b302489f00c4323d6a6ee63e27500",
+          "chunk_text_sha256": "079758773e11c4f0a7f4a2f2fe823426aad16f1c5b580de28095cf4fc1cb23bd",
+          "document_title": "Remote Work Policy",
+          "sequence": 2,
+          "fusion_rank": 4,
+          "rerank_score": -10.644636154174805
+        },
+        {
+          "chunk_uid": "ad3e426ed2057b246c92f05fa8be0f13",
+          "chunk_text_sha256": "5941e04df56c49f0d01737204a823580886ba3e117ffae7ee67fd800c464588f",
+          "document_title": "Employee Handbook",
+          "sequence": 0,
+          "fusion_rank": 5,
+          "rerank_score": -2.209859848022461
+        },
+        {
+          "chunk_uid": "1520a2137d9557a94fc05784da189fc0",
+          "chunk_text_sha256": "d5b631c404b1dbab142b49636505371e9a7231e7f3abb9110af895679f047d29",
+          "document_title": "Employee Handbook",
+          "sequence": 1,
+          "fusion_rank": 6,
+          "rerank_score": -8.280150413513184
+        },
+        {
+          "chunk_uid": "b63716038fc7ad343c814ed2e3cdc563",
+          "chunk_text_sha256": "a17805add1c468cb7915023e065b5e71b01b1c5c8bc031887738b23c19c270a0",
+          "document_title": "Onboarding Guide",
+          "sequence": 0,
+          "fusion_rank": 7,
+          "rerank_score": -2.727687120437622
+        },
+        {
+          "chunk_uid": "bdc1a9ee1fad6334d396205966574a15",
+          "chunk_text_sha256": "01b5cf1ba8a623a95a72b58566d5e28740e34a52c87400568e60c2ac18cdbee7",
+          "document_title": "On-Call Rotation",
+          "sequence": 0,
+          "fusion_rank": 8,
+          "rerank_score": -7.245110034942627
+        },
+        {
+          "chunk_uid": "2414f3e390da06a356a479b0c44c0abf",
+          "chunk_text_sha256": "35b908b219e9c572817b4d090f96257d689deab15fea7b2bd5380091cb746cec",
+          "document_title": "Onboarding Guide",
+          "sequence": 2,
+          "fusion_rank": 9,
+          "rerank_score": -6.538614273071289
+        },
+        {
+          "chunk_uid": "f3db0cedd94359653e4daa1f0536c9fa",
+          "chunk_text_sha256": "47ded540c4b2a813eb10abec997111c75fbce3c5cc3f8c341936ad56ef84043f",
+          "document_title": "Expense Policy",
+          "sequence": 1,
+          "fusion_rank": 10,
+          "rerank_score": -8.006305694580078
+        },
+        {
+          "chunk_uid": "a5e0064284e68f8558c67644b75dd9dd",
+          "chunk_text_sha256": "ab014ff6a8c86669eabfc6f6ca277a96d8264802299f0b8d287a3b5acb5975af",
+          "document_title": "On-Call Rotation",
+          "sequence": 1,
+          "fusion_rank": 11,
+          "rerank_score": -8.424732208251953
+        },
+        {
+          "chunk_uid": "a406e8bef073c09e54f3c1a17ebd1352",
+          "chunk_text_sha256": "b17e7cb9b5fdb5127c3d166be576dc0e358bc33ceb176420be47a9cc59900e5d",
+          "document_title": "Onboarding Guide",
+          "sequence": 1,
+          "fusion_rank": 12,
+          "rerank_score": -2.3816137313842773
+        },
+        {
+          "chunk_uid": "2810dafda596e424dcddc4756cee378c",
+          "chunk_text_sha256": "cba2eb383b75bf4d180fbe950f1c238a19bd8599a229e2b9b21898f6d47f011e",
+          "document_title": "On-Call Rotation",
+          "sequence": 2,
+          "fusion_rank": 13,
+          "rerank_score": -11.286865234375
+        },
+        {
+          "chunk_uid": "fa6a8fa3ff7c9abfd858f139e55ab66d",
+          "chunk_text_sha256": "9d8f7aa320458613804ff0320c3168650fd253488e79419f2b683b59a255a19f",
+          "document_title": "Production Database Access SOP",
+          "sequence": 2,
+          "fusion_rank": 14,
+          "rerank_score": -10.800727844238281
+        },
+        {
+          "chunk_uid": "922fa6065681666dbffe4f7cb644da41",
+          "chunk_text_sha256": "6c917d4689e0348a4429a47701b44791f91cd2b276642a8ec67069afe7b458d7",
+          "document_title": "Expense Policy",
+          "sequence": 0,
+          "fusion_rank": 15,
+          "rerank_score": -9.711349487304688
+        },
+        {
+          "chunk_uid": "ac735f6387ca659b3a009e78d98f0118",
+          "chunk_text_sha256": "cdbd24b061315c0823b62aa482bd461ea7d9c560f721b3bff95c744cbde23819",
+          "document_title": "Data Retention Policy",
+          "sequence": 0,
+          "fusion_rank": 16,
+          "rerank_score": -9.340150833129883
+        },
+        {
+          "chunk_uid": "e3e91b1f9845f9e5b17e8e375d325dd9",
+          "chunk_text_sha256": "f54a3c0f29d35c317049189f85e5eaed1b152b95aed24a4a6f77737431804867",
+          "document_title": "Security Policy",
+          "sequence": 0,
+          "fusion_rank": 17,
+          "rerank_score": -7.5889081954956055
+        },
+        {
+          "chunk_uid": "da1cdb5e0e87ad69728e9d2781239d13",
+          "chunk_text_sha256": "aeb061478b83cfd6a58eff715e788623f545d174e50a9abae7dabebcfc7f2e99",
+          "document_title": "Production Database Access SOP",
+          "sequence": 0,
+          "fusion_rank": 18,
+          "rerank_score": -9.044092178344727
+        },
+        {
+          "chunk_uid": "e87adc078430e416644386f1783dc1f5",
+          "chunk_text_sha256": "4bd457fb59a9ea244ec07fb26c635e3ca530689646d06d8e30a43ba536bf0207",
+          "document_title": "Expense Policy",
+          "sequence": 2,
+          "fusion_rank": 19,
+          "rerank_score": -11.208788871765137
+        },
+        {
+          "chunk_uid": "b9350574821da460a18df3d0a5389e65",
+          "chunk_text_sha256": "bdc96ad4bd2c629a5720dab887c655c06663f7db640c587f9a313c94b9db3257",
+          "document_title": "Data Retention Policy",
+          "sequence": 2,
+          "fusion_rank": 20,
+          "rerank_score": -10.389883041381836
+        }
+      ]
+    },
+    {
+      "id": "cs001",
+      "text": "Within how many minutes of declaring a severity-one incident must an executive be notified?",
+      "text_sha256": "ef34d63d43b04f7eae6e9bde985d1d89cc3a3f87c955228aded314aaa2f1a7c5",
+      "candidates": [
+        {
+          "chunk_uid": "49446816bd2ba01147d70c4fcfeaa7fc",
+          "chunk_text_sha256": "dcaf4bf1a429521997fec140e3fe2496b4bf79ae1d000395ceac17c9b19719cc",
+          "document_title": "Incident Response Runbook",
+          "sequence": 1,
+          "fusion_rank": 1,
+          "rerank_score": 2.9960317611694336
+        },
+        {
+          "chunk_uid": "f9cbee4e0939d52e95eebe93a063a85c",
+          "chunk_text_sha256": "8dd70f14ce5315ad34b3ff29d3c16893c91450ffd87d80431efda6e99ac34de8",
+          "document_title": "Incident Response Runbook",
+          "sequence": 0,
+          "fusion_rank": 2,
+          "rerank_score": 3.1760666370391846
+        },
+        {
+          "chunk_uid": "3420a80f00690e841d4060ffde749ba5",
+          "chunk_text_sha256": "c7882ec55df9c930c16de419ef63dbc0ef676da200a34764b07e57b4fabdddfb",
+          "document_title": "Vendor Access Policy",
+          "sequence": 2,
+          "fusion_rank": 3,
+          "rerank_score": -5.447319030761719
+        },
+        {
+          "chunk_uid": "2c0cc4d3bc666b5aec30bd5ffadfc2c7",
+          "chunk_text_sha256": "3c8482d5790312914bc885e2ccec385cf7d1817eda802baa703dca272ccd706f",
+          "document_title": "Incident Response Runbook",
+          "sequence": 2,
+          "fusion_rank": 4,
+          "rerank_score": -4.214731216430664
+        },
+        {
+          "chunk_uid": "cadfd10c7ce0b82b9b54035419a41eba",
+          "chunk_text_sha256": "1ec1907d0368335fe039d023479b431a5a8bf08ef5c85d19748eedf5c3304b23",
+          "document_title": "Security Policy",
+          "sequence": 1,
+          "fusion_rank": 5,
+          "rerank_score": -4.183314323425293
+        },
+        {
+          "chunk_uid": "3027fe56edb8a271d3c2c248a764ee3f",
+          "chunk_text_sha256": "8a42104c132dd35a2b952c83ee0f269ccca2efabb8fb6266e7131aa035d1c2b3",
+          "document_title": "Employee Handbook",
+          "sequence": 2,
+          "fusion_rank": 6,
+          "rerank_score": -11.193605422973633
+        },
+        {
+          "chunk_uid": "fa6a8fa3ff7c9abfd858f139e55ab66d",
+          "chunk_text_sha256": "9d8f7aa320458613804ff0320c3168650fd253488e79419f2b683b59a255a19f",
+          "document_title": "Production Database Access SOP",
+          "sequence": 2,
+          "fusion_rank": 7,
+          "rerank_score": -10.947511672973633
+        },
+        {
+          "chunk_uid": "2414f3e390da06a356a479b0c44c0abf",
+          "chunk_text_sha256": "35b908b219e9c572817b4d090f96257d689deab15fea7b2bd5380091cb746cec",
+          "document_title": "Onboarding Guide",
+          "sequence": 2,
+          "fusion_rank": 8,
+          "rerank_score": -11.312843322753906
+        },
+        {
+          "chunk_uid": "4e4e98406eefe99581efced749bd708b",
+          "chunk_text_sha256": "4d6b81f5e0c612c31810ed5a3c06921793de6e470858f6027a3213fa4ad10a16",
+          "document_title": "Security Policy",
+          "sequence": 2,
+          "fusion_rank": 9,
+          "rerank_score": -11.09422492980957
+        },
+        {
+          "chunk_uid": "1520a2137d9557a94fc05784da189fc0",
+          "chunk_text_sha256": "d5b631c404b1dbab142b49636505371e9a7231e7f3abb9110af895679f047d29",
+          "document_title": "Employee Handbook",
+          "sequence": 1,
+          "fusion_rank": 10,
+          "rerank_score": -10.09119987487793
+        },
+        {
+          "chunk_uid": "da1cdb5e0e87ad69728e9d2781239d13",
+          "chunk_text_sha256": "aeb061478b83cfd6a58eff715e788623f545d174e50a9abae7dabebcfc7f2e99",
+          "document_title": "Production Database Access SOP",
+          "sequence": 0,
+          "fusion_rank": 11,
+          "rerank_score": -10.460562705993652
+        },
+        {
+          "chunk_uid": "ad3e426ed2057b246c92f05fa8be0f13",
+          "chunk_text_sha256": "5941e04df56c49f0d01737204a823580886ba3e117ffae7ee67fd800c464588f",
+          "document_title": "Employee Handbook",
+          "sequence": 0,
+          "fusion_rank": 12,
+          "rerank_score": -10.184707641601562
+        },
+        {
+          "chunk_uid": "a406e8bef073c09e54f3c1a17ebd1352",
+          "chunk_text_sha256": "b17e7cb9b5fdb5127c3d166be576dc0e358bc33ceb176420be47a9cc59900e5d",
+          "document_title": "Onboarding Guide",
+          "sequence": 1,
+          "fusion_rank": 13,
+          "rerank_score": -10.53943157196045
+        },
+        {
+          "chunk_uid": "a5e0064284e68f8558c67644b75dd9dd",
+          "chunk_text_sha256": "ab014ff6a8c86669eabfc6f6ca277a96d8264802299f0b8d287a3b5acb5975af",
+          "document_title": "On-Call Rotation",
+          "sequence": 1,
+          "fusion_rank": 14,
+          "rerank_score": -9.935270309448242
+        },
+        {
+          "chunk_uid": "b27f10fcc77b64d06f491ca98fd343c7",
+          "chunk_text_sha256": "7bf92be44b107acabfea1767b5ebfed28050576b3a65fca3dd10b0b4cc9a60a1",
+          "document_title": "Data Retention Policy",
+          "sequence": 1,
+          "fusion_rank": 15,
+          "rerank_score": -10.707564353942871
+        },
+        {
+          "chunk_uid": "e87adc078430e416644386f1783dc1f5",
+          "chunk_text_sha256": "4bd457fb59a9ea244ec07fb26c635e3ca530689646d06d8e30a43ba536bf0207",
+          "document_title": "Expense Policy",
+          "sequence": 2,
+          "fusion_rank": 16,
+          "rerank_score": -11.294182777404785
+        },
+        {
+          "chunk_uid": "e3e91b1f9845f9e5b17e8e375d325dd9",
+          "chunk_text_sha256": "f54a3c0f29d35c317049189f85e5eaed1b152b95aed24a4a6f77737431804867",
+          "document_title": "Security Policy",
+          "sequence": 0,
+          "fusion_rank": 17,
+          "rerank_score": -8.408782958984375
+        },
+        {
+          "chunk_uid": "91d4f121536a0880dff84e83193cd833",
+          "chunk_text_sha256": "330f49cd7bb7eaeffb91942ac1bf46396767575bc86b206be52982a9a118b26b",
+          "document_title": "Production Database Access SOP",
+          "sequence": 1,
+          "fusion_rank": 18,
+          "rerank_score": -10.942996978759766
+        },
+        {
+          "chunk_uid": "54b5200c0f4ab243c0eb22bd471d9068",
+          "chunk_text_sha256": "e65e259658527e0c04adaab48bf4cc1476b885b7cb73c9d5a765625cf7d56fd1",
+          "document_title": "Vendor Access Policy",
+          "sequence": 1,
+          "fusion_rank": 19,
+          "rerank_score": -9.497220039367676
+        },
+        {
+          "chunk_uid": "b63716038fc7ad343c814ed2e3cdc563",
+          "chunk_text_sha256": "a17805add1c468cb7915023e065b5e71b01b1c5c8bc031887738b23c19c270a0",
+          "document_title": "Onboarding Guide",
+          "sequence": 0,
+          "fusion_rank": 20,
+          "rerank_score": -11.133614540100098
+        }
+      ]
+    },
+    {
+      "id": "cv001",
+      "text": "How many days does standard production database access last for?",
+      "text_sha256": "cc6303630a561be06a970684cf2391c1aaadbd27dfc09d322bd7309b3bdf0ae0",
+      "candidates": [
+        {
+          "chunk_uid": "bdc1a9ee1fad6334d396205966574a15",
+          "chunk_text_sha256": "01b5cf1ba8a623a95a72b58566d5e28740e34a52c87400568e60c2ac18cdbee7",
+          "document_title": "On-Call Rotation",
+          "sequence": 0,
+          "fusion_rank": 1,
+          "rerank_score": -2.657325267791748
+        },
+        {
+          "chunk_uid": "da1cdb5e0e87ad69728e9d2781239d13",
+          "chunk_text_sha256": "aeb061478b83cfd6a58eff715e788623f545d174e50a9abae7dabebcfc7f2e99",
+          "document_title": "Production Database Access SOP",
+          "sequence": 0,
+          "fusion_rank": 2,
+          "rerank_score": 4.591228485107422
+        },
+        {
+          "chunk_uid": "ac735f6387ca659b3a009e78d98f0118",
+          "chunk_text_sha256": "cdbd24b061315c0823b62aa482bd461ea7d9c560f721b3bff95c744cbde23819",
+          "document_title": "Data Retention Policy",
+          "sequence": 0,
+          "fusion_rank": 3,
+          "rerank_score": -0.8962804079055786
+        },
+        {
+          "chunk_uid": "fa6a8fa3ff7c9abfd858f139e55ab66d",
+          "chunk_text_sha256": "9d8f7aa320458613804ff0320c3168650fd253488e79419f2b683b59a255a19f",
+          "document_title": "Production Database Access SOP",
+          "sequence": 2,
+          "fusion_rank": 4,
+          "rerank_score": 4.534769058227539
+        },
+        {
+          "chunk_uid": "cadfd10c7ce0b82b9b54035419a41eba",
+          "chunk_text_sha256": "1ec1907d0368335fe039d023479b431a5a8bf08ef5c85d19748eedf5c3304b23",
+          "document_title": "Security Policy",
+          "sequence": 1,
+          "fusion_rank": 5,
+          "rerank_score": -1.9116990566253662
+        },
+        {
+          "chunk_uid": "b9350574821da460a18df3d0a5389e65",
+          "chunk_text_sha256": "bdc96ad4bd2c629a5720dab887c655c06663f7db640c587f9a313c94b9db3257",
+          "document_title": "Data Retention Policy",
+          "sequence": 2,
+          "fusion_rank": 6,
+          "rerank_score": -4.007696151733398
+        },
+        {
+          "chunk_uid": "91d4f121536a0880dff84e83193cd833",
+          "chunk_text_sha256": "330f49cd7bb7eaeffb91942ac1bf46396767575bc86b206be52982a9a118b26b",
+          "document_title": "Production Database Access SOP",
+          "sequence": 1,
+          "fusion_rank": 7,
+          "rerank_score": 1.3181476593017578
+        },
+        {
+          "chunk_uid": "54b5200c0f4ab243c0eb22bd471d9068",
+          "chunk_text_sha256": "e65e259658527e0c04adaab48bf4cc1476b885b7cb73c9d5a765625cf7d56fd1",
+          "document_title": "Vendor Access Policy",
+          "sequence": 1,
+          "fusion_rank": 8,
+          "rerank_score": 2.160037040710449
+        },
+        {
+          "chunk_uid": "eee7938e3bf0085d571e51f5a07a0389",
+          "chunk_text_sha256": "39372cbd0403350784e12de5ee2921a8ed6bd2ad90e90768cf23572855cf7908",
+          "document_title": "Vendor Access Policy",
+          "sequence": 0,
+          "fusion_rank": 9,
+          "rerank_score": 1.4432246685028076
+        },
+        {
+          "chunk_uid": "b27f10fcc77b64d06f491ca98fd343c7",
+          "chunk_text_sha256": "7bf92be44b107acabfea1767b5ebfed28050576b3a65fca3dd10b0b4cc9a60a1",
+          "document_title": "Data Retention Policy",
+          "sequence": 1,
+          "fusion_rank": 10,
+          "rerank_score": -8.748441696166992
+        },
+        {
+          "chunk_uid": "a406e8bef073c09e54f3c1a17ebd1352",
+          "chunk_text_sha256": "b17e7cb9b5fdb5127c3d166be576dc0e358bc33ceb176420be47a9cc59900e5d",
+          "document_title": "Onboarding Guide",
+          "sequence": 1,
+          "fusion_rank": 11,
+          "rerank_score": -3.260890483856201
+        },
+        {
+          "chunk_uid": "e3e91b1f9845f9e5b17e8e375d325dd9",
+          "chunk_text_sha256": "f54a3c0f29d35c317049189f85e5eaed1b152b95aed24a4a6f77737431804867",
+          "document_title": "Security Policy",
+          "sequence": 0,
+          "fusion_rank": 12,
+          "rerank_score": 0.09191837906837463
+        },
+        {
+          "chunk_uid": "3420a80f00690e841d4060ffde749ba5",
+          "chunk_text_sha256": "c7882ec55df9c930c16de419ef63dbc0ef676da200a34764b07e57b4fabdddfb",
+          "document_title": "Vendor Access Policy",
+          "sequence": 2,
+          "fusion_rank": 13,
+          "rerank_score": -6.9796881675720215
+        },
+        {
+          "chunk_uid": "922b302489f00c4323d6a6ee63e27500",
+          "chunk_text_sha256": "079758773e11c4f0a7f4a2f2fe823426aad16f1c5b580de28095cf4fc1cb23bd",
+          "document_title": "Remote Work Policy",
+          "sequence": 2,
+          "fusion_rank": 14,
+          "rerank_score": -11.303260803222656
+        },
+        {
+          "chunk_uid": "ad3e426ed2057b246c92f05fa8be0f13",
+          "chunk_text_sha256": "5941e04df56c49f0d01737204a823580886ba3e117ffae7ee67fd800c464588f",
+          "document_title": "Employee Handbook",
+          "sequence": 0,
+          "fusion_rank": 15,
+          "rerank_score": -8.394387245178223
+        },
+        {
+          "chunk_uid": "1520a2137d9557a94fc05784da189fc0",
+          "chunk_text_sha256": "d5b631c404b1dbab142b49636505371e9a7231e7f3abb9110af895679f047d29",
+          "document_title": "Employee Handbook",
+          "sequence": 1,
+          "fusion_rank": 16,
+          "rerank_score": -9.166318893432617
+        },
+        {
+          "chunk_uid": "5a04c330c14efaf8f4da83ebf6d6854f",
+          "chunk_text_sha256": "a3cc0c8d239c42fbd5a63f5f29495989f1da8a26438324b311d91de22977f5cc",
+          "document_title": "Remote Work Policy",
+          "sequence": 0,
+          "fusion_rank": 17,
+          "rerank_score": -0.9762192964553833
+        },
+        {
+          "chunk_uid": "4e4e98406eefe99581efced749bd708b",
+          "chunk_text_sha256": "4d6b81f5e0c612c31810ed5a3c06921793de6e470858f6027a3213fa4ad10a16",
+          "document_title": "Security Policy",
+          "sequence": 2,
+          "fusion_rank": 18,
+          "rerank_score": -5.65433931350708
+        },
+        {
+          "chunk_uid": "f9cbee4e0939d52e95eebe93a063a85c",
+          "chunk_text_sha256": "8dd70f14ce5315ad34b3ff29d3c16893c91450ffd87d80431efda6e99ac34de8",
+          "document_title": "Incident Response Runbook",
+          "sequence": 0,
+          "fusion_rank": 19,
+          "rerank_score": -5.836104393005371
+        },
+        {
+          "chunk_uid": "eeee995d9289e3401502bfc86c516b30",
+          "chunk_text_sha256": "ab4281335fddc16bece028893d8cccf5f78111800dee09553b1e13419f93cb96",
+          "document_title": "Remote Work Policy",
+          "sequence": 1,
+          "fusion_rank": 20,
+          "rerank_score": -10.873115539550781
+        }
+      ]
+    },
+    {
+      "id": "md001",
+      "text": "If I'm on call and need production database access during an active incident, what's the process, and does it require the same approval as a normal request?",
+      "text_sha256": "d7c21a2e25eb3c46faca94e759e121e2e475615f6d4d143236def19078f2907f",
+      "candidates": [
+        {
+          "chunk_uid": "54b5200c0f4ab243c0eb22bd471d9068",
+          "chunk_text_sha256": "e65e259658527e0c04adaab48bf4cc1476b885b7cb73c9d5a765625cf7d56fd1",
+          "document_title": "Vendor Access Policy",
+          "sequence": 1,
+          "fusion_rank": 1,
+          "rerank_score": 1.5314137935638428
+        },
+        {
+          "chunk_uid": "da1cdb5e0e87ad69728e9d2781239d13",
+          "chunk_text_sha256": "aeb061478b83cfd6a58eff715e788623f545d174e50a9abae7dabebcfc7f2e99",
+          "document_title": "Production Database Access SOP",
+          "sequence": 0,
+          "fusion_rank": 2,
+          "rerank_score": 1.5075936317443848
+        },
+        {
+          "chunk_uid": "cadfd10c7ce0b82b9b54035419a41eba",
+          "chunk_text_sha256": "1ec1907d0368335fe039d023479b431a5a8bf08ef5c85d19748eedf5c3304b23",
+          "document_title": "Security Policy",
+          "sequence": 1,
+          "fusion_rank": 3,
+          "rerank_score": 0.8322280645370483
+        },
+        {
+          "chunk_uid": "91d4f121536a0880dff84e83193cd833",
+          "chunk_text_sha256": "330f49cd7bb7eaeffb91942ac1bf46396767575bc86b206be52982a9a118b26b",
+          "document_title": "Production Database Access SOP",
+          "sequence": 1,
+          "fusion_rank": 4,
+          "rerank_score": -3.5621490478515625
+        },
+        {
+          "chunk_uid": "eee7938e3bf0085d571e51f5a07a0389",
+          "chunk_text_sha256": "39372cbd0403350784e12de5ee2921a8ed6bd2ad90e90768cf23572855cf7908",
+          "document_title": "Vendor Access Policy",
+          "sequence": 0,
+          "fusion_rank": 5,
+          "rerank_score": 2.1119296550750732
+        },
+        {
+          "chunk_uid": "f9cbee4e0939d52e95eebe93a063a85c",
+          "chunk_text_sha256": "8dd70f14ce5315ad34b3ff29d3c16893c91450ffd87d80431efda6e99ac34de8",
+          "document_title": "Incident Response Runbook",
+          "sequence": 0,
+          "fusion_rank": 6,
+          "rerank_score": -2.292510509490967
+        },
+        {
+          "chunk_uid": "4e4e98406eefe99581efced749bd708b",
+          "chunk_text_sha256": "4d6b81f5e0c612c31810ed5a3c06921793de6e470858f6027a3213fa4ad10a16",
+          "document_title": "Security Policy",
+          "sequence": 2,
+          "fusion_rank": 7,
+          "rerank_score": 0.3854411244392395
+        },
+        {
+          "chunk_uid": "e3e91b1f9845f9e5b17e8e375d325dd9",
+          "chunk_text_sha256": "f54a3c0f29d35c317049189f85e5eaed1b152b95aed24a4a6f77737431804867",
+          "document_title": "Security Policy",
+          "sequence": 0,
+          "fusion_rank": 8,
+          "rerank_score": 2.3504343032836914
+        },
+        {
+          "chunk_uid": "3420a80f00690e841d4060ffde749ba5",
+          "chunk_text_sha256": "c7882ec55df9c930c16de419ef63dbc0ef676da200a34764b07e57b4fabdddfb",
+          "document_title": "Vendor Access Policy",
+          "sequence": 2,
+          "fusion_rank": 9,
+          "rerank_score": -7.685447692871094
+        },
+        {
+          "chunk_uid": "2c0cc4d3bc666b5aec30bd5ffadfc2c7",
+          "chunk_text_sha256": "3c8482d5790312914bc885e2ccec385cf7d1817eda802baa703dca272ccd706f",
+          "document_title": "Incident Response Runbook",
+          "sequence": 2,
+          "fusion_rank": 10,
+          "rerank_score": -6.338890075683594
+        },
+        {
+          "chunk_uid": "1520a2137d9557a94fc05784da189fc0",
+          "chunk_text_sha256": "d5b631c404b1dbab142b49636505371e9a7231e7f3abb9110af895679f047d29",
+          "document_title": "Employee Handbook",
+          "sequence": 1,
+          "fusion_rank": 11,
+          "rerank_score": -8.38518238067627
+        },
+        {
+          "chunk_uid": "49446816bd2ba01147d70c4fcfeaa7fc",
+          "chunk_text_sha256": "dcaf4bf1a429521997fec140e3fe2496b4bf79ae1d000395ceac17c9b19719cc",
+          "document_title": "Incident Response Runbook",
+          "sequence": 1,
+          "fusion_rank": 12,
+          "rerank_score": -5.798890590667725
+        },
+        {
+          "chunk_uid": "a406e8bef073c09e54f3c1a17ebd1352",
+          "chunk_text_sha256": "b17e7cb9b5fdb5127c3d166be576dc0e358bc33ceb176420be47a9cc59900e5d",
+          "document_title": "Onboarding Guide",
+          "sequence": 1,
+          "fusion_rank": 13,
+          "rerank_score": -8.454060554504395
+        },
+        {
+          "chunk_uid": "bdc1a9ee1fad6334d396205966574a15",
+          "chunk_text_sha256": "01b5cf1ba8a623a95a72b58566d5e28740e34a52c87400568e60c2ac18cdbee7",
+          "document_title": "On-Call Rotation",
+          "sequence": 0,
+          "fusion_rank": 14,
+          "rerank_score": 2.7303049564361572
+        },
+        {
+          "chunk_uid": "b9350574821da460a18df3d0a5389e65",
+          "chunk_text_sha256": "bdc96ad4bd2c629a5720dab887c655c06663f7db640c587f9a313c94b9db3257",
+          "document_title": "Data Retention Policy",
+          "sequence": 2,
+          "fusion_rank": 15,
+          "rerank_score": -9.301742553710938
+        },
+        {
+          "chunk_uid": "a5e0064284e68f8558c67644b75dd9dd",
+          "chunk_text_sha256": "ab014ff6a8c86669eabfc6f6ca277a96d8264802299f0b8d287a3b5acb5975af",
+          "document_title": "On-Call Rotation",
+          "sequence": 1,
+          "fusion_rank": 16,
+          "rerank_score": -5.282350540161133
+        },
+        {
+          "chunk_uid": "eeee995d9289e3401502bfc86c516b30",
+          "chunk_text_sha256": "ab4281335fddc16bece028893d8cccf5f78111800dee09553b1e13419f93cb96",
+          "document_title": "Remote Work Policy",
+          "sequence": 1,
+          "fusion_rank": 17,
+          "rerank_score": -9.661815643310547
+        },
+        {
+          "chunk_uid": "f3db0cedd94359653e4daa1f0536c9fa",
+          "chunk_text_sha256": "47ded540c4b2a813eb10abec997111c75fbce3c5cc3f8c341936ad56ef84043f",
+          "document_title": "Expense Policy",
+          "sequence": 1,
+          "fusion_rank": 18,
+          "rerank_score": -10.042535781860352
+        },
+        {
+          "chunk_uid": "ac735f6387ca659b3a009e78d98f0118",
+          "chunk_text_sha256": "cdbd24b061315c0823b62aa482bd461ea7d9c560f721b3bff95c744cbde23819",
+          "document_title": "Data Retention Policy",
+          "sequence": 0,
+          "fusion_rank": 19,
+          "rerank_score": -2.5187437534332275
+        },
+        {
+          "chunk_uid": "b27f10fcc77b64d06f491ca98fd343c7",
+          "chunk_text_sha256": "7bf92be44b107acabfea1767b5ebfed28050576b3a65fca3dd10b0b4cc9a60a1",
+          "document_title": "Data Retention Policy",
+          "sequence": 1,
+          "fusion_rank": 20,
+          "rerank_score": -7.659811496734619
+        }
+      ]
+    },
+    {
+      "id": "ie001",
+      "text": "What is the company's policy on using generative AI tools for writing code?",
+      "text_sha256": "20534098cc4b026fd32c7d27ddff495959a3016cbd690be844c101d0bf6caec7",
+      "candidates": [
+        {
+          "chunk_uid": "a406e8bef073c09e54f3c1a17ebd1352",
+          "chunk_text_sha256": "b17e7cb9b5fdb5127c3d166be576dc0e358bc33ceb176420be47a9cc59900e5d",
+          "document_title": "Onboarding Guide",
+          "sequence": 1,
+          "fusion_rank": 1,
+          "rerank_score": -10.292882919311523
+        },
+        {
+          "chunk_uid": "b27f10fcc77b64d06f491ca98fd343c7",
+          "chunk_text_sha256": "7bf92be44b107acabfea1767b5ebfed28050576b3a65fca3dd10b0b4cc9a60a1",
+          "document_title": "Data Retention Policy",
+          "sequence": 1,
+          "fusion_rank": 2,
+          "rerank_score": -8.058283805847168
+        },
+        {
+          "chunk_uid": "4e4e98406eefe99581efced749bd708b",
+          "chunk_text_sha256": "4d6b81f5e0c612c31810ed5a3c06921793de6e470858f6027a3213fa4ad10a16",
+          "document_title": "Security Policy",
+          "sequence": 2,
+          "fusion_rank": 3,
+          "rerank_score": -10.33401107788086
+        },
+        {
+          "chunk_uid": "f3db0cedd94359653e4daa1f0536c9fa",
+          "chunk_text_sha256": "47ded540c4b2a813eb10abec997111c75fbce3c5cc3f8c341936ad56ef84043f",
+          "document_title": "Expense Policy",
+          "sequence": 1,
+          "fusion_rank": 4,
+          "rerank_score": -6.881504535675049
+        },
+        {
+          "chunk_uid": "fa6a8fa3ff7c9abfd858f139e55ab66d",
+          "chunk_text_sha256": "9d8f7aa320458613804ff0320c3168650fd253488e79419f2b683b59a255a19f",
+          "document_title": "Production Database Access SOP",
+          "sequence": 2,
+          "fusion_rank": 5,
+          "rerank_score": -10.439027786254883
+        },
+        {
+          "chunk_uid": "da1cdb5e0e87ad69728e9d2781239d13",
+          "chunk_text_sha256": "aeb061478b83cfd6a58eff715e788623f545d174e50a9abae7dabebcfc7f2e99",
+          "document_title": "Production Database Access SOP",
+          "sequence": 0,
+          "fusion_rank": 6,
+          "rerank_score": -7.4258131980896
+        },
+        {
+          "chunk_uid": "1520a2137d9557a94fc05784da189fc0",
+          "chunk_text_sha256": "d5b631c404b1dbab142b49636505371e9a7231e7f3abb9110af895679f047d29",
+          "document_title": "Employee Handbook",
+          "sequence": 1,
+          "fusion_rank": 7,
+          "rerank_score": -7.284523963928223
+        },
+        {
+          "chunk_uid": "54b5200c0f4ab243c0eb22bd471d9068",
+          "chunk_text_sha256": "e65e259658527e0c04adaab48bf4cc1476b885b7cb73c9d5a765625cf7d56fd1",
+          "document_title": "Vendor Access Policy",
+          "sequence": 1,
+          "fusion_rank": 8,
+          "rerank_score": -8.960962295532227
+        },
+        {
+          "chunk_uid": "cadfd10c7ce0b82b9b54035419a41eba",
+          "chunk_text_sha256": "1ec1907d0368335fe039d023479b431a5a8bf08ef5c85d19748eedf5c3304b23",
+          "document_title": "Security Policy",
+          "sequence": 1,
+          "fusion_rank": 9,
+          "rerank_score": -7.308460235595703
+        },
+        {
+          "chunk_uid": "2414f3e390da06a356a479b0c44c0abf",
+          "chunk_text_sha256": "35b908b219e9c572817b4d090f96257d689deab15fea7b2bd5380091cb746cec",
+          "document_title": "Onboarding Guide",
+          "sequence": 2,
+          "fusion_rank": 10,
+          "rerank_score": -10.284769058227539
+        },
+        {
+          "chunk_uid": "a5e0064284e68f8558c67644b75dd9dd",
+          "chunk_text_sha256": "ab014ff6a8c86669eabfc6f6ca277a96d8264802299f0b8d287a3b5acb5975af",
+          "document_title": "On-Call Rotation",
+          "sequence": 1,
+          "fusion_rank": 11,
+          "rerank_score": -11.050315856933594
+        },
+        {
+          "chunk_uid": "eeee995d9289e3401502bfc86c516b30",
+          "chunk_text_sha256": "ab4281335fddc16bece028893d8cccf5f78111800dee09553b1e13419f93cb96",
+          "document_title": "Remote Work Policy",
+          "sequence": 1,
+          "fusion_rank": 12,
+          "rerank_score": -7.665369987487793
+        },
+        {
+          "chunk_uid": "e3e91b1f9845f9e5b17e8e375d325dd9",
+          "chunk_text_sha256": "f54a3c0f29d35c317049189f85e5eaed1b152b95aed24a4a6f77737431804867",
+          "document_title": "Security Policy",
+          "sequence": 0,
+          "fusion_rank": 13,
+          "rerank_score": -5.620698928833008
+        },
+        {
+          "chunk_uid": "91d4f121536a0880dff84e83193cd833",
+          "chunk_text_sha256": "330f49cd7bb7eaeffb91942ac1bf46396767575bc86b206be52982a9a118b26b",
+          "document_title": "Production Database Access SOP",
+          "sequence": 1,
+          "fusion_rank": 14,
+          "rerank_score": -10.117313385009766
+        },
+        {
+          "chunk_uid": "eee7938e3bf0085d571e51f5a07a0389",
+          "chunk_text_sha256": "39372cbd0403350784e12de5ee2921a8ed6bd2ad90e90768cf23572855cf7908",
+          "document_title": "Vendor Access Policy",
+          "sequence": 0,
+          "fusion_rank": 15,
+          "rerank_score": -6.589078903198242
+        },
+        {
+          "chunk_uid": "b9350574821da460a18df3d0a5389e65",
+          "chunk_text_sha256": "bdc96ad4bd2c629a5720dab887c655c06663f7db640c587f9a313c94b9db3257",
+          "document_title": "Data Retention Policy",
+          "sequence": 2,
+          "fusion_rank": 16,
+          "rerank_score": -10.109720230102539
+        },
+        {
+          "chunk_uid": "5a04c330c14efaf8f4da83ebf6d6854f",
+          "chunk_text_sha256": "a3cc0c8d239c42fbd5a63f5f29495989f1da8a26438324b311d91de22977f5cc",
+          "document_title": "Remote Work Policy",
+          "sequence": 0,
+          "fusion_rank": 17,
+          "rerank_score": -6.734135150909424
+        },
+        {
+          "chunk_uid": "f9cbee4e0939d52e95eebe93a063a85c",
+          "chunk_text_sha256": "8dd70f14ce5315ad34b3ff29d3c16893c91450ffd87d80431efda6e99ac34de8",
+          "document_title": "Incident Response Runbook",
+          "sequence": 0,
+          "fusion_rank": 18,
+          "rerank_score": -9.903226852416992
+        },
+        {
+          "chunk_uid": "922b302489f00c4323d6a6ee63e27500",
+          "chunk_text_sha256": "079758773e11c4f0a7f4a2f2fe823426aad16f1c5b580de28095cf4fc1cb23bd",
+          "document_title": "Remote Work Policy",
+          "sequence": 2,
+          "fusion_rank": 19,
+          "rerank_score": -10.868388175964355
+        },
+        {
+          "chunk_uid": "bdc1a9ee1fad6334d396205966574a15",
+          "chunk_text_sha256": "01b5cf1ba8a623a95a72b58566d5e28740e34a52c87400568e60c2ac18cdbee7",
+          "document_title": "On-Call Rotation",
+          "sequence": 0,
+          "fusion_rank": 20,
+          "rerank_score": -11.1099853515625
+        }
+      ]
+    }
+  ]
+}

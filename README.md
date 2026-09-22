@@ -117,15 +117,20 @@ number — see [docs/ENGINEERING.md](docs/ENGINEERING.md) for the exact reason.
 
 | Mode | Credentials | Status |
 | --- | --- | --- |
-| **Demo Mode** | None | **Planned, not implemented** |
+| **Demo Mode** | None | **Implemented** |
 | **Live Mode** | Gemini key + local models | Implemented |
 
-**Demo Mode — planned, not built yet.** The intended self-contained portfolio
-demo: seeded fixture data and deterministic providers, no API key and no model
-download, so a visitor can walk five scenarios (normal, multi-document,
-citation-sensitive, conflicting versions, insufficient evidence → abstention).
-**No part of this exists today** — no demo flag, no seeded deployment, no
-public demo URL.
+**Demo Mode — implemented (P3, `demo/`).** A self-contained, keyless
+walkthrough of the real query pipeline: committed real-model fixtures
+(`demo/fixtures/`) stand in for the embedding, reranking, and generation
+providers, so the same five flagship scenarios (normal retrieval,
+citation-sensitive reranking, conflicting versions, multi-document
+evidence, insufficient-evidence abstention) run deterministically, with
+no API key and no model download at runtime — through the exact same
+`app.main.create_app()` and `POST /query`/`/ui/query` routes Live Mode
+uses, never a second implementation. No public demo URL is deployed; run
+it locally with `uvicorn demo.app:app` — full walkthrough in
+[docs/DEMO.md](docs/DEMO.md).
 
 **Live Mode — implemented.** Real generation through Google Gemini
 (`GEMINI_API_KEY` or `GOOGLE_API_KEY`, plus `KNOWLEDGEOS_LLM_MODEL`) with the
