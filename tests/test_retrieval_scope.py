@@ -294,16 +294,21 @@ def test_evals_package_has_no_second_database_configured() -> None:
         assert "create_engine" not in source
 
 
-def test_readme_m7_section_has_no_fabricated_metric_numbers() -> None:
-    """D14, locked: the README documents what milestone 7 measures, never a
-    result it did not actually produce. A real result, had one been
-    recorded, would look like the four-decimal numbers
+def test_engineering_doc_m7_section_has_no_fabricated_metric_numbers() -> None:
+    """D14, locked: the milestone narrative documents what milestone 7
+    measures, never a result it did not actually produce. A real result,
+    had one been recorded, would look like the four-decimal numbers
     `evals/retrieval/report.py` prints (`0.7000`) or a percentage — neither
     pattern may appear in this section, and the section must say plainly
-    that official evaluation has not been run here."""
+    that official evaluation has not been run here.
+
+    The narrative moved from `README.md` to `docs/ENGINEERING.md` when the
+    README became the project's overview document; the property enforced
+    here is unchanged, and follows the text to the file that now holds it.
+    """
     import re
 
-    text = (ROOT / "README.md").read_text()
+    text = (ROOT / "docs" / "ENGINEERING.md").read_text()
     start = text.index("## What milestone 7 built")
     end = text.index("\n## ", start + 1)
     section = text[start:end]
@@ -315,14 +320,14 @@ def test_readme_m7_section_has_no_fabricated_metric_numbers() -> None:
         assert forbidden not in section.lower()
 
 
-def test_readme_m8_section_has_no_fabricated_answer_metric_numbers() -> None:
+def test_engineering_doc_m8_section_has_no_fabricated_answer_metric_numbers() -> None:
     """The same discipline, applied to milestone 8: it implements
     generation, it does not run milestone 9's answer eval suite, and the
-    README must not carry a grounded-answer rate, a citation precision/
+    narrative must not carry a grounded-answer rate, a citation precision/
     recall number, or an abstention accuracy figure it never measured."""
     import re
 
-    text = (ROOT / "README.md").read_text()
+    text = (ROOT / "docs" / "ENGINEERING.md").read_text()
     start = text.index("## What milestone 8 built")
     end = text.index("\n## ", start + 1)
     section = text[start:end]
@@ -340,7 +345,10 @@ def test_bm25_never_describes_postgres_full_text_search() -> None:
     prose wraps a "not" onto the line before "BM25" itself."""
     negations = ("not", "never", "isn't", "n't")
     window = 80
-    targets = list((APP / "retrieval").glob("*.py")) + [ROOT / "README.md"]
+    targets = (
+        list((APP / "retrieval").glob("*.py"))
+        + [ROOT / "README.md", ROOT / "docs" / "ENGINEERING.md"]
+    )
     for path in targets:
         text = " ".join(path.read_text().split())
         lowered = text.lower()
