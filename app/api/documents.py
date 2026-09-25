@@ -35,6 +35,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Response, UploadFil
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.demo_guard import require_mutation_allowed
 from app.api.schemas import (
     DocumentDetail,
     DocumentOut,
@@ -72,6 +73,7 @@ DEFAULT_PAGE_SIZE = 50
     "/documents",
     response_model=UploadAccepted,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_mutation_allowed)],
 )
 def upload_document(
     response: Response,
@@ -116,6 +118,7 @@ def upload_document(
     "/documents/{document_id}/versions",
     response_model=UploadAccepted,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_mutation_allowed)],
 )
 def upload_version(
     document_id: uuid.UUID,
@@ -161,6 +164,7 @@ def upload_version(
     "/documents/{document_id}/reindex",
     response_model=UploadAccepted,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(require_mutation_allowed)],
 )
 def reindex_document(
     document_id: uuid.UUID,

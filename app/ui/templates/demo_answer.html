@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Demo answer &mdash; KnowledgeOS Demo{% endblock %}
+{% block content %}
+  <p><a href="/demo">&larr; Ask another question (reset)</a></p>
+
+  <h1>KnowledgeOS Demo</h1>
+  <p><span class="badge demo-data">Synthetic demo data</span></p>
+
+  <h2>Question</h2>
+  <p>{{ response.query }}</p>
+
+  <h2>Answer</h2>
+  <p>
+    {% if is_unsupported %}
+      <span class="badge unsupported">No verified demo answer</span>
+    {% elif is_genuine_abstention %}
+      <span class="badge abstained">Abstained &mdash; insufficient evidence</span>
+    {% else %}
+      <span class="badge answered">Answered</span>
+    {% endif %}
+    <span class="badge">grounded: {{ response.grounded }}</span>
+    <span class="badge">citation_valid: {{ response.citation_valid }}</span>
+  </p>
+
+  <p>{{ response.answer }}</p>
+
+  {% if is_unsupported %}
+    <p class="muted">
+      This question did not match one of this demo's eight curated,
+      hand-verified questions. The evidence KnowledgeOS actually retrieved
+      for it is still shown below, but no answer was generated or checked
+      for it &mdash; this is <strong>not</strong> a grounded answer. Try
+      one of the curated questions on the <a href="/demo">demo home
+      page</a>.
+    </p>
+  {% elif is_genuine_abstention %}
+    <p class="muted">
+      KnowledgeOS determined the retrieved evidence was not sufficient to
+      answer this question, and said so rather than guessing.
+      {% if response.answer == default_abstention_text %}
+        This is the system's real, unmodified abstention response
+        (<code>DEFAULT_ABSTENTION_TEXT</code>) &mdash; not demo-specific
+        wording.
+      {% endif %}
+    </p>
+  {% endif %}
+
+  <h2>Citations</h2>
+  {% if citation_rows %}
+    {% for c in citation_rows %}
+      <div class="evidence selected" id="evidence-{{ c.chunk_uid }}">
+        <p>
+          <strong>{{ c.document.title }}</strong> &mdash; v{{ c.version.version_number }}
+          <span class="badge {{ c.version.status }}">{{ c.version.status }}</span>
+          <span class="muted">chunk {{ c.chunk_uid }}</span>
+        </p>
+        <p>{{ c.text }}</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="muted">No citations.</p>
+  {% endif %}
+
+  <details>
+    <summary>How KnowledgeOS ranked the evidence</summary>
+    <p class="muted">
+      {{ response.counts.vector }} vector candidates, {{ response.counts.lexical }} lexical candidates,
+      {{ response.counts.fused }} after fusion, {{ response.counts.returned }} returned after reranking.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>final rank</th>
+          <th>selected</th>
+          <th>lexical rank</th>
+          <th>vector rank</th>
+          <th>rrf score</th>
+          <th>fusion rank</th>
+          <th>rerank score</th>
+          <th>source</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in response.candidates %}
+          <tr>
+            <td>{{ c.final_rank }}</td>
+            <td>{{ "yes" if c.selected else "no" }}</td>
+            <td>{{ c.lexical_rank if c.lexical_rank is not none else "—" }}</td>
+            <td>{{ c.vector_rank if c.vector_rank is not none else "—" }}</td>
+            <td>{{ "%.4f"|format(c.rrf_score) }}</td>
+            <td>{{ c.fusion_rank }}</td>
+            <td>{{ "%.3f"|format(c.rerank_score) }}</td>
+            <td>{{ c.document.title }} v{{ c.version.version_number }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted">
+      Every value above is exactly what <code>POST /query</code> returned
+      for this question &mdash; nothing here is computed by this page.
+    </p>
+  </details>
+
+  <details>
+    <summary>Grounding detail (raw)</summary>
+    <pre>{{ response.grounding_detail | tojson(indent=2) }}</pre>
+  </details>
+
+  <h2>Model</h2>
+  <p class="muted">
+    model: {{ response.model or "—" }} &nbsp;
+    prompt_version: {{ response.prompt_version or "—" }}
+  </p>
+{% endblock %}

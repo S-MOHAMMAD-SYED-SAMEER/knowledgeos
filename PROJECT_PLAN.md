@@ -40,7 +40,12 @@ P1") rather than re-deriving scope from scratch each time.
   - Demo documentation exists: [docs/DEMO.md](docs/DEMO.md) (run
     instructions) and `docs/ENGINEERING.md`'s "P3 — Deterministic Keyless
     Demo" section (architecture detail).
-  - P3 demo-focused test suite: 88 passed.
+  - P3 demo-focused test suite: originally reported as 88 passed, at the
+    time P3 was implemented; re-run in the current merged environment, the
+    same suite produces 87 passed, 1 skipped (the skip is the known
+    CrossEncoder model-cache/network limitation, not a regression). Both
+    figures refer to the standalone P3 demo (`demo/`) test files only, not
+    the separate M1–M4 integrated demo mode.
 - BGE and the cross-encoder have each been run for real, once, during P1/P3
   fixture generation — neither is "unavailable" in this build environment
   any more. A full Live Mode query (all three real providers together,

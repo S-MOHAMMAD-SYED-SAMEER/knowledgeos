@@ -5,4 +5,7 @@
   <div class="error-box">
     <p>{{ detail }}</p>
   </div>
+  {% if back_url %}
+    <p><a href="{{ back_url }}">&larr; {{ back_label or "Back" }}</a></p>
+  {% endif %}
 {% endblock %}

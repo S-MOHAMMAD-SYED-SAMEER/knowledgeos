@@ -10,6 +10,13 @@ not enforce anything.
 
 Tests needing PostgreSQL **skip** rather than fail when no server answers, so
 `pytest` is still meaningful on a machine without one.
+
+`tests/demo_fixtures.py`'s fixtures (`storage`, `embeddings`, `demo_client`,
+`fake_demo_client`) are registered as a plugin here, rather than imported
+directly into `tests/test_demo_query_api.py`/`test_demo_ui.py`, so those
+files never need to import a name that is also one of their own test
+functions' parameter names -- an import used only for pytest's fixture
+matching, which ruff's F811 cannot tell apart from an accidental shadow.
 """
 
 import os
@@ -27,6 +34,8 @@ from app.config import get_settings
 from app.db.session import reset_engine
 from app.main import create_app
 from app.storage import reset_storage
+
+pytest_plugins = ["tests.demo_fixtures"]
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
