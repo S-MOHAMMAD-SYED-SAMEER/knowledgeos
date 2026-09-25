@@ -1,15 +1,27 @@
-# KnowledgeOS — Demo Mode
+# KnowledgeOS — Standalone Demo Mode (`demo/`)
+
+**This document is specifically about the standalone, fixture-replay
+demo built in P3 (`demo/`).** The repository also contains a second,
+independent demo mechanism — an integrated demo mode built directly into
+`app/` (`Settings.demo_mode`, `GET /demo`, `app.providers.demo_llm.
+DemoLLMProvider`) — documented in the README's own **Running modes**
+section, not here. The two share no code and no fixtures: neither forks,
+calls, imports, or depends on the other, and nothing below describes the
+other one.
 
 A self-contained, keyless walkthrough of the real KnowledgeOS query
 pipeline, using a committed fixture corpus and deterministic providers
 instead of a live embedding model, a live reranking model, or a live LLM
-credential. For the project overview, capabilities and the normal
-(Live Mode) run instructions, see [README.md](../README.md).
+credential. For the project overview, the other demo mode, and the
+normal (Live Mode) run instructions, see [README.md](../README.md).
 
-Demo Mode was built in P3 (`demo/`), entirely outside `app/`. Every
+This demo was built in P3 (`demo/`), entirely outside `app/`. Every
 package under `app/` — retrieval, reranking, generation, the API, the
-UI — is exactly what Live Mode runs; Demo Mode never forks, reimplements,
-or weakens it.
+UI — is exactly what Live Mode runs; this demo never forks, reimplements,
+or weakens it. (`app/` does now contain its own, separate demo-mode
+branch, added later — for the *other*, integrated demo mode above, not
+this one; see the note in §1 below for exactly what that means for this
+mechanism.)
 
 ## 1. What Demo Mode is
 
@@ -26,12 +38,20 @@ or weakens it.
     as citation-marker-compliant text through the real citation
     validator.
 - **Does not call Gemini.** `demo/llm.py::DemoLLMProvider` never imports
-  or constructs `GeminiLLMProvider`.
+  or constructs `GeminiLLMProvider`. (This is a distinct class from
+  `app.providers.demo_llm.DemoLLMProvider`, which belongs to the
+  *other*, integrated demo mode — the same name, coincidentally, on two
+  unrelated implementations in two unrelated packages; neither imports
+  or calls the other.)
 - **Does not download BGE or the cross-encoder at runtime.** Both
   fixtures were generated once, in an environment with the models
   available (`demo/generate_embeddings.py`,
   `demo/generate_reranker_scores.py`); nothing in the demo request path
-  loads either model.
+  loads either model. **That fixture-generation run has not been
+  repeated or independently re-verified since** — the environment this
+  document was most recently checked against could not reach either
+  model either, so this document can confirm the fixtures are used
+  exactly as described here, not that their contents are correct.
 - **Exercises the real KnowledgeOS query pipeline.** A demo request runs
   through the identical, unmodified `POST /query` route
   (`app/api/query.py::run_query`) — real retrieval and RRF fusion
@@ -39,8 +59,13 @@ or weakens it.
   (`app/reranking/pipeline.py`), real generation orchestration, citation
   validation, and grounding (`app/generation/`). Only the three provider
   *dependencies* are swapped, at the same FastAPI `dependency_overrides`
-  seam the test suite already uses — nothing in `app/` changes selection
-  logic or knows Demo Mode exists.
+  seam the test suite already uses. **`app/api/query.py::llm_provider()`
+  does now contain its own selection branch** — for `Settings.demo_mode`,
+  the *other*, integrated demo mode — but this mechanism never sets,
+  reads, or depends on that flag; this demo reaches the real pipeline by
+  overriding `embedding_provider`/`rerank_provider`/`llm_provider` at the
+  FastAPI dependency layer, on its own application instance, regardless
+  of what those functions' own bodies do.
 
 ## 2. Quick start (Docker) — the recommended path
 
@@ -313,20 +338,30 @@ returns.
   module). Demo Mode is five specific, verifiable scenarios, not a
   general-purpose keyless deployment.
 
-## 11. Production vs. Demo
+## 11. Production vs. this demo
 
-| | Production (Live Mode) | Demo Mode |
+This table compares Live Mode against **this document's own demo
+mechanism only** (`demo/`) — not the other, integrated demo mode. See the
+README's **Running modes** section for that comparison.
+
+| | Production (Live Mode) | This demo (standalone, P3) |
 | --- | --- | --- |
 | Embedding provider | `BgeEmbeddingProvider` — real `BAAI/bge-small-en-v1.5`, loaded from the local model cache | `DemoEmbeddingProvider` — the same model's real output, replayed from `demo/fixtures/embeddings.json` |
 | Reranking provider | `CrossEncoderRerankProvider` — real `cross-encoder/ms-marco-MiniLM-L-6-v2`, loaded from the local model cache | `DemoRerankProvider` — the same model's real output, replayed from `demo/fixtures/reranker_scores.json` |
-| Generation provider | `GeminiLLMProvider` — live Google Gemini, requires `GEMINI_API_KEY`/`GOOGLE_API_KEY` and `KNOWLEDGEOS_LLM_MODEL` | `DemoLLMProvider` — `demo/fixtures/answers.yaml`'s real, curated answers, replayed |
+| Generation provider | `GeminiLLMProvider` — live Google Gemini, requires `GEMINI_API_KEY`/`GOOGLE_API_KEY` and `KNOWLEDGEOS_LLM_MODEL` | `demo.llm.DemoLLMProvider` — `demo/fixtures/answers.yaml`'s real, curated answers, replayed |
 | Retrieval, reranking orchestration, generation orchestration, citation validation, grounding | `app/retrieval/`, `app/reranking/`, `app/generation/` — unmodified | identical, unmodified — the same code, the same call graph |
 | Entrypoint | `uvicorn app.main:app` | `uvicorn demo.app:app` |
 | Credential required | Gemini/Google API key | none |
 
-Neither provider-selection path changes for the other's sake: production
-selection (`app/api/query.py`'s `embedding_provider`/`rerank_provider`/
-`llm_provider`, and each real provider's own cached accessor) is exactly
-what it was before P3, and Demo Mode reaches it only by overriding those
-same three dependencies on its own, separately-built application
-instance.
+This demo reaches production selection
+(`app/api/query.py`'s `embedding_provider`/`rerank_provider`/
+`llm_provider`, and each real provider's own cached accessor) only by
+overriding those three dependencies on its own, separately-built
+application instance — never by changing what those functions
+themselves do. `llm_provider()`'s own body does now contain a branch for
+`Settings.demo_mode` — added later, for the *other*, integrated demo
+mode, and unrelated to this one — but this demo's own overrides take
+effect at the FastAPI dependency layer, underneath that branch,
+regardless of its outcome. Each real provider's own cached accessor
+(`get_embedding_provider()`, `get_rerank_provider()`,
+`get_llm_provider()`) is otherwise exactly what it was before P3.

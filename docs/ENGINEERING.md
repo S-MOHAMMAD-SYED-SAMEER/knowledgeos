@@ -1599,9 +1599,18 @@ so a passing test is direct proof the demo overrides, not the real
 providers, served the request. Combined with the fixture/provider-level
 tests in `tests/test_demo_fixtures.py`, `tests/test_demo_reranking.py`,
 `tests/test_demo_llm.py`, and the wiring tests in `tests/test_demo_app.py`,
-the P3 demo-focused suite is:
+the P3 demo-focused suite (these five files only) was originally reported
+as **88 tests passed**, at the time P3 was implemented.
 
-**88 tests passed.**
+Re-run against this same five-file suite in the current merged repository,
+the result is **87 passed, 1 skipped**. The one skip is the local
+sentence-transformers cache limitation described elsewhere in this
+document (`cross-encoder/ms-marco-MiniLM-L-6-v2` is not in this
+environment's cache and `huggingface.co` is unreachable here) — not a
+failure, and not a change to the P3 demo's fixtures or test code. This
+figure has not been reconciled against the original 88; both counts refer
+to the same standalone P3 demo test files and have no bearing on the
+separate M1–M4 integrated demo mode.
 
 ### 6. Live verification
 
