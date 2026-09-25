@@ -79,6 +79,12 @@ services:
         condition: service_completed_successfully
     environment:
       KNOWLEDGEOS_DATABASE_URL: postgresql+psycopg://knowledgeos:knowledgeos@db:5432/knowledgeos_demo
+      # Off by default (app/config.py) -- this deployment opts in so a
+      # public visitor cannot call POST /query / POST /ui/query in an
+      # unbounded loop. In-process only; see app/api/rate_limit.py's own
+      # docstring for why no Redis or other external service is needed
+      # for this one-container deployment.
+      KNOWLEDGEOS_DEMO_RATE_LIMIT_ENABLED: "true"
     ports:
       - "8000:8000"
     volumes:

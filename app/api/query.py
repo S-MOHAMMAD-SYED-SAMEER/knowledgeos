@@ -48,6 +48,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.rate_limit import rate_limit_demo_query
 from app.api.schemas import (
     AnswerDetailOut,
     QueryCandidateOut,
@@ -144,7 +145,11 @@ def llm_provider() -> LLMProvider:
     return get_llm_provider()
 
 
-@router.post("/query", response_model=QueryResponse)
+@router.post(
+    "/query",
+    response_model=QueryResponse,
+    dependencies=[Depends(rate_limit_demo_query)],
+)
 def run_query(
     request: QueryRequest,
     session: Annotated[Session, Depends(get_session)],

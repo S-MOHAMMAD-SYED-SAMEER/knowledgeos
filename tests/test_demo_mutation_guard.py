@@ -3,10 +3,11 @@ mutation routes -- only the M3 visitor UI never rendered a form for them.
 `app.api.demo_guard.require_mutation_allowed` is the fix; this file proves
 it blocks every route that writes, and touches nothing else.
 
-The guard runs before each route's own body (a FastAPI dependency, or an
-explicit call at the top of `app/ui/routes.py::ui_submit_feedback`), so a
-403 here for a nonexistent document/answer id proves demo mode refused the
-request outright -- not that the id happened not to exist.
+The guard runs before each route's own body -- a FastAPI dependency on
+every one of the five mutating routes, `app/ui/routes.py::
+ui_submit_feedback` included -- so a 403 here for a nonexistent
+document/answer id proves demo mode refused the request outright, not
+that the id happened not to exist.
 """
 
 import uuid
@@ -69,15 +70,20 @@ def test_demo_mode_refuses_json_api_feedback(
 
 
 def test_demo_mode_refuses_ui_feedback(demo_client: TestClient, migrated_engine) -> None:
+    """As of the standalone-demo hardening work, this route declares
+    `require_mutation_allowed` as a route dependency (the same way the
+    JSON API's own feedback route already does), rather than calling it
+    explicitly and rendering `error.html` for the result -- the accepted
+    trade-off that lets `demo.app.create_demo_app()`'s override refuse
+    this route too. So this response is FastAPI's own default JSON 403
+    body here, matching the JSON API's response for the same refusal,
+    not this route's own HTML error page."""
     response = demo_client.post(
         f"/ui/answers/{RANDOM_ID}/feedback", data={"rating": "helpful"}
     )
-    # The UI renders its own HTML error page (`error.html`), not a JSON
-    # body, but `_error()` still sets the real status code from the
-    # exception -- 403, matching the JSON API's own response for the same
-    # refusal.
     assert response.status_code == 403
-    assert "demo mode" in response.text.lower()
+    assert response.headers["content-type"].startswith("application/json")
+    assert "demo mode" in response.json()["detail"].lower()
 
 
 def test_demo_mode_still_allows_reading_documents(

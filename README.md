@@ -195,7 +195,12 @@ static isolation tests that prove they never call Gemini.
   inference, run once) was not repeated or independently re-verified
   during this repository's most recent verification pass** — that pass
   could not reach either model either; see **Current limitations**.
-- No Gemini credential; no BGE/cross-encoder download at runtime.
+- No Gemini credential; no BGE/cross-encoder download at runtime; and,
+  unlike the integrated demo mode above, no `KNOWLEDGEOS_DEMO_MODE=true`
+  either — `demo/app.py` overrides its three provider dependencies
+  directly, so this mode never depends on that flag and never enters the
+  integrated mode's own `Settings.demo_mode`-gated M1-M4 corpus seed in
+  `app/main.py`'s lifespan.
 - Runs through the exact same `app.main.create_app()` and
   `POST /query`/`/ui/query` routes Live Mode uses — `demo/app.py`
   overrides the three provider dependencies at the same FastAPI seam a
@@ -209,6 +214,19 @@ static isolation tests that prove they never call Gemini.
   `app.providers.demo_llm.DemoLLMProvider` above — the two share a name
   by coincidence, live in two unrelated packages (`demo/` vs.
   `app/providers/`), and neither imports or calls the other.
+- **Mutation protection:** the same `require_mutation_allowed`
+  dependency the integrated demo mode uses is also overridden directly
+  on `demo/app.py`'s own FastAPI instance (`app.dependency_overrides`),
+  so `POST /documents`, `POST /documents/{id}/versions`, `POST
+  /documents/{id}/reindex`, `POST /answers/{id}/feedback`, and `POST
+  /ui/answers/{id}/feedback` all refuse with `403` here too — without
+  ever setting `Settings.demo_mode`.
+- **Rate limiting:** `docker-compose.demo.yml` sets
+  `KNOWLEDGEOS_DEMO_RATE_LIMIT_ENABLED=true`, which caps `POST /query`
+  and `POST /ui/query` at 10 requests per minute per client IP
+  (`app/api/rate_limit.py`); an excess request gets `429` with a
+  `Retry-After` header. Off by default everywhere else, including Live
+  Mode.
 - No public demo URL is deployed; run it locally with
   `uvicorn demo.app:app` — full walkthrough in
   [docs/DEMO.md](docs/DEMO.md), which documents this mechanism
@@ -222,7 +240,7 @@ a fresh clone and a fresh virtual environment.
 
 | Fact | Value |
 | --- | --- |
-| Full suite, with PostgreSQL | **1124 collected — 1120 passed, 4 skipped, 0 failed** |
+| Full suite, with PostgreSQL | **1139 collected — 1135 passed, 4 skipped, 0 failed** |
 | Alembic migrations / database tables | 7 / 9 |
 | Continuous integration | Configured — full suite, no external API key |
 | Retrieval / answer-quality metrics | **None produced** |

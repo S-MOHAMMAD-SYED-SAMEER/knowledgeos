@@ -51,6 +51,24 @@ class Settings(BaseSettings):
     # that fake vectors are "meaningless" for anything that must resemble
     # real retrieval (see `app/providers/fake_embeddings.py`).
     demo_mode: bool = False
+
+    # --- Demo rate limiting ---
+    # Off by default, so normal/Live Mode behaviour is unchanged unless an
+    # operator deliberately opts in for a public demo deployment. When true,
+    # `POST /query` and `POST /ui/query` (see `app/api/rate_limit.py`) refuse
+    # a request over `demo_rate_limit_per_minute` from the same client IP
+    # with a 429, rather than letting an automated loop call either route
+    # without limit. In-process only — no Redis, no database table, no
+    # cross-replica state — see that module's own docstring for why that is
+    # sufficient for this project's one-container demo deployment.
+    demo_rate_limit_enabled: bool = False
+    # The specification names no number for this — a portfolio demo, not a
+    # rate contract, so the default lives here rather than being invented in
+    # the limiter itself. Conservative: generous enough for a visitor
+    # reading the flagship scenarios and trying a few questions of their
+    # own, tight enough to stop a scripted loop quickly.
+    demo_rate_limit_per_minute: int = Field(default=10, gt=0)
+
     # SQLAlchemy statement echoing. Off by default: echoed SQL carries whole
     # document titles and filenames into the log.
     debug: bool = False

@@ -50,6 +50,7 @@ from app.api.demo_guard import require_mutation_allowed
 from app.api.documents import DEFAULT_PAGE_SIZE, get_document, list_documents
 from app.api.feedback import create_feedback
 from app.api.query import embedding_provider, llm_provider, rerank_provider, run_query
+from app.api.rate_limit import rate_limit_demo_query
 from app.api.schemas import QueryFiltersIn, QueryRequest
 from app.config import Settings, get_settings
 from app.db.session import get_session
@@ -113,7 +114,7 @@ def ui_query_form(request: Request):
     return templates.TemplateResponse(request, "query.html", {})
 
 
-@router.post("/query")
+@router.post("/query", dependencies=[Depends(rate_limit_demo_query)])
 def ui_query_submit(
     request: Request,
     session: Annotated[Session, Depends(get_session)],
@@ -255,24 +256,26 @@ def ui_answer_page(
     )
 
 
-@router.post("/answers/{answer_id}/feedback")
+@router.post(
+    "/answers/{answer_id}/feedback",
+    dependencies=[Depends(require_mutation_allowed)],
+)
 def ui_submit_feedback(
     request: Request,
     answer_id: uuid.UUID,
     session: Annotated[Session, Depends(get_session)],
-    settings: Annotated[Settings, Depends(get_settings)],
     rating: Annotated[str, Form()],
     reason: Annotated[str | None, Form()] = None,
 ):
     # M4: the same guard the JSON API's own `POST /answers/{id}/feedback`
-    # uses (`app.api.demo_guard.require_mutation_allowed`) -- called
-    # directly, not as a route dependency, so a demo-mode refusal renders
-    # this page's own HTML error, the same way every other error on this
-    # route already does, rather than the JSON API's raw 403 body.
-    try:
-        require_mutation_allowed(settings)
-    except HTTPException as exc:
-        return _error(request, exc)
+    # uses (`app.api.demo_guard.require_mutation_allowed`), now declared
+    # the same way that route declares it -- a route dependency, not an
+    # explicit call -- so `demo.app.create_demo_app()`'s override
+    # (`app.dependency_overrides[require_mutation_allowed]`) can refuse
+    # this route too. The one accepted consequence: a demo-mode refusal
+    # here is FastAPI's own default JSON 403 body, not this route's own
+    # `error.html` -- unlike this function's other three errors below,
+    # which remain hand-raised and still render through `_error()`.
 
     answer_row = session.get(Answer, answer_id)
     if answer_row is None:

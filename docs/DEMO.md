@@ -293,6 +293,28 @@ returns.
   provider are exactly what Live Mode runs — Demo Mode only ever
   supplies different *instances* at the existing dependency-injection
   seam.
+- **Document mutations are blocked.** `POST /documents`, `POST
+  /documents/{id}/versions`, `POST /documents/{id}/reindex`, `POST
+  /answers/{id}/feedback`, and `POST /ui/answers/{id}/feedback` all
+  return `403`. This uses the same `app/api/demo_guard.py::
+  require_mutation_allowed` dependency the integrated demo mode
+  depends on for its own mutation protection — `demo/app.py` overrides
+  it directly on this demo's own FastAPI instance
+  (`app.dependency_overrides`), so it engages here too without this
+  mechanism ever setting `Settings.demo_mode`
+  (`tests/test_demo_app.py`'s guard-override tests prove both halves of
+  this: the override exists, and it never leaks `demo_mode=True` into
+  the shared, cached `Settings` object).
+- **Public query traffic is rate-limited.** `docker-compose.demo.yml`
+  sets `KNOWLEDGEOS_DEMO_RATE_LIMIT_ENABLED=true`, which caps `POST
+  /query` and `POST /ui/query` at `KNOWLEDGEOS_DEMO_RATE_LIMIT_PER_MINUTE`
+  (default 10) requests per minute per client IP
+  (`app/api/rate_limit.py`); an excess request gets `429` with a
+  `Retry-After` header. The limiter is in-process only — no Redis, no
+  database table — which is correct for this one-container deployment
+  but means state is not shared across replicas if this image is ever
+  scaled to more than one. Off by default everywhere else, including
+  Live Mode.
 
 ## 10. Troubleshooting
 
@@ -352,6 +374,8 @@ README's **Running modes** section for that comparison.
 | Retrieval, reranking orchestration, generation orchestration, citation validation, grounding | `app/retrieval/`, `app/reranking/`, `app/generation/` — unmodified | identical, unmodified — the same code, the same call graph |
 | Entrypoint | `uvicorn app.main:app` | `uvicorn demo.app:app` |
 | Credential required | Gemini/Google API key | none |
+| Document/feedback mutations | Allowed | Refused with `403` (`require_mutation_allowed`, overridden on this demo's own FastAPI instance) |
+| Query rate limit | None | `KNOWLEDGEOS_DEMO_RATE_LIMIT_ENABLED=true` in `docker-compose.demo.yml`, 10/minute/IP by default, `429` + `Retry-After` on excess |
 
 This demo reaches production selection
 (`app/api/query.py`'s `embedding_provider`/`rerank_provider`/
@@ -364,4 +388,11 @@ mode, and unrelated to this one — but this demo's own overrides take
 effect at the FastAPI dependency layer, underneath that branch,
 regardless of its outcome. Each real provider's own cached accessor
 (`get_embedding_provider()`, `get_rerank_provider()`,
-`get_llm_provider()`) is otherwise exactly what it was before P3.
+`get_llm_provider()`) is otherwise exactly what it was before P3. The
+mutation guard is overridden the same way, as a fourth entry in
+`app.dependency_overrides` (`demo/app.py::_deny_mutations`) — it calls
+the real `require_mutation_allowed` directly, against a `Settings`
+instance built only for that one call, so this demo's own, shared
+`Settings.demo_mode` is never set to `True` and the integrated demo
+mode's separate, `demo_mode`-gated M1-M4 corpus seed
+(`app/main.py`'s lifespan) is never reached from here.
