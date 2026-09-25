@@ -37,7 +37,7 @@ from app.config import Settings, get_settings
 from app.db.session import get_sessionmaker
 from app.demo import ensure_demo_corpus_seeded
 from app.ingestion.runner import IngestionRunner
-from app.ui import routes as ui_routes
+from app.ui import demo_routes, routes as ui_routes
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -61,6 +61,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(query.router)
     app.include_router(feedback.router)
     app.include_router(ui_routes.router)
+    # M3: the visitor-facing demo UI. Registered unconditionally, the same
+    # as every other router here -- `demo_routes.py` itself checks
+    # `Settings.demo_mode` per request and answers 404 when it is off, so a
+    # non-demo deployment gains no new reachable behaviour from this line.
+    app.include_router(demo_routes.router)
     return app
 
 

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}KnowledgeOS Demo{% endblock %}
+{% block content %}
+  <h1>KnowledgeOS Demo</h1>
+
+  <h2>What does this demo demonstrate?</h2>
+  <p>
+    This demo runs the real KnowledgeOS retrieval, reranking, citation
+    validation and grounding pipeline &mdash; the same code a production
+    deployment runs, against a fixed corpus of synthetic company policy
+    documents. Eight questions below have a hand-verified answer, checked
+    against the same citation and grounding validation the real pipeline
+    always runs. Any other question still runs the real retrieval and
+    reranking pipeline, and is answered honestly if no verified answer
+    exists for it &mdash; never a guess.
+  </p>
+  <p class="disclosure">
+    <strong>This demo uses a fixed set of synthetic company policy
+    documents and hand-verified answers. No sign-in or API key is
+    required.</strong>
+    Nothing you type is used for anything beyond this one query, no real
+    company data appears anywhere in this demo, and this page has no
+    upload, document-management or feedback controls.
+  </p>
+
+  <h2>Try a question</h2>
+  <p class="muted">Each of these eight has a hand-verified answer, checked against the real citation and grounding validation.</p>
+  <div class="chip-row">
+    {% for chip in chips %}
+      <form method="post" action="/demo/query" class="chip-form" data-demo-form>
+        <input type="hidden" name="query" value="{{ chip.question }}">
+        <button type="submit" class="chip">{{ chip.label }}</button>
+      </form>
+    {% endfor %}
+  </div>
+
+  <h2>Ask your own question</h2>
+  <p class="muted">
+    This runs the same real pipeline as the curated questions above. If it
+    does not match one of those eight, the demo says so honestly rather
+    than inventing an answer &mdash; the real retrieved evidence is still
+    shown.
+  </p>
+  <form method="post" action="/demo/query" data-demo-form>
+    <p>
+      <label for="query">Question</label><br>
+      <textarea id="query" name="query" rows="3" style="width: 100%;" required autofocus></textarea>
+    </p>
+    <button type="submit">Ask</button>
+  </form>
+
+  <script>
+    // Minimal, dependency-free loading state: disable the button that was
+    // actually clicked and relabel it, on every form on this page. No
+    // client-side answer logic -- the real submission still goes to
+    // /demo/query, the browser navigates there normally, and this only
+    // affects the button's own label while that navigation is in flight.
+    document.querySelectorAll("form[data-demo-form]").forEach(function (form) {
+      form.addEventListener("submit", function () {
+        var button = form.querySelector("button[type=submit]");
+        if (button) {
+          button.disabled = true;
+          button.dataset.originalText = button.textContent;
+          button.textContent = "Asking…";
+        }
+      });
+    });
+  </script>
+{% endblock %}

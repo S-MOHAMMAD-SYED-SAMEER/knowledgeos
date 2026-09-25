@@ -33,6 +33,8 @@
     .badge.draft { background: #eee; }
     .badge.abstained { background: #f8d7da; }
     .badge.answered { background: #d5f5d5; }
+    .badge.unsupported { background: #fff3cd; }
+    .badge.demo-data { background: #e5e5ff; }
     .evidence { border: 1px solid #ddd; border-radius: 0.4rem; padding: 0.75rem; margin: 0.75rem 0; }
     .evidence.selected { border-color: #0b5fff; }
     pre { background: #f6f6f6; padding: 0.75rem; overflow-x: auto; border-radius: 0.4rem; }
@@ -40,6 +42,21 @@
     fieldset { border: 1px solid #ddd; border-radius: 0.4rem; padding: 0.75rem; }
     .error-box { background: #f8d7da; border: 1px solid #f1aeb5; border-radius: 0.4rem; padding: 1rem; }
     footer { margin-top: 2rem; padding-top: 0.75rem; border-top: 1px solid #ddd; color: #666; font-size: 0.85em; }
+    .disclosure { background: #f6f6fb; border: 1px solid #ddd; border-radius: 0.4rem; padding: 0.85rem 1rem; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0 1.25rem; }
+    .chip-form { margin: 0; }
+    .chip {
+      border: 1px solid #0b5fff;
+      background: #fff;
+      color: #0b5fff;
+      border-radius: 999px;
+      padding: 0.4rem 0.9rem;
+      font-size: 0.9em;
+      cursor: pointer;
+    }
+    .chip:hover { background: #eaf1ff; }
+    details { margin: 1rem 0; }
+    summary { cursor: pointer; font-weight: 600; }
   </style>
 </head>
 <body>
