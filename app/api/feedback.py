@@ -13,6 +13,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.demo_guard import require_mutation_allowed
 from app.api.schemas import FeedbackIn, FeedbackOut
 from app.db.session import get_session
 from app.models import Answer, Feedback
@@ -35,6 +36,7 @@ def create_feedback(
     "/answers/{answer_id}/feedback",
     response_model=FeedbackOut,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_mutation_allowed)],
 )
 def submit_feedback(
     answer_id: uuid.UUID,
