@@ -46,6 +46,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.demo_guard import require_mutation_allowed
 from app.api.documents import DEFAULT_PAGE_SIZE, get_document, list_documents
 from app.api.feedback import create_feedback
 from app.api.query import embedding_provider, llm_provider, rerank_provider, run_query
@@ -259,9 +260,20 @@ def ui_submit_feedback(
     request: Request,
     answer_id: uuid.UUID,
     session: Annotated[Session, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
     rating: Annotated[str, Form()],
     reason: Annotated[str | None, Form()] = None,
 ):
+    # M4: the same guard the JSON API's own `POST /answers/{id}/feedback`
+    # uses (`app.api.demo_guard.require_mutation_allowed`) -- called
+    # directly, not as a route dependency, so a demo-mode refusal renders
+    # this page's own HTML error, the same way every other error on this
+    # route already does, rather than the JSON API's raw 403 body.
+    try:
+        require_mutation_allowed(settings)
+    except HTTPException as exc:
+        return _error(request, exc)
+
     answer_row = session.get(Answer, answer_id)
     if answer_row is None:
         return _error(

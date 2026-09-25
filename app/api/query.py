@@ -63,13 +63,16 @@ from app.config import Settings, get_settings
 from app.db.session import get_session
 from app.generation import get_llm_provider
 from app.generation.citations import CitationError
-from app.generation.generator import GenerationError, generate_answer
+from app.generation.evidence import select_evidence
+from app.generation.generator import GeneratedAnswer, GenerationError, generate_answer
+from app.generation.grounding import SEMANTIC_UNAVAILABLE_REASON
 from app.generation.persistence import PersistenceError, persist_query
 from app.ingestion.runner import get_embedding_provider
 from app.models import Answer, Chunk, Query, RetrievedChunk
 from app.observability.pricing import PricingError, compute_cost_usd
 from app.observability.timing import stage_timer
 from app.parsing import normalize
+from app.providers.demo_llm import DemoAnswerNotAvailable, DemoLLMProvider
 from app.providers.embeddings import EmbeddingError, EmbeddingProvider
 from app.providers.llm import LLMError, LLMProvider
 from app.providers.reranker import RerankError, RerankProvider
@@ -77,6 +80,21 @@ from app.reranking import get_rerank_provider
 from app.reranking.pipeline import RerankedChunk, rerank
 from app.retrieval.filters import RetrievalFilters
 from app.retrieval.pipeline import retrieve
+
+# The demo-mode answer for a question that does not match a curated
+# scenario. Deliberately distinct wording from `DEFAULT_ABSTENTION_TEXT`
+# (app.generation.abstention) — that text specifically means "the retrieved
+# documents don't contain this"; this means "this demo doesn't have a
+# verified answer for this question", a demo-scope boundary, not a claim
+# about the evidence. Never persisted with `grounded=True` (see
+# `_demo_unsupported_answer` below) so the two can never be confused
+# downstream.
+DEMO_UNSUPPORTED_TEXT = (
+    "This demo only provides verified answers for a curated set of "
+    "questions. Try one of the suggested questions, or explore the "
+    "retrieved evidence above for your own question."
+)
+DEMO_UNSUPPORTED_MODEL_NAME = "demo-unsupported"
 
 logger = logging.getLogger(__name__)
 
@@ -111,10 +129,18 @@ def llm_provider() -> LLMProvider:
 
     A thin wrapper around milestone 8's cached accessor
     (`app.generation.get_llm_provider`), mirroring the two providers above
-    exactly. A test overrides this dependency to inject
-    `FakeLLMProvider`; the application itself never calls anything but
-    this, which always resolves to the real Gemini adapter.
+    exactly — with one addition (M2): when `Settings.demo_mode` is true,
+    this resolves to `DemoLLMProvider` instead. That branch is the *only*
+    place in the application demo mode is decided, and it never reaches
+    `get_llm_provider()` (the real, cached Gemini adapter) at all when
+    demo mode is on — not "prefers the demo provider", structurally
+    incapable of returning the real one. A test overrides this dependency
+    directly to inject `FakeLLMProvider`; outside a test, and outside demo
+    mode, the application always resolves to the real Gemini adapter,
+    exactly as before M2.
     """
+    if get_settings().demo_mode:
+        return DemoLLMProvider()
     return get_llm_provider()
 
 
@@ -206,6 +232,16 @@ def run_query(
                 abstention_threshold=settings.abstention_rerank_threshold,
                 max_tokens=settings.llm_max_output_tokens,
             )
+        except DemoAnswerNotAvailable:
+            # M2, demo mode only: the visitor's question did not match a
+            # curated scenario. This is not a claim about the evidence (that
+            # is `DEFAULT_ABSTENTION_TEXT`'s job, reached the ordinary way
+            # when `DemoLLMProvider` itself reports insufficient evidence for
+            # a matched scenario) and not a provider failure (that is
+            # `LLMError`'s job) — it is a demo-scope boundary, so it gets its
+            # own answer, its own model name, and is never marked grounded
+            # merely because real retrieval found chunks.
+            answer = _demo_unsupported_answer(reranked)
         except LLMError as exc:
             logger.warning("Generation failed (%s).", type(exc).__name__)
             raise HTTPException(
@@ -354,6 +390,44 @@ def get_query(
     )
 
 
+def _demo_unsupported_answer(candidates: list[RerankedChunk]) -> GeneratedAnswer:
+    """The honest response for a demo-mode question that matched no
+    curated scenario.
+
+    `selected` is computed for real (`select_evidence` is a pure function,
+    no provider call) so the response still shows genuine retrieval
+    transparency — which chunks the real pipeline actually surfaced — even
+    though no answer was generated from them. `grounded` is explicitly
+    `False`: real retrieval finding chunks is not evidence that any answer
+    about them has been checked, and this response never claims otherwise.
+    """
+    return GeneratedAnswer(
+        answer_text=DEMO_UNSUPPORTED_TEXT,
+        citations=[],
+        sufficient_evidence=False,
+        abstained=False,
+        abstain_reason=None,
+        citation_valid=True,  # vacuously — zero declared citations, none invalid
+        grounded=False,
+        grounding_detail={
+            "deterministic": {
+                "status": "not_applicable",
+                "reason": "no curated demo answer was generated for this question",
+            },
+            "semantic": {
+                "status": "unavailable",
+                "reason": SEMANTIC_UNAVAILABLE_REASON,
+            },
+        },
+        selected=select_evidence(candidates),
+        model_name=DEMO_UNSUPPORTED_MODEL_NAME,
+        prompt_version="demo-unsupported",
+        prompt_content_hash="",
+        input_tokens=0,
+        output_tokens=0,
+    )
+
+
 def _candidate_out(
     candidate: RerankedChunk, selected_uids: set[str]
 ) -> QueryCandidateOut:
@@ -388,4 +462,12 @@ def _candidate_out(
     )
 
 
-__all__ = ["embedding_provider", "get_query", "llm_provider", "rerank_provider", "router"]
+__all__ = [
+    "DEMO_UNSUPPORTED_MODEL_NAME",
+    "DEMO_UNSUPPORTED_TEXT",
+    "embedding_provider",
+    "get_query",
+    "llm_provider",
+    "rerank_provider",
+    "router",
+]

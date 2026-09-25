@@ -39,6 +39,18 @@ class Settings(BaseSettings):
 
     app_name: str = "KnowledgeOS"
     environment: str = "local"
+    # Off by default, so normal application behaviour is unchanged unless an
+    # operator deliberately opts in. When true, `app/api/query.py::llm_provider`
+    # resolves to `DemoLLMProvider` instead of the real Gemini adapter —
+    # structurally, not by convention: nothing in this codebase imports
+    # `app.providers.gemini_llm` from inside the demo path, so a demo
+    # deployment cannot silently reach a real, billed model even if a Gemini
+    # credential happens to be present in its environment. Embeddings and
+    # reranking are untouched by this flag — demo mode still uses the real
+    # local BGE and cross-encoder providers, per the project's own decision
+    # that fake vectors are "meaningless" for anything that must resemble
+    # real retrieval (see `app/providers/fake_embeddings.py`).
+    demo_mode: bool = False
     # SQLAlchemy statement echoing. Off by default: echoed SQL carries whole
     # document titles and filenames into the log.
     debug: bool = False
