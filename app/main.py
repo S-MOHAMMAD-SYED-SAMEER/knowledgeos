@@ -34,6 +34,8 @@ from fastapi import FastAPI
 from app import __version__
 from app.api import documents, feedback, health, ingestion, query, ready
 from app.config import Settings, get_settings
+from app.db.session import get_sessionmaker
+from app.demo import ensure_demo_corpus_seeded
 from app.ingestion.runner import IngestionRunner
 from app.ui import routes as ui_routes
 
@@ -70,6 +72,20 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     transaction, and stopping it mid-write is how a version ends up with half
     its chunks.
     """
+    settings = getattr(app.state, "settings", None) or get_settings()
+
+    # M2: demo mode seeds its own fixed, committed fixture corpus on the way
+    # up — through the real ingestion pipeline (`app.demo.
+    # ensure_demo_corpus_seeded`), never a second copy of it — so a demo
+    # deployment has something to retrieve from without exposing an upload
+    # endpoint. Idempotent, so this runs on every demo-mode startup rather
+    # than needing a separate "already seeded" flag. Off (a no-op) unless
+    # `Settings.demo_mode` is true — normal application startup is
+    # unchanged.
+    if settings.demo_mode:
+        with get_sessionmaker()() as session:
+            ensure_demo_corpus_seeded(session)
+
     runner = IngestionRunner(settings=getattr(app.state, "settings", None))
     app.state.runner = runner
     runner.start()
