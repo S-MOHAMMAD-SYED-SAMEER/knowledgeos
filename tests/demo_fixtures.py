@@ -28,7 +28,7 @@ from app.providers.passthrough_reranker import PassthroughRerankProvider
 from app.storage import LocalStorage
 
 MANIFEST = yaml.safe_load(
-    Path("evals/fixtures/knowledge_base/manifest.yaml").read_text()
+    Path("evals/fixtures/knowledge_base/manifest.yaml").read_text(encoding="utf-8")
 )
 FIXTURE_DIR = Path("evals/fixtures/knowledge_base")
 
@@ -68,7 +68,7 @@ def seed_demo_document(
     document_id = uuid.UUID(str(entry["document_id"]))
     version_entry = entry["versions"][-1]
     version_id = uuid.UUID(str(version_entry["version_id"]))
-    text = (FIXTURE_DIR / version_entry["file"]).read_text()
+    text = (FIXTURE_DIR / version_entry["file"]).read_text(encoding="utf-8")
 
     settings = Settings(
         _env_file=None,
