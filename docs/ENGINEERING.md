@@ -1399,18 +1399,74 @@ install; if the index were unreachable in a real build environment, `pip
 install` would fail loudly and the build would stop, never silently fall
 back to a different, unintended build.
 
-> **No Docker image has been built, and no container has been run, in this
-> environment.** `docker info` fails outright: "Cannot connect to the
-> Docker daemon at unix:///var/run/docker.sock" — confirmed directly, not
-> assumed, and `sudo service docker start` itself fails
-> (`ulimit: error setting limit (Operation not permitted)`, an unprivileged
-> nested-container restriction of this sandbox). Every claim made about
-> `Dockerfile`, `docker-compose.yml`, and `.dockerignore` in this section is
-> a **static** one — the committed file's own content, read and checked by
+> **No Docker image had been built, and no container had been run, in the
+> cloud sandbox this project was originally developed in.** `docker info`
+> failed outright there: "Cannot connect to the Docker daemon at
+> unix:///var/run/docker.sock" — confirmed directly, not assumed, and
+> `sudo service docker start` itself failed (`ulimit: error setting limit
+> (Operation not permitted)`, an unprivileged nested-container restriction
+> of that sandbox specifically). Every claim made about `Dockerfile`,
+> `docker-compose.yml`, and `.dockerignore` in that environment was a
+> **static** one — the committed file's own content, read and checked by
 > `tests/test_docker_assets.py` (non-root `USER`, the `/health` healthcheck
 > target, no secret literal, a pgvector-capable database image, persistent
 > volumes for both the database and document storage) — never a claim that
-> an image was built or a container actually ran, here or anywhere else.
+> an image was built or a container actually ran, there or anywhere else.
+>
+> **This has since changed for the standalone demo stack specifically.**
+> On a Windows Docker Desktop 29.8.1 / Compose 5.5.1 laptop, `docker
+> compose -f docker-compose.demo.yml build` and `up` were both run for
+> real: all three images (`app`, `migrate`, `seed`) built successfully,
+> and the full stack (Postgres+pgvector, 7 migrations, the demo seed, and
+> the application) started and served real HTTP requests — see "Docker
+> verification (standalone demo stack)" below. **This does not extend to
+> `docker-compose.yml` (Live Mode)**, which has still never been built or
+> run in any environment verified so far — see "Deployment" below.
+
+### Docker verification (standalone demo stack)
+
+Verified directly, on a Windows Docker Desktop 29.8.1 / Compose 5.5.1
+laptop, against `docker-compose.demo.yml` specifically — **not**
+`docker-compose.yml` (Live Mode), and **not** the integrated M1-M4
+`Settings.demo_mode` demo running inside a container, neither of which has
+been Docker-verified:
+
+- `docker compose -f docker-compose.demo.yml build` succeeded; the `app`,
+  `migrate`, and `seed` images all built.
+- `docker compose -f docker-compose.demo.yml up` started the full chain —
+  `db` (Postgres 16 + pgvector) → `migrate` → `seed` → `app` — with each
+  step gated on the previous one's success, exactly as the file specifies.
+- All 7 Alembic migrations applied cleanly to head.
+- The demo seed completed with the expected corpus: 30 active chunks
+  across 10 documents.
+- `GET /health` → `200`, `GET /ready` → `200` (database reachable,
+  migrations at head, `vector` extension active), `GET /ui/query` → `200`.
+- All five documented deterministic scenarios (`da001`, `cs001`, `cv001`,
+  `md001`, `ie001`) were exercised through the real `POST /query` HTTP
+  route and matched `demo/fixtures/answers.yaml` exactly, including
+  `cv001`'s superseded-version exclusion.
+- The UI query flow (`GET /ui/query` → `POST /ui/query` → `GET
+  /ui/answers/{query_id}`) was verified end to end for at least one
+  scenario.
+- All five mutation-guarded routes (`POST /documents`, `POST
+  /documents/{id}/versions`, `POST /documents/{id}/reindex`, `POST
+  /answers/{id}/feedback`, `POST /ui/answers/{id}/feedback`) returned
+  `403` under genuinely valid requests, and read-only re-inspection
+  confirmed no database mutation resulted from any of them.
+- The demo rate limiter enforced its configured 10-requests-per-minute
+  default: exactly 10 requests succeeded, then `429` with a real,
+  counting-down `Retry-After` header on every request after that.
+  `/health`/`/ready` stayed `200` throughout, unaffected by the limit.
+- No Gemini, Google, or other paid API was contacted at any point — every
+  response's `model` field read `demo-fixture-replay (no live model)`.
+- The stack was shut down cleanly (`docker compose down`, no `-v`), with
+  no containers left running.
+
+This verifies the standalone demo stack's runtime behavior on that one
+laptop, once. It does not constitute continuous integration, does not
+cover Live Mode or the integrated demo mode in Docker, and does not
+produce or claim any retrieval/answer-quality evaluation number — those
+remain exactly as described elsewhere in this document.
 
 ### CI
 
@@ -1446,16 +1502,34 @@ itself never reads one.
 
 ### Known limitations
 
-- **No Docker image has been built or run in this environment.** See the
-  box above for the exact, confirmed reason. Every Docker-related claim in
-  this section is static file verification, not a build or runtime result.
-- **CPU-only PyTorch has been investigated and documented, not
-  build-verified.** See "Docker" above.
-- **The real embedding and cross-encoder models remain unavailable here**,
-  the same, unchanged condition every milestone since 4 has documented —
-  the UI's query flow inherits this exactly: `POST /ui/query` against the
-  real, un-overridden providers returns the identical `503` `POST /query`
-  already does, proven by `tests/test_ui.py`.
+- **No Docker image had been built or run in the original cloud sandbox.**
+  See the box above for the exact, confirmed reason from that environment.
+  Separately, the standalone demo stack (`docker-compose.demo.yml`) has
+  since been built and run successfully on a Windows Docker Desktop
+  laptop — see "Docker verification (standalone demo stack)" above.
+  `docker-compose.yml` (Live Mode) has still not been built or run
+  anywhere.
+- **CPU-only PyTorch has been investigated and documented; it has since
+  been build-verified for the demo stack's image** — the same `Dockerfile`
+  stage `app`/`migrate`/`seed` all share — on the Windows laptop above
+  (`torch-2.14.0+cpu` installed successfully from
+  `download.pytorch.org/whl/cpu`). It remains unverified specifically for
+  a `docker-compose.yml` (Live Mode) build, which has not been attempted.
+- **Both real embedding and cross-encoder models (`BAAI/bge-small-en-v1.5`,
+  `cross-encoder/ms-marco-MiniLM-L-6-v2`) are confirmed cached and
+  loadable** on a Windows development laptop, verified directly outside
+  any Docker runtime — each loads and produces real output with no network
+  access. This does **not** mean the integrated (`Settings.demo_mode`) or
+  Live Mode stack has been fully verified running in Docker with these
+  models, and no retrieval/answer-quality evaluation number has been
+  produced in any environment — see "Verified project facts" in the
+  README. In an environment that still lacks them, `POST /ui/query`
+  against Live Mode's real, un-overridden providers still returns the
+  identical `503` `POST /query` already does, proven by `tests/test_ui.py`;
+  on this Windows laptop specifically, that particular failure mode would
+  no longer be reachable for the embedding/reranking step, though Live
+  Mode's generation step still requires a Gemini credential that has never
+  been configured here.
 - **No official evaluation numbers appear on the evaluation results page**,
   because none have been recorded in this environment's database — see
   milestone 9's own section above for why, unchanged by this milestone.
@@ -1808,21 +1882,32 @@ decision D7 — plain `postgres:16` has no `vector` extension to offer).
 the shell environment `docker compose` runs in, never written into either
 file as literal values — see `.env.example`.
 
-**No image has been built and no container has been run from these files in
-this environment** — the Docker daemon itself is unavailable here (`docker
-info`: "Cannot connect to the Docker daemon"), a sandbox limitation
-confirmed directly rather than assumed. `tests/test_docker_assets.py`
-verifies every claim this section and "What milestone 10 built" make about
+**No image has been built and no container has been run from `docker-compose.yml`
+(Live Mode) in any environment verified so far.** Separately, on a Windows
+Docker Desktop 29.8.1 / Compose 5.5.1 laptop, the standalone demo stack
+(`docker-compose.demo.yml`) *was* built and run successfully end to end —
+see "Docker verification (standalone demo stack)" below and the README's
+own verified facts for that evidence. That verification is specific to the
+demo stack and does not extend to this file's own Live Mode build or run,
+which remains unattempted. `tests/test_docker_assets.py` verifies every
+claim this section and "What milestone 10 built" make about
 `Dockerfile`/`docker-compose.yml`/`.dockerignore` **statically** — reading
-the committed file, never a build or run result — and this README makes no
-claim beyond what that static check actually proves.
+the committed file, never a build or run result — and, for Live Mode
+specifically, this document makes no claim beyond what that static check
+actually proves.
 
 The local sentence-transformers model cache is not baked into the image
 (see "What milestone 10 built" for why) and is not populated by anything in
-this repository either; an operator with real HuggingFace access mounts a
-pre-populated cache volume at `/home/knowledgeos/.cache/huggingface` (see
-`docker-compose.yml`'s own `hf-cache` volume) or lets the first `/query`
-request download it, exactly as running `uvicorn` directly would.
+this repository either. `app/providers/bge.py` and
+`app/providers/cross_encoder.py` both load their models with
+`local_files_only=True`, so neither is ever downloaded automatically — a
+cache miss raises `EmbeddingError`/`RerankError` instead. An operator must
+populate the cache before first use: either mounting a pre-populated cache
+volume at `/home/knowledgeos/.cache/huggingface` (see `docker-compose.yml`'s
+own `hf-cache` volume), or otherwise placing the two models' weights there
+by some other means with real HuggingFace access. There is no path by which
+the first `/query` request downloads them on its own, in this image or when
+running `uvicorn` directly.
 
 ## Implementation specification
 

@@ -58,13 +58,17 @@ services:
       - "8000:8000"
     volumes:
       - storage:/var/lib/knowledgeos/storage
-      # The local sentence-transformers cache. BAAI/bge-small-en-v1.5 and
-      # cross-encoder/ms-marco-MiniLM-L-6-v2 are downloaded from
-      # HuggingFace on first use, never baked into the image -- see the
-      # README's milestone 10 section on why this is documented, not
-      # papered over. Mounting a volume here means the download happens
-      # once, not on every container recreation, in an environment that
-      # actually has HuggingFace access.
+      # The local sentence-transformers cache. app/providers/bge.py and
+      # app/providers/cross_encoder.py both load BAAI/bge-small-en-v1.5
+      # and cross-encoder/ms-marco-MiniLM-L-6-v2 with local_files_only=True,
+      # so neither is ever downloaded automatically, here or anywhere else
+      # -- a cache miss raises EmbeddingError/RerankError instead. This
+      # volume must be pre-populated by the operator (e.g. copying in an
+      # existing local sentence-transformers cache, or a one-time,
+      # separate download step with real HuggingFace access) before Live
+      # Mode's embedding/reranking calls will succeed; mounting it here
+      # only means that once populated, it survives container recreation
+      # instead of needing to be repopulated every time.
       - hf-cache:/home/knowledgeos/.cache/huggingface
 
 volumes:

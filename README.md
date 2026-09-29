@@ -317,9 +317,20 @@ and **Running modes** above for which claim belongs to which demo.
   Gemini — has not been exercised end to end here**: no Gemini credential
   has ever been configured in this environment.
 - **No official evaluation numbers have been produced**, and none are claimed.
-- **No Docker image has been built and no container run** from the committed
-  Docker assets here — the daemon is unavailable, so those files are verified
-  statically only.
+- **The standalone demo stack (`docker-compose.demo.yml`) has been built and
+  run successfully**, on a Windows Docker Desktop 29.8.1 / Compose 5.5.1
+  laptop: all three images built, the full `db → migrate → seed → app` chain
+  started, all 7 migrations applied, the demo seed produced the expected
+  corpus, `/health`/`/ready`/`/ui/query` all returned 200, all five
+  deterministic scenarios matched their fixtures exactly through the real
+  HTTP API, the UI query flow was verified end to end, all five
+  mutation-guarded routes returned 403 with no resulting database change,
+  and the rate limiter enforced its configured 10/minute limit — see
+  [docs/ENGINEERING.md](docs/ENGINEERING.md) for the full evidence. **This
+  does not extend to `docker-compose.yml` (Live Mode) or to the integrated
+  `Settings.demo_mode` demo running in Docker — neither has been built or
+  run in any environment verified so far**, and no public instance of
+  anything in this repository is deployed.
 - Postgres full-text search is **not BM25**; ranking behaviour differs and
   this README does not claim otherwise.
 - Semantic grounding is approximate and will miss subtle unsupported claims;
@@ -381,8 +392,11 @@ docker compose run --rm app alembic upgrade head
 docker compose up --build app
 ```
 
-**No image has been built or run in this environment** — see Current
-limitations. Full detail in [docs/ENGINEERING.md](docs/ENGINEERING.md).
+**No image has been built or run from `docker-compose.yml` (Live Mode, shown
+above) in any environment verified so far.** The separate standalone demo
+stack (`docker-compose.demo.yml`) has been built and run successfully — see
+**Current limitations** above and full detail in
+[docs/ENGINEERING.md](docs/ENGINEERING.md).
 
 ## Scope
 
