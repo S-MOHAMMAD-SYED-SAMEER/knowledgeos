@@ -1602,15 +1602,20 @@ tests in `tests/test_demo_fixtures.py`, `tests/test_demo_reranking.py`,
 the P3 demo-focused suite (these five files only) was originally reported
 as **88 tests passed**, at the time P3 was implemented.
 
-Re-run against this same five-file suite in the current merged repository,
-the result is **87 passed, 1 skipped**. The one skip is the local
-sentence-transformers cache limitation described elsewhere in this
-document (`cross-encoder/ms-marco-MiniLM-L-6-v2` is not in this
-environment's cache and `huggingface.co` is unreachable here) — not a
-failure, and not a change to the P3 demo's fixtures or test code. This
-figure has not been reconciled against the original 88; both counts refer
-to the same standalone P3 demo test files and have no bearing on the
-separate M1–M4 integrated demo mode.
+Re-run against this same five-file suite in a later merged environment
+without the CrossEncoder model cached, the result was **87 passed, 1
+skipped**. The one skip was that environment's local sentence-transformers
+cache limitation (`cross-encoder/ms-marco-MiniLM-L-6-v2` not cached,
+`huggingface.co` unreachable there) — not a failure, and not a change to
+the P3 demo's fixtures or test code. **Both the 88 and the 87/1 figures
+are historical, from environments without the model cached.** On the
+Windows development laptop used for the project's M5-A through M5-E
+verification pass, both BGE and the cross-encoder are cached and load for
+real (see the README's **Verified project facts**), so that specific
+skip does not occur there; this document does not restate that laptop's
+exact P3-subset figure here to avoid a third, separately-tracked number —
+see the README for the current, authoritative full-suite result. Neither
+historical figure has bearing on the separate M1–M4 integrated demo mode.
 
 ### 6. Live verification
 

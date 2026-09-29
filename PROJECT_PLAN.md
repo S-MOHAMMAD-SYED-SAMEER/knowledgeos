@@ -21,9 +21,28 @@ P1") rather than re-deriving scope from scratch each time.
 ## Current State
 
 - Standalone repository: `S-MOHAMMAD-SYED-SAMEER/knowledgeos`
-- Current HEAD: `3b8b10555bc922e1dc321398834ac3585d3afa6f` — pushed to
-  `origin/main`.
+- Current HEAD: `050fe0d03453274f5492da96ad93429d5d427e9b` — pushed to
+  `origin/main`, working tree clean.
 - M1–M10 complete/frozen.
+- **Since P1–P3 (below), two further phases completed and merged:**
+  - **M1–M4 integrated demo mode** (`Settings.demo_mode`, `GET /demo`,
+    `app/api/demo_guard.py`, `app/api/rate_limit.py`,
+    `app/ingestion/corpus_seed.py`, `app/generation/demo_scenarios.py`,
+    `app/providers/demo_llm.py`) — a second, independent, keyless demo
+    mechanism built directly into `app/`, distinct from the standalone
+    P3 demo below; merged via the `migrate-m1-m4` branch (commits
+    `da7d9c6`..`94fbb40`). See the README's **Running modes** section
+    for the full distinction between the two demo mechanisms.
+  - **M5-A through M5-E** — a from-scratch baseline/verification pass on
+    a Windows development laptop, run after the M1–M4 merge: environment
+    inspection, sync to `origin/main`, full-suite verification (1139
+    collected / 1127 passed / 11 failed / 1 skipped, all 11 failures
+    known and categorized — see README's **Verified project facts**),
+    root-cause investigation of 10 of those failures (a Windows
+    `cp1252`-vs-UTF-8 encoding bug in `tests/demo_fixtures.py`
+    corrupting a fixture chunk's `chunk_uid`), and the fix itself
+    (`050fe0d`, `tests/demo_fixtures.py` only — no application code
+    changed). Full detail in README's **Verified project facts**.
 - **P1 (demo embeddings), P2 (UI polish), and P3 (demo wiring &
   verification) are all complete.** A deterministic, keyless Demo Mode
   exists (`demo/`), commit `3b8b105` (`feat(demo): add deterministic
@@ -41,11 +60,16 @@ P1") rather than re-deriving scope from scratch each time.
     instructions) and `docs/ENGINEERING.md`'s "P3 — Deterministic Keyless
     Demo" section (architecture detail).
   - P3 demo-focused test suite: originally reported as 88 passed, at the
-    time P3 was implemented; re-run in the current merged environment, the
-    same suite produces 87 passed, 1 skipped (the skip is the known
-    CrossEncoder model-cache/network limitation, not a regression). Both
-    figures refer to the standalone P3 demo (`demo/`) test files only, not
-    the separate M1–M4 integrated demo mode.
+    time P3 was implemented; re-run in a later merged environment without
+    the CrossEncoder model cached, the same suite produced 87 passed, 1
+    skipped (a model-cache/network limitation of that environment, not a
+    regression). **Both figures are historical and describe environments
+    without the model cached — on the Windows laptop used for M5-A
+    through M5-E, both models are cached and this skip does not occur;
+    see README's Verified project facts for that environment's actual
+    current numbers.** All figures refer to the standalone P3 demo
+    (`demo/`) test files only, not the separate M1–M4 integrated demo
+    mode.
 - BGE and the cross-encoder have each been run for real, once, during P1/P3
   fixture generation — neither is "unavailable" in this build environment
   any more. A full Live Mode query (all three real providers together,

@@ -176,14 +176,19 @@ static isolation tests that prove they never call Gemini.
 - **What this mode's verification actually covers:** the merged test
   suite (see **Verified project facts** below) exercises this mode's
   routing, curated-question matching, citation validation, grounding,
-  and mutation guard end to end, through the real lexical/RRF retrieval
-  channel. **Real `BgeEmbeddingProvider`/`CrossEncoderRerankProvider`
-  inference for this mode remains unverified/BLOCKED** in every
-  environment this repository has been built in so far — no cached
-  model weights, no reachable download — so this mode's retrieval
-  *quality* against real embeddings has not been independently
-  confirmed, only its citation/grounding/mutation-guard correctness
-  against the real code paths.
+  and mutation guard end to end — through `FakeEmbeddingProvider`/
+  `PassthroughRerankProvider` at that HTTP-test layer specifically, by
+  design, so those assertions isolate citation/grounding/matching
+  correctness from real-model variance. **Separately, real
+  `BgeEmbeddingProvider` and `CrossEncoderRerankProvider` have been
+  verified directly**, on a Windows development machine with both
+  models in the local sentence-transformers cache: each loads and
+  produces real output (384-dimension embeddings; real cross-encoder
+  relevance scores) with no network access. What remains unexercised is
+  a single live run of this mode with all three real pieces together —
+  `KNOWLEDGEOS_DEMO_MODE=true`, real BGE, real cross-encoder, and
+  `DemoLLMProvider`, over one actual HTTP request — and this mode's
+  retrieval *quality* at scale is still unmeasured.
 - No public URL is deployed; run locally with `KNOWLEDGEOS_DEMO_MODE=true`
   and open `/demo`.
 
@@ -191,10 +196,13 @@ static isolation tests that prove they never call Gemini.
 - Committed, deterministic fixture providers (`demo/fixtures/`) replay
   real, precomputed BGE embeddings, real precomputed cross-encoder
   reranking scores, and curated answer fixtures — never invented or
-  hash-derived data. **That fixture generation (real BGE/CrossEncoder
-  inference, run once) was not repeated or independently re-verified
-  during this repository's most recent verification pass** — that pass
-  could not reach either model either; see **Current limitations**.
+  hash-derived data. **The committed fixture values themselves were not
+  regenerated or diffed against fresh model output during this
+  repository's most recent verification pass** — but that pass did
+  independently confirm, on a separate Windows machine with both models
+  cached, that `BAAI/bge-small-en-v1.5` and
+  `cross-encoder/ms-marco-MiniLM-L-6-v2` are real, loadable, working
+  models; see **Current limitations**.
 - No Gemini credential; no BGE/cross-encoder download at runtime; and,
   unlike the integrated demo mode above, no `KNOWLEDGEOS_DEMO_MODE=true`
   either — `demo/app.py` overrides its three provider dependencies
@@ -234,26 +242,55 @@ static isolation tests that prove they never call Gemini.
 
 ## Verified project facts
 
-Measured directly against this checkout — nothing estimated. This covers
-the merged repository: both demo modes' code and tests, run together, in
-a fresh clone and a fresh virtual environment.
+Nothing estimated — but this project has genuinely been verified in two
+different environments that produce two different, both-true full-suite
+results. Conflating them would be misleading, so they're kept separate
+rather than reported as one number.
+
+| Verification | Full suite result |
+| --- | --- |
+| **CI** (GitHub Actions, `.github/workflows/ci.yml`) | 1139 collected — 1135 passed, 4 skipped, 0 failed |
+| **Windows development laptop**, both models cached locally | 1139 collected — 1127 passed, **11 failed**, 1 skipped, 2 warnings |
+
+CI intentionally forces model-dependent tests to skip (no BGE/cross-encoder
+download, ever, in CI) — an honest, reproducible skip, not a pass, and not
+the same thing as "verified." On the Windows laptop, both models are
+cached, so those same tests actually *run* — and 11 of them fail. This is
+not an application regression; every one is a known, categorized,
+pre-existing environment/assumption mismatch:
+
+- **3** — a Windows `cp1252`-vs-UTF-8 encoding issue in a test reading
+  `docs/ENGINEERING.md`, unrelated to KnowledgeOS's own runtime code.
+- **1** — a Windows symlink-privilege restriction in a storage
+  path-traversal test.
+- **7** — tests asserting "the real BGE/reranker are unavailable" (3
+  direct provider tests + 4 in the evaluation CLI's own tests); now that
+  both models *are* cached on this machine, that assumption no longer
+  holds here specifically, which is exactly what these tests are
+  (correctly) noticing.
+
+None of the 11 touch retrieval, reranking, generation, citation
+validation, or abstention correctness — every test exercising those
+passes identically in both environments.
+
+**A real defect was found and fixed in this same verification pass**
+(commit `050fe0d`): `tests/demo_fixtures.py` read fixture markdown
+without an explicit encoding, which corrupted a chunk's text — and
+therefore its `chunk_uid` — on Windows specifically, breaking 10
+integrated-demo-mode scenario tests (citation validation was correctly
+rejecting a citation that, on this platform, no longer pointed at any
+real chunk). Fixed by reading the fixture as UTF-8 explicitly; both
+`tests/test_demo_query_api.py` and `tests/test_demo_ui.py` now pass all
+scenarios on the Windows laptop, identically to CI.
 
 | Fact | Value |
 | --- | --- |
-| Full suite, with PostgreSQL | **1139 collected — 1135 passed, 4 skipped, 0 failed** |
 | Alembic migrations / database tables | 7 / 9 |
 | Continuous integration | Configured — full suite, no external API key |
-| Retrieval / answer-quality metrics | **None produced** |
+| Retrieval / answer-quality metrics | **None produced**, in any environment |
 
-The 4 skips share one cause, and it is not a test failure: no cached
-local model weights and no reachable model download in the verifying
-environment. Three skip because `BAAI/bge-small-en-v1.5` or
-`cross-encoder/ms-marco-MiniLM-L-6-v2` is not in the local
-sentence-transformers cache; the fourth is the opt-in Gemini generation
-smoke test, skipped because no credential is configured. **Zero test
-failures were observed.** This result does **not** mean real
-BGE/CrossEncoder inference, a real Docker build, or full-corpus
-real-model retrieval quality have been verified for either demo mode —
+Neither result means real BGE/CrossEncoder retrieval *quality*, a real
+Docker build, or full-corpus real-model evaluation have been verified —
 see **Current limitations** below for exactly what remains unverified,
 and **Running modes** above for which claim belongs to which demo.
 
@@ -261,16 +298,21 @@ and **Running modes** above for which claim belongs to which demo.
 
 - **The standalone demo's fixtures were generated from real BGE/cross-encoder
   inference, once**, in a different environment that had model access
-  (`demo/fixtures/`) — that inference is not repeated or independently
-  re-verified by this repository's own current test suite, which cannot
-  reach either model in this environment.
+  (`demo/fixtures/`) — the committed fixture *values* were not
+  regenerated or independently re-verified against fresh model output.
+  (Both models are, however, independently confirmed loadable and
+  working on a Windows development laptop with them cached — see
+  **Verified project facts** above.)
 - **The integrated demo mode (`Settings.demo_mode`) precomputes nothing** —
   it reaches the real `BgeEmbeddingProvider`/`CrossEncoderRerankProvider`
-  seams directly, and real inference through that path remains
-  **unverified/BLOCKED** here: no local model cache, no reachable
-  download. Neither demo mode's real-model retrieval *quality* has been
-  independently verified in this environment — both are verified only at
-  the code-path level described in **Running modes** above.
+  seams directly. Both models are now confirmed to load and run for real
+  on a Windows development laptop (local sentence-transformers cache, no
+  network) — no longer blocked. What remains unverified is a single live
+  run of this mode with all three real providers together over one
+  actual HTTP request, and **neither demo mode's real-model retrieval
+  quality has been independently measured** in any environment — both
+  are verified only at the code-path/component level described in
+  **Running modes** above.
 - **A full Live Mode query — all three real providers together, including
   Gemini — has not been exercised end to end here**: no Gemini credential
   has ever been configured in this environment.
