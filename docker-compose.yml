@@ -58,20 +58,30 @@ services:
       - "8000:8000"
     volumes:
       - storage:/var/lib/knowledgeos/storage
-      # The local sentence-transformers cache. app/providers/bge.py and
-      # app/providers/cross_encoder.py both load BAAI/bge-small-en-v1.5
-      # and cross-encoder/ms-marco-MiniLM-L-6-v2 with local_files_only=True,
+      # Local Windows verification only -- NOT the future VPS deployment
+      # strategy. app/providers/bge.py and app/providers/cross_encoder.py
+      # both load BAAI/bge-small-en-v1.5 and
+      # cross-encoder/ms-marco-MiniLM-L-6-v2 with local_files_only=True,
       # so neither is ever downloaded automatically, here or anywhere else
-      # -- a cache miss raises EmbeddingError/RerankError instead. This
-      # volume must be pre-populated by the operator (e.g. copying in an
-      # existing local sentence-transformers cache, or a one-time,
-      # separate download step with real HuggingFace access) before Live
-      # Mode's embedding/reranking calls will succeed; mounting it here
-      # only means that once populated, it survives container recreation
-      # instead of needing to be repopulated every time.
-      - hf-cache:/home/knowledgeos/.cache/huggingface
+      # -- a cache miss raises EmbeddingError/RerankError instead. Rather
+      # than an empty named volume nothing ever populated, these two bind
+      # mounts expose exactly the two model directories already present in
+      # this developer's own host sentence-transformers cache, read-only,
+      # preserving the same `models--<org>--<name>` cache layout
+      # huggingface_hub itself uses so `local_files_only=True` finds them
+      # exactly where it already looks. This is a one-laptop, one-developer
+      # arrangement (the host paths below are specific to this machine) --
+      # a real deployment (e.g. a future VPS) needs its own strategy for
+      # making these weights available, not this bind mount.
+      - type: bind
+        source: C:/Users/sameer/.cache/huggingface/hub/models--BAAI--bge-small-en-v1.5
+        target: /home/knowledgeos/.cache/huggingface/hub/models--BAAI--bge-small-en-v1.5
+        read_only: true
+      - type: bind
+        source: C:/Users/sameer/.cache/huggingface/hub/models--cross-encoder--ms-marco-MiniLM-L-6-v2
+        target: /home/knowledgeos/.cache/huggingface/hub/models--cross-encoder--ms-marco-MiniLM-L-6-v2
+        read_only: true
 
 volumes:
   db-data:
   storage:
-  hf-cache:

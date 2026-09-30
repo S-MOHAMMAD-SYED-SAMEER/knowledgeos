@@ -313,9 +313,19 @@ and **Running modes** above for which claim belongs to which demo.
   quality has been independently measured** in any environment — both
   are verified only at the code-path/component level described in
   **Running modes** above.
-- **A full Live Mode query — all three real providers together, including
-  Gemini — has not been exercised end to end here**: no Gemini credential
-  has ever been configured in this environment.
+- **Live Mode has been exercised through real BGE embedding, real retrieval,
+  real CrossEncoder reranking** — all confirmed working inside a real
+  `docker-compose.yml` (Live Mode) container, against the canonical corpus
+  seeded through the real ingestion pipeline. **A real Gemini credential was
+  then configured and a genuine `generate_content()` call was attempted,
+  twice** — confirmed as a real API call by the SDK's own automatic
+  function-calling advisory, which only fires on an actual call. **Both
+  attempts failed with a `ServerError`** (the exception class name the
+  `google-genai` SDK raised; the underlying cause has not been determined
+  and is not claimed here — see [docs/ENGINEERING.md](docs/ENGINEERING.md)
+  for the full diagnostic detail). **Successful real Gemini generation, and
+  therefore complete Live Mode answer generation end to end, remain
+  unverified.**
 - **No official evaluation numbers have been produced**, and none are claimed.
 - **The standalone demo stack (`docker-compose.demo.yml`) has been built and
   run successfully**, on a Windows Docker Desktop 29.8.1 / Compose 5.5.1
@@ -326,11 +336,16 @@ and **Running modes** above for which claim belongs to which demo.
   HTTP API, the UI query flow was verified end to end, all five
   mutation-guarded routes returned 403 with no resulting database change,
   and the rate limiter enforced its configured 10/minute limit — see
-  [docs/ENGINEERING.md](docs/ENGINEERING.md) for the full evidence. **This
-  does not extend to `docker-compose.yml` (Live Mode) or to the integrated
-  `Settings.demo_mode` demo running in Docker — neither has been built or
-  run in any environment verified so far**, and no public instance of
-  anything in this repository is deployed.
+  [docs/ENGINEERING.md](docs/ENGINEERING.md) for the full evidence.
+  **`docker-compose.yml` (Live Mode) has since been built and run
+  successfully too**, on the same laptop: the database, migrations, corpus
+  seeding, health/readiness, real BGE embedding, real retrieval, and real
+  CrossEncoder reranking all passed inside that container. Gemini
+  generation remains unverified (see above) — this is the
+  one stage Live Mode has not yet completed successfully. **The integrated
+  `Settings.demo_mode` demo running in Docker has still not been attempted
+  in any environment**, and no public instance of anything in this
+  repository is deployed.
 - Postgres full-text search is **not BM25**; ranking behaviour differs and
   this README does not claim otherwise.
 - Semantic grounding is approximate and will miss subtle unsupported claims;
@@ -392,9 +407,14 @@ docker compose run --rm app alembic upgrade head
 docker compose up --build app
 ```
 
-**No image has been built or run from `docker-compose.yml` (Live Mode, shown
-above) in any environment verified so far.** The separate standalone demo
-stack (`docker-compose.demo.yml`) has been built and run successfully — see
+**This image has since been built and run from `docker-compose.yml` (Live
+Mode, shown above)**, on a Windows Docker Desktop laptop: the database,
+migrations, corpus seeding, health/readiness, real BGE embedding, real
+retrieval, and real CrossEncoder reranking all passed. **Real Gemini
+generation was attempted with a real credential and failed with a
+`ServerError`**, so complete Live Mode answer generation remains
+unverified. The separate standalone demo stack (`docker-compose.demo.yml`)
+has also been built and run successfully — see
 **Current limitations** above and full detail in
 [docs/ENGINEERING.md](docs/ENGINEERING.md).
 

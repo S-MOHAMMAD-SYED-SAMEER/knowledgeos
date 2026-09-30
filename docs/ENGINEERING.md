@@ -980,19 +980,30 @@ insufficient evidence is a real, valid answer at this layer, never a
 failure. No response or log line ever carries an API key, the prompt, the
 retrieved chunk text, the model's raw output, a traceback, or a file path.
 
-> **The real Gemini model has not been exercised in this environment
-> either.** No `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) was set in the
-> environment this milestone was built in — the same, unchanged condition
-> milestones 4, 6 and 7 already documented for their own real models, now
-> true of this one too. `tests/test_llm_provider.py`'s one real-model
-> test is opt-in (`KNOWLEDGEOS_RUN_GENERATION_SMOKE_TEST=1`, plus a
-> genuine credential and a `KNOWLEDGEOS_LLM_MODEL` already verified
-> against `client.models.list()`) and skips here, honestly, rather than
-> being silently bypassed. Every other generation test uses the scripted
-> fake or a deterministic, content-derived test double, which the
-> specification permits. No retrieval or answer **evaluation** number
-> appears anywhere in this document: milestone 8 implements generation, it
-> does not run milestone 9's answer eval suite.
+> **The real Gemini model had not been exercised in the environment this
+> milestone was built in.** No `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) was
+> set there — the same, unchanged condition milestones 4, 6 and 7 already
+> documented for their own real models, true of this one too at the time.
+> `tests/test_llm_provider.py`'s one real-model test is opt-in
+> (`KNOWLEDGEOS_RUN_GENERATION_SMOKE_TEST=1`, plus a genuine credential and
+> a `KNOWLEDGEOS_LLM_MODEL` already verified against `client.models.list()`)
+> and skipped there, honestly, rather than being silently bypassed. Every
+> other generation test uses the scripted fake or a deterministic,
+> content-derived test double, which the specification permits. No
+> retrieval or answer **evaluation** number appears anywhere in this
+> document: milestone 8 implements generation, it does not run milestone
+> 9's answer eval suite.
+>
+> **Since updated (M6-H):** a real Gemini credential was configured on a
+> Windows development laptop and a genuine `client.models.generate_content()`
+> call was attempted, twice — confirmed as a real API call by the SDK's own
+> automatic-function-calling advisory, which fires only on an actual call.
+> **Both attempts failed with a `ServerError`** (the exception class name
+> the `google-genai` SDK raised). The underlying cause has not been
+> determined — no numeric HTTP/API status was captured by the diagnostic
+> performed, and no cause (credential validity, model availability,
+> billing/quota, or network path) has been confirmed, only hypothesized.
+> Successful real Gemini generation remains unverified.
 
 ### Known limitations
 
@@ -1504,32 +1515,43 @@ itself never reads one.
 
 - **No Docker image had been built or run in the original cloud sandbox.**
   See the box above for the exact, confirmed reason from that environment.
-  Separately, the standalone demo stack (`docker-compose.demo.yml`) has
-  since been built and run successfully on a Windows Docker Desktop
-  laptop — see "Docker verification (standalone demo stack)" above.
-  `docker-compose.yml` (Live Mode) has still not been built or run
-  anywhere.
-- **CPU-only PyTorch has been investigated and documented; it has since
-  been build-verified for the demo stack's image** — the same `Dockerfile`
-  stage `app`/`migrate`/`seed` all share — on the Windows laptop above
+  Both the standalone demo stack (`docker-compose.demo.yml`) and
+  `docker-compose.yml` (Live Mode) have since been built and run
+  successfully on a Windows Docker Desktop laptop — see "Docker
+  verification (standalone demo stack)" above for the demo stack, and
+  below for what Live Mode specifically has and has not verified.
+- **CPU-only PyTorch has been investigated and documented, and has since
+  been build-verified for both images** — the same `Dockerfile` stage
+  `app`/`migrate`/`seed` all share — on the Windows laptop above
   (`torch-2.14.0+cpu` installed successfully from
-  `download.pytorch.org/whl/cpu`). It remains unverified specifically for
-  a `docker-compose.yml` (Live Mode) build, which has not been attempted.
+  `download.pytorch.org/whl/cpu` in both the demo-stack build and the
+  Live Mode build).
 - **Both real embedding and cross-encoder models (`BAAI/bge-small-en-v1.5`,
-  `cross-encoder/ms-marco-MiniLM-L-6-v2`) are confirmed cached and
-  loadable** on a Windows development laptop, verified directly outside
-  any Docker runtime — each loads and produces real output with no network
-  access. This does **not** mean the integrated (`Settings.demo_mode`) or
-  Live Mode stack has been fully verified running in Docker with these
-  models, and no retrieval/answer-quality evaluation number has been
-  produced in any environment — see "Verified project facts" in the
-  README. In an environment that still lacks them, `POST /ui/query`
-  against Live Mode's real, un-overridden providers still returns the
-  identical `503` `POST /query` already does, proven by `tests/test_ui.py`;
-  on this Windows laptop specifically, that particular failure mode would
-  no longer be reachable for the embedding/reranking step, though Live
-  Mode's generation step still requires a Gemini credential that has never
-  been configured here.
+  `cross-encoder/ms-marco-MiniLM-L-6-v2`) are confirmed cached, loadable,
+  and now verified working inside Live Mode Docker itself** — not merely
+  outside any Docker runtime. Against the canonical corpus seeded through
+  the real ingestion pipeline, a real `POST /query` against `docker-compose.yml`
+  (Live Mode) produced real BGE embeddings, real retrieval with non-empty
+  candidates, and real CrossEncoder reranking — all confirmed by real
+  weight-loading log evidence. This does **not** mean the integrated
+  (`Settings.demo_mode`) demo has been verified running in Docker with
+  these models — that combination remains unattempted — and no
+  retrieval/answer-quality evaluation number has been produced in any
+  environment — see "Verified project facts" in the README.
+  **`POST /query` (and `POST /ui/query`) against Live Mode now reaches the
+  generation stage successfully** — the embedding/reranking-unavailable
+  `503` `tests/test_ui.py` proves for an environment lacking these models
+  is no longer what occurs here. **A real Gemini credential was configured
+  and a genuine `generate_content()` call was attempted, twice; both
+  attempts failed with a `ServerError`** (the exception class name the
+  `google-genai` SDK raised), so the `503` Live Mode still returns is now
+  specifically a Gemini generation-stage failure, not the earlier
+  embedding-stage one. The underlying cause of the `ServerError` has not
+  been determined — no numeric HTTP/API status was captured, and no cause
+  (credential validity, model availability, billing/quota, or network
+  path) has been confirmed, only hypothesized — so successful real Gemini
+  generation, and therefore complete Live Mode answer generation end to
+  end, remain unverified.
 - **No official evaluation numbers appear on the evaluation results page**,
   because none have been recorded in this environment's database — see
   milestone 9's own section above for why, unchanged by this milestone.
