@@ -114,16 +114,34 @@ abstention triggering) are kept separate from model-judged checks, and the
 reports say which is which. Both suites run offline from the CLI:
 `python -m evals.run --suite retrieval | answers`.
 
-**Results.** No retrieval or answer-quality number appears anywhere in this
-repository. Both harnesses exist and are proven correct against fixtures with
-deterministic test providers, but **neither has been run officially** against
-the full evaluation corpus — no `python -m evals.run --suite retrieval |
-answers` invocation has produced a committed report or an `eval_runs` row.
-(The real BGE and cross-encoder models have since been run directly, once
-each, to generate the standalone demo's fixtures — see **Running modes**
-below — but
-that is fixture generation, not an evaluation suite run.) See
-[docs/ENGINEERING.md](docs/ENGINEERING.md) for the full detail.
+**Results.** Retrieval has been measured. Answer quality has not.
+
+The retrieval suite (`python -m evals.run --suite retrieval`, offline, no API
+key, real BGE and cross-encoder) was run on 2026-10-14 against the fixture
+corpus: 30 chunks from 10 documents, 45 scored questions out of 52 (the other 7
+are "the documents don't say" questions with no chunk to find).
+
+| Metric | Without reranking | With the cross-encoder |
+| --- | --- | --- |
+| Recall@5 | 0.8667 | **0.9333** |
+| Recall@10 | 0.9519 | **0.9926** |
+| MRR | 0.7375 | **0.9081** |
+| nDCG@10 | 0.7823 | **0.9076** |
+| Precision@5 | 0.2311 | 0.2533 |
+
+Metadata-filter correctness is 1.0000 over the 9 filtered questions. The
+reranker lifts MRR from 0.74 to 0.91 on the same candidates.
+
+**Read this with the corpus in mind:** 30 chunks, with top 10 covering a third of
+the corpus, so Recall@10 is easy and is not a prediction for a corpus of
+thousands of documents; the questions and their expected chunks were written by
+the same author against the same fixtures; and the retriever is not compared
+with BM25 or any other baseline, only with and without the reranker. Full record, environment, caveats
+and reproduction: [docs/results/2026-10-14-retrieval-eval.md](docs/results/2026-10-14-retrieval-eval.md).
+
+**No answer-quality number exists.** The answers suite (grounded-answer rate,
+citation validity, abstention precision and recall) needs a Gemini model and has
+not been run: no Gemini call has succeeded yet (see **Current limitations**).
 
 ## Running modes
 
@@ -287,7 +305,8 @@ scenarios on the Windows laptop, identically to CI.
 | --- | --- |
 | Alembic migrations / database tables | 7 / 9 |
 | Continuous integration | Configured — full suite, no external API key |
-| Retrieval / answer-quality metrics | **None produced**, in any environment |
+| Retrieval metrics | Produced, 2026-10-14 ([results](docs/results/2026-10-14-retrieval-eval.md)) |
+| Answer-quality metrics | **None produced**, in any environment |
 
 Neither result means real BGE/CrossEncoder retrieval *quality*, a real
 Docker build, or full-corpus real-model evaluation have been verified —
@@ -326,7 +345,8 @@ and **Running modes** above for which claim belongs to which demo.
   for the full diagnostic detail). **Successful real Gemini generation, and
   therefore complete Live Mode answer generation end to end, remain
   unverified.**
-- **No official evaluation numbers have been produced**, and none are claimed.
+- **No answer-quality numbers have been produced**, and none are claimed. The retrieval
+  numbers above come from a 30-chunk corpus and say little about scale.
 - **The standalone demo stack (`docker-compose.demo.yml`) has been built and
   run successfully**, on a Windows Docker Desktop 29.8.1 / Compose 5.5.1
   laptop: all three images built, the full `db → migrate → seed → app` chain
