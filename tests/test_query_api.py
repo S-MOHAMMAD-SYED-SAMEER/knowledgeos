@@ -448,3 +448,47 @@ def test_configured_pricing_computes_a_real_cost(
             assert row.cost_usd >= 0
     finally:
         get_settings.cache_clear()
+
+
+# --- an embedding failure that is about the question, not the system ------------------------------
+
+
+class _ScriptedEmbedder:
+    dimensions = 384
+    model_name = "scripted"
+
+    def __init__(self, error) -> None:
+        self._error = error
+
+    def embed(self, texts):
+        raise self._error
+
+
+def test_an_embedding_failure_with_a_public_detail_is_a_422_that_says_it(
+    client: TestClient, migrated_engine: Engine
+) -> None:
+    from app.providers.embeddings import EmbeddingError
+
+    error = EmbeddingError("internal wording nobody should see", public_detail="That question is not one this deployment can embed.")
+    client.app.dependency_overrides[embedding_provider] = lambda: _ScriptedEmbedder(error)
+    try:
+        response = client.post("/query", json={"query": "anything"})
+    finally:
+        client.app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "That question is not one this deployment can embed."
+    assert "internal wording" not in response.text
+
+
+def test_an_embedding_failure_without_one_is_still_the_503_outage(client: TestClient, migrated_engine: Engine) -> None:
+    from app.providers.embeddings import EmbeddingError
+
+    client.app.dependency_overrides[embedding_provider] = lambda: _ScriptedEmbedder(EmbeddingError("could not load"))
+    try:
+        response = client.post("/query", json={"query": "anything"})
+    finally:
+        client.app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+    assert "embedding model is unavailable" in response.json()["detail"]

@@ -32,6 +32,14 @@ EMBEDDINGS_FIXTURE_PATH = FIXTURES_DIR / "embeddings.json"
 DEMO_MODEL_NAME = f"{MODEL_NAME} (demo fixture, precomputed)"
 
 
+# What a visitor is told when they type a question the demo has no precomputed vector for.
+UNSCRIPTED_QUESTION_DETAIL = (
+    "This demo can only answer its example questions: it replays recorded model output "
+    "instead of running a model, so it has nothing for any other question. "
+    "Pick one of the examples on the Ask page, exactly as written."
+)
+
+
 def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -61,7 +69,8 @@ class DemoEmbeddingProvider:
                     "no precomputed demo embedding exists for this text -- "
                     "DemoEmbeddingProvider only serves the pinned demo "
                     "corpus and its flagship query texts, never arbitrary "
-                    "input"
+                    "input",
+                    public_detail=UNSCRIPTED_QUESTION_DETAIL,
                 )
             result.append(vectors[key])
         check_shape(result, texts, DIMENSIONS)
