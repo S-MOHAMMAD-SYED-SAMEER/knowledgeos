@@ -5,17 +5,6 @@ and chunks a stored file, and the runner that drives it. Making chunks
 findable — embeddings and a full-text vector — is milestone 4.
 """
 
-from app.ingestion.service import (
-    DocumentNotFound,
-    Ingested,
-    VersionNumberContested,
-    add_version,
-    create_document_with_version,
-    ingest_with_retry,
-    next_version_number,
-    promote_version,
-    storage_key,
-)
 from app.ingestion.pipeline import (
     StageFailed,
     build_chunks,
@@ -32,6 +21,17 @@ from app.ingestion.runner import (
     process_one,
     reset_embedding_provider,
     run_pending,
+)
+from app.ingestion.service import (
+    DocumentNotFound,
+    Ingested,
+    VersionNumberContested,
+    add_version,
+    create_document_with_version,
+    ingest_with_retry,
+    next_version_number,
+    promote_version,
+    storage_key,
 )
 from app.ingestion.validation import (
     EmptyFile,

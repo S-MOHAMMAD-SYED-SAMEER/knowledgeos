@@ -30,7 +30,7 @@ will read.
 import logging
 from dataclasses import dataclass
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.chunking import Chunk as ChunkData
@@ -332,25 +332,12 @@ def _checksum(text: str) -> str:
     return sha256(text.encode("utf-8")).hexdigest()
 
 
-def pending_chunk_count(session: Session, version_id) -> int:
-    from sqlalchemy import func
-
-    return int(
-        session.execute(
-            select(func.count()).select_from(Chunk).where(
-                Chunk.document_version_id == version_id
-            )
-        ).scalar_one()
-    )
-
-
 __all__ = [
     "BLOCK_SEPARATOR",
     "NormalizedDocument",
     "StageFailed",
     "build_chunks",
     "parse_and_normalize",
-    "pending_chunk_count",
     "replace_chunks",
     "run_indexing",
     "run_job",

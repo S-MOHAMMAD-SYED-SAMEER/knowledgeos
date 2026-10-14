@@ -46,15 +46,19 @@ from app.providers.passthrough_reranker import PassthroughRerankProvider
 from app.providers.reranker import Candidate, RerankError
 from app.storage import get_storage
 from evals.answers import report as answers_report
+from evals.answers.calibration import calibrate_threshold, collect_dev_observations
 from evals.answers.checkpoint import (
     CheckpointError,
     fingerprint,
     load_checkpoint,
     save_checkpoint,
 )
-from evals.answers.calibration import calibrate_threshold, collect_dev_observations
+from evals.answers.pacing import (
+    DEFAULT_REQUESTS_PER_MINUTE,
+    PacedLLMProvider,
+    describe_call_budget,
+)
 from evals.answers.semantic import check_semantic_scorer_available
-from evals.answers.pacing import DEFAULT_REQUESTS_PER_MINUTE, PacedLLMProvider, describe_call_budget
 from evals.answers.splits import SplitError, apply_split
 from evals.answers.suite import DEFAULT_MAX_CONSECUTIVE_FAILURES, run_answers_suite
 from evals.retrieval import report

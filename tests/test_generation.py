@@ -27,7 +27,13 @@ from app.generation.generator import (
 )
 from app.generation.prompt import load_prompt
 from app.providers.fake_llm import FakeLLMProvider
-from app.providers.llm import LLMBlocked, LLMError, LLMRateLimited, LLMResult, LLMTimeout
+from app.providers.llm import (
+    LLMBlocked,
+    LLMError,
+    LLMRateLimited,
+    LLMResult,
+    LLMTimeout,
+)
 
 from .generation_fixtures import cited_answer_text, make_candidates, valid_json
 

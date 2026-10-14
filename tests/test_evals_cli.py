@@ -11,6 +11,7 @@ not a claim that these numbers are an official evaluation result.
 """
 
 import pytest
+
 import evals.run as run_module
 from app.models import RETRIEVAL_SUITE, EvalRun
 from app.providers.fake_embeddings import FakeEmbeddingProvider

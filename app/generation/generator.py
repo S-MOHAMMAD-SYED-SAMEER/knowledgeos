@@ -44,7 +44,10 @@ from app.generation.abstention import (
 )
 from app.generation.citations import CitationError, validate_citations
 from app.generation.evidence import SelectedEvidence, select_evidence
-from app.generation.grounding import SEMANTIC_UNAVAILABLE_REASON, deterministic_grounding
+from app.generation.grounding import (
+    SEMANTIC_UNAVAILABLE_REASON,
+    deterministic_grounding,
+)
 from app.generation.prompt import LoadedPrompt, load_prompt, serialize_evidence
 from app.providers.llm import LLMBlocked, LLMProvider
 from app.reranking.pipeline import RerankedChunk

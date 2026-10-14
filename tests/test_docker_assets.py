@@ -154,7 +154,7 @@ def test_compose_contains_no_literal_external_credential() -> None:
     may appear as a literal value."""
     source = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     for forbidden in ("GEMINI_API_KEY:", "GOOGLE_API_KEY:", "KNOWLEDGEOS_LLM_MODEL:"):
-        line = next(l for l in source.splitlines() if forbidden in l)
+        line = next(text for text in source.splitlines() if forbidden in text)
         assert "${" in line, f"{forbidden} is not read from the environment: {line!r}"
 
 
@@ -226,3 +226,11 @@ def test_ci_has_no_deployment_or_release_step() -> None:
     job_names = {name.lower() for name in workflow["jobs"]}
     for forbidden in ("deploy", "release", "publish"):
         assert not any(forbidden in name for name in job_names)
+
+
+def test_ci_lints_with_ruff_and_the_rules_are_in_pyproject() -> None:
+    source = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert re.search(r"run:\s*ruff check \.", source)
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert "[tool.ruff.lint]" in pyproject
+    assert '"ruff' in pyproject  # installed with the dev extras, so CI gets it from `pip install -e .[dev]`

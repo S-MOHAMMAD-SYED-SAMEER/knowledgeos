@@ -35,11 +35,11 @@ import json
 import os
 from pathlib import Path
 
-from alembic import command
 from alembic.config import Config as AlembicConfig
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from alembic import command
 from app.config import get_settings
 from app.db.session import reset_engine
 from app.providers.cross_encoder import MODEL_NAME, CrossEncoderRerankProvider

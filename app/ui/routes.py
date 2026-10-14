@@ -54,7 +54,16 @@ from app.api.rate_limit import rate_limit_demo_query
 from app.api.schemas import QueryFiltersIn, QueryRequest
 from app.config import Settings, get_settings
 from app.db.session import get_session
-from app.models import Answer, Chunk, Document, DocumentVersion, EvalRun, Feedback, Query, RetrievedChunk
+from app.models import (
+    Answer,
+    Chunk,
+    Document,
+    DocumentVersion,
+    EvalRun,
+    Feedback,
+    Query,
+    RetrievedChunk,
+)
 from app.models.feedback import MAX_REASON_LENGTH, RATINGS
 from app.providers.embeddings import EmbeddingProvider
 from app.providers.llm import LLMProvider

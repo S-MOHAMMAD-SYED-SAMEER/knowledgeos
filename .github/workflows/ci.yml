@@ -3,9 +3,8 @@
 # provider credential this project has ever named (Gemini, and, since
 # neither is used, OpenAI) -- none is ever set, anywhere in this file.
 #
-# One job: install, migrate a real PostgreSQL+pgvector database, run the
-# suite. No lint step, no build step, no deployment step -- locked
-# decision D9 asks for a focused CI, not a second thing to maintain.
+# Install, lint (ruff: pyflakes and import order, see pyproject.toml), migrate a real
+# PostgreSQL+pgvector database, run the suite. See the jobs below for what else runs.
 name: CI
 
 on:
@@ -75,6 +74,9 @@ jobs:
 
       - name: Install project dependencies
         run: pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check .
 
       - name: Run the test suite
         run: pytest

@@ -13,8 +13,8 @@ submodule, as `app/ingestion/runner.py` and `app/reranking/provider.py` do.
 """
 
 from app.providers.bge import BgeEmbeddingProvider
-from app.providers.cross_encoder import CrossEncoderRerankProvider
 from app.providers.cross_encoder import MODEL_NAME as RERANK_MODEL_NAME
+from app.providers.cross_encoder import CrossEncoderRerankProvider
 from app.providers.embeddings import (
     DIMENSIONS,
     MODEL_NAME,

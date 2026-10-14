@@ -12,7 +12,11 @@ local models, could produce that.
 
 import pytest
 
-from app.providers import FakeEmbeddingProvider, FakeRerankProvider, PassthroughRerankProvider
+from app.providers import (
+    FakeEmbeddingProvider,
+    FakeRerankProvider,
+    PassthroughRerankProvider,
+)
 from app.storage import LocalStorage
 from evals.retrieval.questions import load_question_set
 from evals.retrieval.suite import ConditionMetrics, SuiteResult, run_retrieval_suite

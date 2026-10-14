@@ -9,7 +9,6 @@ import unicodedata
 
 from app.parsing import normalize
 
-
 # --- rule 1: line endings ---------------------------------------------------
 
 

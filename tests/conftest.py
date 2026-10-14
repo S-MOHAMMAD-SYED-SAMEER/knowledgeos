@@ -24,12 +24,12 @@ from collections.abc import Iterator
 
 import pytest
 import sqlalchemy
-from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
 
+from alembic import command
 from app.config import get_settings
 from app.db.session import reset_engine
 from app.main import create_app

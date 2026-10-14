@@ -37,7 +37,8 @@ from app.config import Settings, get_settings
 from app.db.session import get_sessionmaker
 from app.demo import ensure_demo_corpus_seeded
 from app.ingestion.runner import IngestionRunner
-from app.ui import demo_routes, routes as ui_routes
+from app.ui import demo_routes
+from app.ui import routes as ui_routes
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

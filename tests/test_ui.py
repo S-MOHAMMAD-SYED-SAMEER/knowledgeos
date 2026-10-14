@@ -15,8 +15,8 @@ real providers directly (which would make overriding impossible — see
 import uuid
 
 import pytest
-from markupsafe import escape
 from fastapi.testclient import TestClient
+from markupsafe import escape
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 

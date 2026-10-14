@@ -252,7 +252,7 @@ def test_every_candidate_score_traces_back_to_its_own_chunk(
     directly on the same texts -- proving the mapping from provider output
     back to chunk_uid is exact, not merely "some permutation"."""
     with Session(migrated_engine) as session:
-        seeded = _seed(session, storage, embeddings, text="alpha widget", title="a.txt")
+        _seed(session, storage, embeddings, text="alpha widget", title="a.txt")
         _seed(session, storage, embeddings, text="beta widget", title="b.txt")
 
     body = reordering_client.post("/query", json={"query": "widget"}).json()

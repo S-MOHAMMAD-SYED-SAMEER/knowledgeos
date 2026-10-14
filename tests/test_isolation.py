@@ -152,8 +152,8 @@ def test_jinja2_is_now_a_declared_dependency() -> None:
 def test_the_schema_is_the_nine_tables_built_so_far() -> None:
     """`feedback` arrives with milestone 10 — the specification's own last
     deferred table (§5) — inverting the guard that used to keep it out."""
-    from app.db.base import Base
     import app.models  # noqa: F401
+    from app.db.base import Base
 
     assert set(Base.metadata.tables) == {
         "documents",
