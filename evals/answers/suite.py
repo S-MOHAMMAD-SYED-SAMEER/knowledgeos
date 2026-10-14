@@ -73,7 +73,6 @@ from evals.retrieval.corpus import (
 )
 from evals.retrieval.questions import DEFAULT_QUESTIONS_DIR, load_question_set
 
-
 logger = logging.getLogger(__name__)
 
 # Stop after this many provider failures in a row, unless told otherwise.

@@ -21,7 +21,6 @@ from app.parsing import (
 
 from .fixtures import docx_bytes, pdf_bytes, plain_zip_bytes
 
-
 # --- dispatch ---------------------------------------------------------------
 
 

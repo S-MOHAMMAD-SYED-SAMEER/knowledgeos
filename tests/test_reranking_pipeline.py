@@ -11,7 +11,11 @@ through HTTP.
 
 import pytest
 
-from app.providers import FakeEmbeddingProvider, FakeRerankProvider, PassthroughRerankProvider
+from app.providers import (
+    FakeEmbeddingProvider,
+    FakeRerankProvider,
+    PassthroughRerankProvider,
+)
 from app.reranking.pipeline import rerank
 from app.retrieval.filters import RetrievalFilters
 from app.retrieval.pipeline import FINAL_CANDIDATE_LIMIT, retrieve

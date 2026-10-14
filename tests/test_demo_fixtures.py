@@ -19,7 +19,7 @@ from sqlalchemy import func, select
 
 from app.models import Chunk
 from app.providers import Candidate, CrossEncoderRerankProvider, FakeEmbeddingProvider
-from app.providers.embeddings import DIMENSIONS, EmbeddingError, MODEL_NAME
+from app.providers.embeddings import DIMENSIONS, MODEL_NAME, EmbeddingError
 from app.reranking import rerank
 from app.retrieval import vector
 from app.retrieval.filters import RetrievalFilters
@@ -30,7 +30,11 @@ from demo.generate_embeddings import (
     FLAGSHIP_QUERIES,
     iter_manifest_chunks,
 )
-from demo.providers import DEMO_MODEL_NAME, EMBEDDINGS_FIXTURE_PATH, DemoEmbeddingProvider
+from demo.providers import (
+    DEMO_MODEL_NAME,
+    EMBEDDINGS_FIXTURE_PATH,
+    DemoEmbeddingProvider,
+)
 from demo.seed import seed_demo_corpus
 
 ANSWERS_FIXTURE_PATH = EMBEDDINGS_FIXTURE_PATH.parent / "answers.yaml"
