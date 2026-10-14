@@ -28,6 +28,9 @@ def test_importing_the_application_opens_no_connection() -> None:
         timeout=60,
         env={
             "PATH": os.environ["PATH"],
+            # Windows will not start Python's event loop (winsock) without SYSTEMROOT; it is the
+            # operating system's own, not configuration of ours.
+            **{name: os.environ[name] for name in ("SYSTEMROOT", "SystemRoot") if name in os.environ},
             "KNOWLEDGEOS_DATABASE_URL": (
                 "postgresql+psycopg://nobody:nothing@127.0.0.1:1/nowhere"
             ),

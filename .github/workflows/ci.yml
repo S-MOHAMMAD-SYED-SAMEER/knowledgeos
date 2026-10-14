@@ -3,8 +3,16 @@
 # provider credential this project has ever named (Gemini, and, since
 # neither is used, OpenAI) -- none is ever set, anywhere in this file.
 #
-# Install, lint (ruff: pyflakes and import order, see pyproject.toml), migrate a real
-# PostgreSQL+pgvector database, run the suite. See the jobs below for what else runs.
+# Four jobs.
+#   test          Linux: lint (ruff), then the whole suite against a real PostgreSQL+pgvector.
+#   windows       The development machine's OS: everything that needs no database. The 2026-10-13 audit
+#                 found four failures that only Windows showed (cp1252 reads, symlink privilege) and CI
+#                 could not see them. The tests that need PostgreSQL skip here (a Windows runner has no
+#                 service containers), and so do the ones that need the models; they run in `test`.
+#   docker-build  Builds the image and runs the documented one-command demo
+#                 (`docker compose -f docker-compose.demo.yml up --build`), then asks it a question.
+#                 It had never been built anywhere automated.
+#   audit         pip-audit over the installed dependencies.
 name: CI
 
 on:
@@ -80,3 +88,87 @@ jobs:
 
       - name: Run the test suite
         run: pytest
+
+  windows:
+    runs-on: windows-latest
+    env:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install project dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run the tests that need neither PostgreSQL nor the models
+        run: pytest -q
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Both compose files are valid
+        run: |
+          docker compose -f docker-compose.demo.yml config -q
+          KNOWLEDGEOS_HF_HUB=/tmp/hf docker compose -f docker-compose.yml config -q
+
+      - name: Build and start the standalone demo (db, migrate, seed, app)
+        run: docker compose -f docker-compose.demo.yml up --build -d
+
+      - name: Wait until it is ready
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8000/ready > ready.json 2>/dev/null; then
+              cat ready.json; echo; exit 0
+            fi
+            sleep 5
+          done
+          echo "the demo did not become ready in 5 minutes"
+          docker compose -f docker-compose.demo.yml logs
+          exit 1
+
+      - name: Ask it a question the demo can answer
+        run: |
+          curl -fsS -X POST http://localhost:8000/query \
+            -H 'content-type: application/json' \
+            -d '{"query": "How many days per week may an employee work remotely?"}' > answer.json
+          python3 - <<'PY'
+          import json
+          answer = json.load(open("answer.json"))
+          assert answer["citation_valid"] is True, answer
+          assert answer["abstained"] is False, answer
+          assert answer["verified"] is True, answer
+          assert answer["model"].startswith("demo-fixture-replay"), answer["model"]
+          assert answer["citations"], answer
+          print("answered with", len(answer["citations"]), "citation(s) from", answer["model"])
+          PY
+
+      - name: Logs, if anything failed
+        if: failure()
+        run: docker compose -f docker-compose.demo.yml logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.demo.yml down -v
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install the project and pip-audit
+        run: |
+          pip install -e .
+          pip install pip-audit
+
+      - name: Audit the installed dependencies
+        run: pip-audit --skip-editable
