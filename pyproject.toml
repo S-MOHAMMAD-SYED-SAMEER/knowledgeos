@@ -2,6 +2,8 @@
 name = "knowledgeos"
 version = "0.1.0"
 description = "An internal knowledge system that answers from retrieved evidence — and measures whether it actually did."
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115",
@@ -69,7 +71,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]

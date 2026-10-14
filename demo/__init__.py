@@ -9,7 +9,7 @@ product goal chain offline:
     retrieved correctly -> ranked correctly -> answered from evidence ->
     cited correctly -> abstained when evidence is insufficient.
 
-See `PROJECT_PLAN.md` (P1-P4) for the full scope and acceptance criteria.
+See `docs/history/PROJECT_PLAN.md` (P1-P4) for the full scope and acceptance criteria.
 """
 
 from demo.providers import DemoEmbeddingProvider

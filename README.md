@@ -370,16 +370,31 @@ Docker · GitHub Actions
 
 ## Running locally
 
-```bash
-python3.13 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-cp .env.example .env
+**What you need first**
 
-# pgvector goes into the PostgreSQL server, not just into Python
-sudo apt-get install postgresql-16-pgvector
-createuser knowledgeos --pwprompt --createdb
-createdb -O knowledgeos knowledgeos
-createdb -O knowledgeos knowledgeos_test   # the suite migrates and drops this
+| Need | Why |
+| --- | --- |
+| Python 3.13 | `requires-python = ">=3.13"`. |
+| PostgreSQL 16 **with the pgvector extension** | The only datastore. A plain `postgres` image has no `vector` type. `pgvector/pgvector:pg16` is the quickest source (below). |
+| About 2 GB of disk for `pip install` | Local embeddings and reranking pull in torch. |
+| The two local models in your Hugging Face cache (about 200 MB) | The application loads them with `local_files_only=True` and never downloads while it runs. Without them every ingest and query fails with "the embedding model is unavailable". `python scripts/download_models.py` fetches them once. |
+| A Gemini key and a model ID | Only for generating answers in Live Mode. Retrieval, the evaluation of retrieval, and both demos need neither. |
+
+**Steps** (Linux, macOS and Windows; the database line works everywhere Docker does)
+
+```bash
+python3.13 -m venv .venv
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+cp .env.example .env                 # Windows: copy .env.example .env
+python scripts/download_models.py    # once; --dry-run shows what it would fetch
+
+# PostgreSQL 16 + pgvector, as a throwaway container (or install pgvector natively:
+# on Debian/Ubuntu, `sudo apt-get install postgresql-16-pgvector`)
+docker run -d --name knowledgeos-db -p 5432:5432 \
+  -e POSTGRES_USER=knowledgeos -e POSTGRES_PASSWORD=knowledgeos -e POSTGRES_DB=knowledgeos \
+  pgvector/pgvector:pg16
+docker exec knowledgeos-db createdb -U knowledgeos knowledgeos_test   # the suite migrates and drops this
 
 alembic upgrade head
 uvicorn app.main:app --reload
@@ -394,6 +409,17 @@ server answers, so `pytest` stays meaningful without one, and no credential
 is needed either way. If `CREATE EXTENSION vector` fails the role is not
 privileged enough — [docs/ENGINEERING.md](docs/ENGINEERING.md) has the
 one-time superuser bootstrap.
+
+To try it with no Postgres install, no models and no key, use the standalone
+demo: `docker compose -f docker-compose.demo.yml up --build`, then open
+`http://localhost:8000/ui/query` ([docs/DEMO.md](docs/DEMO.md)). If a Docker
+build fails on `pip install` with `CERTIFICATE_VERIFY_FAILED`, some antivirus
+products (AVG's web shield, for one) re-sign HTTPS traffic with a root the
+container does not trust; turn that scanning off while you build.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
 
 ## Deployment
 
