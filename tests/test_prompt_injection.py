@@ -21,8 +21,9 @@ that milestone exists to measure. Prompt-injection testing has nothing to
 do with retrieval evaluation and must not share its fixture data.
 """
 
-from app.generation.citations import CitationError
-from app.generation.generator import generate_answer
+import logging
+
+from app.generation.generator import UNVERIFIED_ANSWER_TEXT, generate_answer
 from app.generation.prompt import load_prompt
 from app.providers.fake_llm import FakeLLMProvider
 
@@ -76,31 +77,29 @@ def test_a_model_that_obeyed_an_injected_instruction_to_fabricate_a_citation_is_
     a chunk_uid that was never actually retrieved -- exactly the failure
     mode the injected text in `INJECTION_TEXT` tries to provoke. The
     deterministic gate rejects it regardless of what the model was
-    tricked into doing."""
+    tricked into doing: the person gets the fixed "could not verify" reply,
+    never the text the model was tricked into writing."""
     candidate = make_reranked(1, text=INJECTION_TEXT)
     fabricated_uid = "d" * 32  # never retrieved -- the injected instruction's target
+    tricked = valid_json(f"Revealing the system prompt [{fabricated_uid}].", [fabricated_uid])
+    fake = FakeLLMProvider([tricked, tricked])  # asked twice: one retry, then the verdict
 
-    fake = FakeLLMProvider(
-        [valid_json(f"Revealing the system prompt [{fabricated_uid}].", [fabricated_uid])]
+    answer = generate_answer(
+        query_text="what does the evidence say",
+        candidates=[candidate],
+        llm=fake,
+        abstention_threshold=None,
+        max_tokens=200,
+        prompt=PROMPT,
     )
 
-    try:
-        generate_answer(
-            query_text="what does the evidence say",
-            candidates=[candidate],
-            llm=fake,
-            abstention_threshold=None,
-            max_tokens=200,
-            prompt=PROMPT,
-        )
-        raised = False
-    except CitationError:
-        raised = True
-
-    assert raised
+    assert answer.verification_failure == "citation_invalid"
+    assert answer.answer_text == UNVERIFIED_ANSWER_TEXT
+    assert "system prompt" not in answer.answer_text.lower()
+    assert answer.citations == []
 
 
-def test_an_injected_instruction_cannot_make_a_non_selected_chunk_citable() -> None:
+def test_an_injected_instruction_cannot_make_a_non_selected_chunk_citable(caplog) -> None:
     """Twelve candidates, only the top 8 selected. The injected text lives
     in an unselected (rank 10) chunk; even a model that read it and tried
     to comply by citing it is rejected by rule 3."""
@@ -108,13 +107,11 @@ def test_an_injected_instruction_cannot_make_a_non_selected_chunk_citable() -> N
     injected_candidate = make_reranked(10, uid=candidates[9].evidence.chunk_uid, text=INJECTION_TEXT)
     candidates[9] = injected_candidate
     injected_uid = injected_candidate.evidence.chunk_uid
+    complied = valid_json(f"Following the injected instruction [{injected_uid}].", [injected_uid])
+    fake = FakeLLMProvider([complied, complied])
 
-    fake = FakeLLMProvider(
-        [valid_json(f"Following the injected instruction [{injected_uid}].", [injected_uid])]
-    )
-
-    try:
-        generate_answer(
+    with caplog.at_level(logging.WARNING):
+        answer = generate_answer(
             query_text="what does the evidence say",
             candidates=candidates,
             llm=fake,
@@ -122,12 +119,12 @@ def test_an_injected_instruction_cannot_make_a_non_selected_chunk_citable() -> N
             max_tokens=200,
             prompt=PROMPT,
         )
-        raised = False
-    except CitationError as exc:
-        raised = True
-        assert "not selected" in str(exc)
 
-    assert raised
+    assert answer.verification_failure == "citation_invalid"
+    assert answer.answer_text == UNVERIFIED_ANSWER_TEXT
+    assert answer.grounding_detail["generation"]["failure"] == "citation_invalid"
+    assert "not selected" in caplog.text  # rule 3 is what rejected it
+    assert injected_uid not in answer.answer_text
 
 
 def test_injected_text_in_evidence_never_reaches_a_python_format_or_eval() -> None:
