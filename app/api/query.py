@@ -186,6 +186,9 @@ def run_query(
             # Never the query text, never a traceback: this is exactly the
             # boundary the specification's error-response rule exists for.
             logger.warning("Query embedding failed (%s).", type(exc).__name__)
+            if exc.public_detail:
+                # About this question, not about the system: say so, and do not call it an outage.
+                raise HTTPException(status_code=422, detail=exc.public_detail) from exc
             raise HTTPException(
                 status_code=503, detail="the embedding model is unavailable"
             ) from exc

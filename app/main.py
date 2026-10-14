@@ -29,7 +29,13 @@ races the others to do. `/ready` is what notices when it has not happened.
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import (
+    http_exception_handler,
+    request_validation_exception_handler,
+)
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import __version__
 from app.api import documents, feedback, health, ingestion, query, ready
@@ -66,6 +72,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # `Settings.demo_mode` per request and answers 404 when it is off, so a
     # non-demo deployment gains no new reachable behaviour from this line.
     app.include_router(demo_routes.router)
+
+    # The UI is HTML, so its errors are HTML. FastAPI's own handlers answer with JSON, which is right
+    # for the API and wrong for a person who mistyped a URL or pressed a button a demo refuses.
+    # Anything outside `/ui` keeps FastAPI's behaviour exactly.
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error(request: Request, exc: StarletteHTTPException):
+        if request.url.path.startswith("/ui"):
+            return ui_routes.error_page(request, status_code=exc.status_code, detail=str(exc.detail))
+        return await http_exception_handler(request, exc)
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error(request: Request, exc: RequestValidationError):
+        if request.url.path.startswith("/ui"):
+            # A malformed id in the path is "no such page"; anything else is a bad request.
+            # Never the parser's own message, which echoes the input.
+            in_path = any(error.get("loc", ("",))[0] == "path" for error in exc.errors())
+            return ui_routes.error_page(
+                request,
+                status_code=404 if in_path else 422,
+                detail="No such page." if in_path else "That request was not valid.",
+            )
+        return await request_validation_exception_handler(request, exc)
+
     return app
 
 

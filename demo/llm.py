@@ -62,6 +62,16 @@ def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def flagship_questions(fixture_path: Path = ANSWERS_FIXTURE_PATH) -> tuple[str, ...]:
+    """The example questions this demo can answer, exactly as the fixture spells them, in order.
+
+    The demo's embedder and answer fixtures match on exact text, so the questions the page
+    suggests have to be these, not paraphrases of them.
+    """
+    entries = yaml.safe_load(fixture_path.read_text(encoding="utf-8"))
+    return tuple(entry["question"] for entry in entries)
+
+
 class DemoLLMProvider:
     """Real, curated demo answers, replayed as marker-compliant JSON --
     for exactly the five flagship questions `demo/fixtures/answers.yaml`
@@ -166,4 +176,4 @@ def _mark_up(answer_text: str, citations: list[str]) -> str:
     return " ".join(marked)
 
 
-__all__ = ["DEMO_LLM_MODEL_NAME", "ANSWERS_FIXTURE_PATH", "DemoLLMProvider"]
+__all__ = ["ANSWERS_FIXTURE_PATH", "DEMO_LLM_MODEL_NAME", "DemoLLMProvider", "flagship_questions"]

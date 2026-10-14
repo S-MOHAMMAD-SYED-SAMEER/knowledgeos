@@ -12,11 +12,10 @@
   </form>
 
   <h2>Example questions</h2>
-  <p class="muted">Not sure what to ask? Try a question like one of these:</p>
+  <p class="muted">Not sure what to ask? Try one of these:</p>
   <ul class="muted">
-    <li>How many days per week may an employee work remotely?</li>
-    <li>What is the approval process for production database access?</li>
-    <li>Within how many minutes must an executive be notified of a severity-one incident?</li>
-    <li>What is the company's policy on using generative AI tools for writing code?</li>
+    {% for question in examples %}
+      <li>{{ question }}</li>
+    {% endfor %}
   </ul>
 {% endblock %}

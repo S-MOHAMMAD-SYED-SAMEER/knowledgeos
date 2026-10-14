@@ -484,3 +484,106 @@ def test_a_verified_answer_after_a_retry_looks_like_any_other_answer(
 
     assert "badge answered" in response.text
     assert "Could not verify this answer" not in response.text
+
+
+# --- errors are pages, not JSON ------------------------------------------------------------
+
+
+def test_a_malformed_id_in_a_ui_path_is_a_styled_404_not_raw_json(fake_client, migrated_engine: Engine) -> None:
+    for path in ("/ui/documents/not-a-uuid", "/ui/answers/not-a-uuid"):
+        response = fake_client.get(path)
+
+        assert response.status_code == 404, path
+        assert response.headers["content-type"].startswith("text/html"), path
+        assert "No such page" in response.text
+        assert "uuid" not in response.text.lower()  # the parser's own message is not shown
+        assert "not-a-uuid" not in response.text
+
+
+def test_a_malformed_form_post_is_a_styled_422(fake_client, migrated_engine: Engine) -> None:
+    response = fake_client.post("/ui/query", data={})  # the required field is missing
+
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("text/html")
+    assert "That request was not valid" in response.text
+
+
+def test_the_json_api_keeps_its_own_validation_errors(fake_client, migrated_engine: Engine) -> None:
+    response = fake_client.get("/documents/not-a-uuid")
+
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.status_code == 422
+
+
+def test_a_refusal_raised_by_a_dependency_is_a_styled_page_in_the_ui(
+    fake_client, migrated_engine: Engine, storage, embeddings
+) -> None:
+    """The demo's mutation guard raises from a route dependency, which used to reach the browser as
+    FastAPI's raw JSON 403."""
+    from fastapi import HTTPException
+
+    from app.api.demo_guard import require_mutation_allowed
+
+    def _refuse() -> None:
+        raise HTTPException(status_code=403, detail="This deployment accepts no feedback.")
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+    fake_client.app.dependency_overrides[require_mutation_allowed] = _refuse
+
+    response = fake_client.post(
+        "/ui/answers/00000000-0000-0000-0000-000000000000/feedback", data={"rating": "helpful"}
+    )
+
+    assert response.status_code == 403
+    assert response.headers["content-type"].startswith("text/html")
+    assert "This deployment accepts no feedback." in response.text
+
+
+# --- the Ask page and the answer page ---------------------------------------------------------
+
+
+def test_the_ask_page_lists_example_questions(fake_client) -> None:
+    from app.ui.routes import DEFAULT_EXAMPLE_QUESTIONS
+
+    body = fake_client.get("/ui/query").text
+
+    for question in DEFAULT_EXAMPLE_QUESTIONS:
+        assert str(escape(question)) in body
+
+
+def test_a_deployment_can_replace_the_example_questions(fake_client) -> None:
+    from app.ui.routes import example_questions
+
+    fake_client.app.dependency_overrides[example_questions] = lambda: ("Only this one?",)
+
+    body = fake_client.get("/ui/query").text
+
+    assert "Only this one?" in body
+    assert "work remotely" not in body
+
+
+def test_selected_passages_are_open_and_the_rest_are_collapsed(
+    fake_client, migrated_engine: Engine, storage, embeddings
+) -> None:
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    body = fake_client.post("/ui/query", data={"query": "production database access"}).text
+
+    assert "<details open>" in body  # what the model was given
+    assert "Passage sent to the model" in body
+    assert "production database access requires manager approval" in body  # the text is still there
+
+
+def test_the_badge_says_citations_were_verified_not_that_the_answer_is_true(
+    fake_client, migrated_engine: Engine, storage, embeddings
+) -> None:
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    body = fake_client.post("/ui/query", data={"query": "production database access"}).text
+
+    assert "Citations verified" in body
+    assert "Grounded in evidence" not in body
+    assert "does not check that the passage supports the sentence" in body

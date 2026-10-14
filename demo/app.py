@@ -34,7 +34,8 @@ from app.api.demo_guard import require_mutation_allowed
 from app.api.query import embedding_provider, llm_provider, rerank_provider
 from app.config import Settings
 from app.main import create_app
-from demo.llm import DemoLLMProvider
+from app.ui.routes import example_questions
+from demo.llm import DemoLLMProvider, flagship_questions
 from demo.providers import DemoEmbeddingProvider
 from demo.reranking import DemoRerankProvider
 
@@ -90,6 +91,9 @@ def create_demo_app() -> FastAPI:
     app.dependency_overrides[rerank_provider] = lambda: demo_reranker
     app.dependency_overrides[llm_provider] = lambda: demo_llm
     app.dependency_overrides[require_mutation_allowed] = _deny_mutations
+    # The Ask page must suggest the questions this demo can answer, spelled exactly as it knows them.
+    examples = flagship_questions()
+    app.dependency_overrides[example_questions] = lambda: examples
 
     return app
 
