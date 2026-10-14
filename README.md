@@ -54,7 +54,7 @@ neither.
 | Capability | What it actually does |
 | --- | --- |
 | **Hybrid retrieval** | Postgres full-text search + pgvector similarity, fused by Reciprocal Rank Fusion. No second datastore. |
-| **Citation validation** | Every cited chunk ID is checked against the retrieved, *selected* evidence set. An invalid citation rejects the answer rather than displaying it. |
+| **Citation validation** | Every cited chunk ID is checked against the retrieved, *selected* evidence set. An invalid citation rejects the answer rather than displaying it: the model is asked once more, and if that reply fails too the person sees "I couldn't verify this answer", never the rejected text. |
 | **Honest abstention** | Refuses on insufficient evidence — zero candidates, a calibrated rerank-score threshold, or the model's own `sufficient_evidence=false`. |
 | **Document versioning** | Only the active version answers; superseded versions stay queryable for audit. One active version per document, enforced by a partial unique index. |
 | **Dual evaluation harnesses** | Separate retrieval and answer suites, run from the CLI, offline, with no API credential. |
@@ -72,7 +72,7 @@ Ingest → Parse → Chunk → Index → Retrieve → Rerank → Generate → Ci
 | Retrieve | Top 50 lexical + top 50 vector → RRF fusion → dedupe → top 20. Metadata filters are SQL `WHERE` clauses, never an instruction to the model to ignore results. |
 | Rerank | Local cross-encoder behind an interface, plus a passthrough implementation so reranking's contribution is a measured number rather than an assumption. |
 | Generate | Versioned prompt file, structured output (`answer`, `citations`, `sufficient_evidence`), parsed and validated in Python. |
-| Cite | Three deterministic rules, then two grounding layers (deterministic and semantic) reported separately. |
+| Cite | Three deterministic rules plus a check that the declared citations match the markers in the text, then two grounding layers (deterministic and semantic) reported separately. |
 
 ## Architecture
 
@@ -271,58 +271,50 @@ static isolation tests that prove they never call Gemini.
 
 ## Verified project facts
 
-Nothing estimated — but this project has genuinely been verified in two
-different environments that produce two different, both-true full-suite
-results. Conflating them would be misleading, so they're kept separate
-rather than reported as one number.
+Nothing estimated. Test results, by where they were run (2026-10-14, commit
+`94e1cd7`, no API key anywhere):
 
-| Verification | Full suite result |
+| Where | Result |
 | --- | --- |
-| **CI** (GitHub Actions, `.github/workflows/ci.yml`) | 1139 collected — 1135 passed, 4 skipped, 0 failed |
-| **Windows development laptop**, both models cached locally | 1139 collected — 1127 passed, **11 failed**, 1 skipped, 2 warnings |
+| **CI, Linux** (`test`: real PostgreSQL + pgvector, no models in the cache) | 1,263 collected: **1,259 passed**, 4 skipped, 0 failed |
+| **CI, Windows** (`windows`: everything that needs neither PostgreSQL nor the models) | 803 passed, 460 skipped, 0 failed |
+| **Windows laptop**, models not in the cache | 1,258 passed, 5 skipped, 0 failed |
+| **Windows laptop**, both models cached | 1,261 passed, 2 skipped, 0 failed |
 
-CI intentionally forces model-dependent tests to skip (no BGE/cross-encoder
-download, ever, in CI) — an honest, reproducible skip, not a pass, and not
-the same thing as "verified." On the Windows laptop, both models are
-cached, so those same tests actually *run* — and 11 of them fail. This is
-not an application regression; every one is a known, categorized,
-pre-existing environment/assumption mismatch:
+What is skipped, and why: on Linux CI, the three tests that load the real BGE
+or cross-encoder (CI never downloads weights) and the opt-in Gemini smoke test
+(`KNOWLEDGEOS_RUN_GENERATION_SMOKE_TEST=1`, needs a key); on a laptop, the
+symlink test when the account may not create symlinks, and the smoke test. A
+skip is not a pass and is not the same as "verified": the real-model tests only
+ran in the last row.
 
-- **3** — a Windows `cp1252`-vs-UTF-8 encoding issue in a test reading
-  `docs/ENGINEERING.md`, unrelated to KnowledgeOS's own runtime code.
-- **1** — a Windows symlink-privilege restriction in a storage
-  path-traversal test.
-- **7** — tests asserting "the real BGE/reranker are unavailable" (3
-  direct provider tests + 4 in the evaluation CLI's own tests); now that
-  both models *are* cached on this machine, that assumption no longer
-  holds here specifically, which is exactly what these tests are
-  (correctly) noticing.
+CI also lints with ruff, audits the installed dependencies with `pip-audit`
+(clean in that run), and in the `docker-build` job builds the image, starts the
+documented one-command demo (`docker compose -f docker-compose.demo.yml up
+--build`), waits for `/ready` and asks it a question, asserting a verified,
+cited, non-abstained answer.
 
-None of the 11 touch retrieval, reranking, generation, citation
-validation, or abstention correctness — every test exercising those
-passes identically in both environments.
-
-**A real defect was found and fixed in this same verification pass**
-(commit `050fe0d`): `tests/demo_fixtures.py` read fixture markdown
-without an explicit encoding, which corrupted a chunk's text — and
-therefore its `chunk_uid` — on Windows specifically, breaking 10
-integrated-demo-mode scenario tests (citation validation was correctly
-rejecting a citation that, on this platform, no longer pointed at any
-real chunk). Fixed by reading the fixture as UTF-8 explicitly; both
-`tests/test_demo_query_api.py` and `tests/test_demo_ui.py` now pass all
-scenarios on the Windows laptop, identically to CI.
+Until 2026-10-14 the same suite showed 11 failures on a laptop with the models
+cached, and 4 without. None were application bugs: three read a file as cp1252,
+one needed symlink privilege, and seven assumed the models are absent. They are
+fixed (the tests now simulate a missing model, read files as UTF-8, and skip the
+symlink test where it cannot run). An earlier real defect found by the same
+exercise (commit `050fe0d`): `tests/demo_fixtures.py` read fixture markdown
+without an encoding, which corrupted a chunk's text, and so its `chunk_uid`, on
+Windows.
 
 | Fact | Value |
 | --- | --- |
 | Alembic migrations / database tables | 7 / 9 |
-| Continuous integration | Configured — full suite, no external API key |
+| Continuous integration | Four jobs: test (Linux), windows, docker-build, audit; no API key set anywhere |
 | Retrieval metrics | Produced, 2026-10-14 ([results](docs/results/2026-10-14-retrieval-eval.md)) |
 | Answer-quality metrics | **None produced**, in any environment |
 
-Neither result means real BGE/CrossEncoder retrieval *quality*, a real
-Docker build, or full-corpus real-model evaluation have been verified —
-see **Current limitations** below for exactly what remains unverified,
-and **Running modes** above for which claim belongs to which demo.
+These are results about the engineering: the code does what its tests say, the
+image builds and the demo answers. They are not results about answer quality: no
+Gemini call has succeeded yet. See **Current limitations** below for exactly what
+remains unverified, and **Running modes** above for which claim belongs to which
+demo.
 
 ## Current limitations
 
