@@ -62,10 +62,14 @@ def test_the_default_database_is_our_own() -> None:
 
 
 def test_this_project_owns_its_own_dependencies() -> None:
-    """Its own pyproject, its own virtualenv, nothing borrowed."""
+    """Its own pyproject and its own migration config, nothing borrowed.
+
+    (This used to assert that a `.venv` folder exists in the checkout, which is a fact about one
+    developer's machine, not about the project: a clean clone, or a CI runner that installs into
+    the system Python, has none.)
+    """
     assert (ROOT / "pyproject.toml").is_file()
     assert (ROOT / "alembic.ini").is_file()
-    assert (ROOT / ".venv").is_dir()
 
 
 def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
