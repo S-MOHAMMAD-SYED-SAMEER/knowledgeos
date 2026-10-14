@@ -1,5 +1,6 @@
 """The migration: up, down, up again, and agreeing with the models."""
 
+import logging
 import pathlib
 
 from alembic import command
@@ -104,3 +105,15 @@ def test_the_partial_unique_index_is_in_the_database(
     assert "(document_id)" in definition
     assert "WHERE" in definition
     assert "status" in definition and "'active'" in definition
+
+
+# --- running a migration must not silence the application's logging ---------------
+
+_PROBE_LOGGER = logging.getLogger("app.migration_logging_probe")  # created before any migration runs
+
+
+def test_running_a_migration_in_process_does_not_disable_existing_loggers(migrated_engine) -> None:
+    """`alembic/env.py` configures logging from `alembic.ini`. By default that disables every
+    logger that already exists, which in a process that also runs the application (the test
+    suite) means later warnings, such as "the model's reply was rejected", are never emitted."""
+    assert _PROBE_LOGGER.disabled is False

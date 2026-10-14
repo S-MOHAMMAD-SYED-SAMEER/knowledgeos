@@ -21,7 +21,10 @@ import app.models  # noqa: F401
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # `disable_existing_loggers=False`: the default would silence every logger created before
+    # this ran (the application's own, when a migration runs in the same process, as it does
+    # in the test suite), so a warning logged afterwards would vanish.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # The application's settings are the source of the URL. `alembic.ini` holds
 # none, so the only way a URL is already set here is that a caller set it
