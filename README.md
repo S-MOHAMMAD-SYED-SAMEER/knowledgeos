@@ -7,7 +7,7 @@ only from your own documents — the exact chunk behind every claim, citations
 checked programmatically before the answer is shown, and an explicit refusal
 when the knowledge base does not contain the answer.
 
-**Status: milestone 10 of 10 — v1 complete.**
+**Status:** v1 is built and tested. A real Gemini answer has not been produced yet; see **Current limitations**. MIT licensed.
 **GitHub** [S-MOHAMMAD-SYED-SAMEER/knowledgeos](https://github.com/S-MOHAMMAD-SYED-SAMEER/knowledgeos) ·
 **Live demo** No public instance is deployed — two independent, local, keyless demo modes exist instead, see **Running modes** below ·
 **[Engineering deep dive](docs/ENGINEERING.md)**
@@ -167,7 +167,7 @@ static isolation tests that prove they never call Gemini.
 | --- | --- | --- |
 | **Live Mode** | Gemini key + local models | Implemented |
 | **Integrated demo mode** (`Settings.demo_mode`) | None | **Implemented** |
-| **Standalone Demo Mode** (P3, `demo/`) | None | **Implemented** |
+| **Standalone Demo Mode** (`demo/`) | None | **Implemented** |
 
 **Live Mode — implemented.**
 - Real local `BgeEmbeddingProvider` and `CrossEncoderRerankProvider` —
@@ -221,7 +221,7 @@ static isolation tests that prove they never call Gemini.
 - No public URL is deployed; run locally with `KNOWLEDGEOS_DEMO_MODE=true`
   and open `/demo`.
 
-**Standalone Demo Mode — implemented (P3, `demo/`).**
+**Standalone Demo Mode — implemented (`demo/`).**
 - Committed, deterministic fixture providers (`demo/fixtures/`) replay
   real, precomputed BGE embeddings, real precomputed cross-encoder
   reranking scores, and curated answer fixtures — never invented or
@@ -236,7 +236,7 @@ static isolation tests that prove they never call Gemini.
   unlike the integrated demo mode above, no `KNOWLEDGEOS_DEMO_MODE=true`
   either — `demo/app.py` overrides its three provider dependencies
   directly, so this mode never depends on that flag and never enters the
-  integrated mode's own `Settings.demo_mode`-gated M1-M4 corpus seed in
+  integrated mode's own `Settings.demo_mode`-gated corpus seed in
   `app/main.py`'s lifespan.
 - Runs through the exact same `app.main.create_app()` and
   `POST /query`/`/ui/query` routes Live Mode uses — `demo/app.py`
@@ -394,9 +394,10 @@ Python 3.13 · FastAPI · SQLAlchemy 2.x · PostgreSQL 16 + pgvector · psycopg 
 Gemini via `google-genai` behind a provider interface · Jinja2 · pytest ·
 Docker · GitHub Actions
 
-> The build specification names the Anthropic SDK for generation; this build
-> uses **Google Gemini** — a documented deviation from that wording, not from
-> the behavioural requirements, none of which name a vendor. Nothing outside
+> The original project brief named the Anthropic SDK for generation; this build
+> uses **Google Gemini** — a deliberate deviation from that wording, not from
+> the behavioural requirements, none of which name a vendor. An Anthropic
+> adapter is not implemented. Nothing outside
 > the one adapter file is vendor-shaped.
 
 ## Running locally

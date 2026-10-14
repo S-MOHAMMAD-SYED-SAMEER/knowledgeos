@@ -6,18 +6,21 @@ and the limitations recorded honestly at the time. For the project
 overview, capabilities and run instructions, see
 [README.md](../README.md).
 
-**Milestone 10 of 10 — v1 complete.** Every section below describes what
-actually exists in this repository, not what was specified. Where a
-milestone could not verify something in this build environment — an
+**This is a historical record, not the current state.** It was written one
+milestone at a time, and each section describes what was true when that
+milestone finished: what actually existed, not what was specified. Where a
+milestone could not verify something in its build environment — an
 unavailable model, an unbuilt Docker image, an evaluation that never ran —
-it says so in its own words rather than omitting it.
+it says so in its own words rather than omitting it. Where later work changed
+something, the section carries a dated "Since updated" note. For the current
+state, read the README and `docs/results/`.
 
-**A note on numbers.** No retrieval or answer-quality metric appears
-anywhere in this document. Both evaluation harnesses exist and are proven
-correct against fixtures, but neither has been run officially here; the
-milestone 7 and milestone 9 sections give the exact blocking reason.
-`tests/test_retrieval_scope.py` enforces that absence mechanically against
-this file.
+**A note on numbers.** The milestone narratives below contain no retrieval or
+answer-quality metric: when they were written neither evaluation harness had
+been run. The retrieval suite has since been run; its record is
+[results/2026-10-14-retrieval-eval.md](results/2026-10-14-retrieval-eval.md).
+No answer-quality number exists. `tests/test_retrieval_scope.py` still enforces
+that the milestone 7 and 8 sections below carry no metric.
 
 ---
 
