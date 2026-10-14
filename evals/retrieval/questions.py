@@ -201,7 +201,7 @@ def load_question_files(directory: Path = DEFAULT_QUESTIONS_DIR) -> list[Questio
     questions: list[Question] = []
     for path in sorted(directory.glob("*.yaml")):
         try:
-            raw = yaml.safe_load(path.read_text())
+            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
         except yaml.YAMLError as exc:
             raise QuestionSetError(
                 f"{path.name}: invalid YAML ({type(exc).__name__})"

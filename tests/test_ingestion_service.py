@@ -392,7 +392,7 @@ def test_nothing_in_the_application_promotes_on_upload() -> None:
 
     from app.api import documents as module
 
-    tree = ast.parse(pathlib.Path(module.__file__).read_text())
+    tree = ast.parse(pathlib.Path(module.__file__).read_text(encoding="utf-8"))
     called = {
         node.func.attr
         for node in ast.walk(tree)

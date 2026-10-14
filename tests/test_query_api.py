@@ -270,6 +270,7 @@ def test_provider_failure_is_503_with_a_safe_body(
     assert "a secret query nobody should log" not in response.text
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_the_unmodified_endpoint_reaches_for_the_real_provider(
     client: TestClient, migrated_engine: Engine
 ) -> None:

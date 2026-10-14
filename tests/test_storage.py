@@ -214,7 +214,11 @@ def test_a_symlinked_directory_cannot_lead_out_of_the_root(tmp_path: Path) -> No
     root = tmp_path / "root"
     root.mkdir()
     (tmp_path / "elsewhere").mkdir()
-    (root / "documents").symlink_to(tmp_path / "elsewhere")
+    try:
+        (root / "documents").symlink_to(tmp_path / "elsewhere")
+    except OSError:
+        # Windows without the symlink privilege (or Developer Mode): there is nothing to test.
+        pytest.skip("this account may not create symlinks")
     storage = LocalStorage(root)
 
     with pytest.raises(UnsafeKey):

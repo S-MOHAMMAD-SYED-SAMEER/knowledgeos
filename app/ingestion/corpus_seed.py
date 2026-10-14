@@ -103,7 +103,7 @@ class CorpusSeedResult:
 
 
 def load_manifest(path: Path = DEFAULT_MANIFEST) -> dict:
-    raw = yaml.safe_load(path.read_text())
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict) or "documents" not in raw:
         raise CorpusError(
             f"{path.name}: manifest must be a mapping with a 'documents' list"

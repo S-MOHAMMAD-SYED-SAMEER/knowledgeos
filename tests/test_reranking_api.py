@@ -218,6 +218,7 @@ def test_zero_candidates_never_reaches_a_failing_reranker(
 # --- honest, unmodified defaults ------------------------------------------
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_the_unmodified_endpoint_reaches_for_the_real_reranker(
     client: TestClient, migrated_engine: Engine, storage, embeddings
 ) -> None:

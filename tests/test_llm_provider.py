@@ -91,7 +91,7 @@ def test_nothing_in_the_application_selects_the_fake() -> None:
     for module in app_dir.rglob("*.py"):
         if module.name == "fake_llm.py" or module.parent.name == "providers":
             continue
-        tree = ast.parse(module.read_text())
+        tree = ast.parse(module.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Name):
                 assert node.id != "FakeLLMProvider", module.name

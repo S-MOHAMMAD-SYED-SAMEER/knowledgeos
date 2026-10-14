@@ -39,7 +39,7 @@ def load_split_ids(path: Path = DEFAULT_SPLITS_PATH) -> tuple[frozenset[str], fr
     """The frozen dev/test id sets, exactly as checked in — no
     recomputation, no re-stratification. Raises `SplitError` if the file
     is malformed or assigns any id to both halves."""
-    raw = yaml.safe_load(path.read_text())
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict) or "dev" not in raw or "test" not in raw:
         raise SplitError(f"{path.name}: must be a mapping with 'dev' and 'test' lists")
 

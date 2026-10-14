@@ -102,7 +102,7 @@ def test_nothing_in_the_application_selects_the_fake() -> None:
     for module in app.rglob("*.py"):
         if module.name == "fake_embeddings.py" or module.parent.name == "providers":
             continue
-        tree = ast.parse(module.read_text())
+        tree = ast.parse(module.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Name):
                 assert node.id != "FakeEmbeddingProvider", module.name
@@ -159,7 +159,7 @@ def test_the_real_provider_reaches_no_network_at_import() -> None:
 
     from app.providers import bge as module
 
-    tree = ast.parse(pathlib.Path(module.__file__).read_text())
+    tree = ast.parse(pathlib.Path(module.__file__).read_text(encoding="utf-8"))
     top_level = {
         alias.name.split(".")[0]
         for node in tree.body

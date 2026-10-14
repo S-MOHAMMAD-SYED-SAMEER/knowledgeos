@@ -34,7 +34,7 @@ def test_the_reranking_package_exists_and_is_bounded() -> None:
     assert package.exists()
 
     for path in package.glob("*.py"):
-        for name in _imports(path.read_text()):
+        for name in _imports(path.read_text(encoding="utf-8")):
             assert name != "anthropic" and not name.startswith("anthropic."), (
                 f"{path.name} imports {name}"
             )
@@ -50,7 +50,7 @@ def test_retrieval_package_still_imports_no_reranking_provider() -> None:
                            "app.providers.passthrough_reranker",
                            "app.providers.fake_reranker")
     for module in (APP / "retrieval").glob("*.py"):
-        for name in _imports(module.read_text()):
+        for name in _imports(module.read_text(encoding="utf-8")):
             assert not name.startswith(forbidden_prefixes), (
                 f"{module.name} imports {name}"
             )
@@ -63,7 +63,7 @@ def test_the_generation_package_exists_and_citations_stays_provider_free() -> No
     package = APP / "generation"
     assert package.exists()
 
-    citations_source = (package / "citations.py").read_text()
+    citations_source = (package / "citations.py").read_text(encoding="utf-8")
     for name in _imports(citations_source):
         assert not name.startswith("app.providers"), name
         assert not name.startswith("sqlalchemy"), name
@@ -83,7 +83,7 @@ def test_the_evals_package_exists_and_is_bounded() -> None:
     assert (package / "answers").exists()
 
     for path in package.rglob("*.py"):
-        for name in _imports(path.read_text()):
+        for name in _imports(path.read_text(encoding="utf-8")):
             assert name != "anthropic" and not name.startswith("anthropic."), (
                 f"{path.name} imports {name}"
             )
@@ -91,7 +91,7 @@ def test_the_evals_package_exists_and_is_bounded() -> None:
 
 def test_no_anthropic_import_anywhere_in_the_application() -> None:
     for module in APP.rglob("*.py"):
-        for name in _imports(module.read_text()):
+        for name in _imports(module.read_text(encoding="utf-8")):
             assert name != "anthropic" and not name.startswith("anthropic."), module.name
 
 
@@ -181,7 +181,7 @@ def test_no_hnsw_or_ivfflat_index_is_created_by_any_migration() -> None:
     """A docstring may *mention* HNSW while explaining why it is deferred
     (migration 0004 does); no migration may actually create one."""
     for path in (ROOT / "alembic" / "versions").glob("*.py"):
-        source = path.read_text().lower()
+        source = path.read_text(encoding="utf-8").lower()
         assert "using hnsw" not in source
         assert "using ivfflat" not in source
         assert "postgresql_using=\"hnsw\"" not in source
@@ -193,14 +193,14 @@ def test_no_hnsw_or_ivfflat_mentioned_at_all_in_retrieval_code() -> None:
     mention either — it only ever runs the exact search the specification
     requires at v1 corpus size."""
     for path in (APP / "retrieval").glob("*.py"):
-        source = path.read_text().lower()
+        source = path.read_text(encoding="utf-8").lower()
         assert "hnsw" not in source
         assert "ivfflat" not in source
 
 
 def test_no_redis_or_celery_anywhere() -> None:
     for module in APP.rglob("*.py"):
-        for name in _imports(module.read_text()):
+        for name in _imports(module.read_text(encoding="utf-8")):
             assert not name.startswith("redis")
             assert not name.startswith("celery")
 
@@ -211,7 +211,7 @@ def test_no_second_datastore_is_declared() -> None:
 
     declared = {
         __import__("re").split(r"[><=\[]", item)[0].strip().lower()
-        for item in tomllib.loads((ROOT / "pyproject.toml").read_text())["project"][
+        for item in tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
             "dependencies"
         ]
     }
@@ -233,7 +233,7 @@ def test_milestones_five_through_ten_added_only_the_dependencies_they_needed() -
 
     declared = {
         __import__("re").split(r"[><=\[]", item)[0].strip()
-        for item in tomllib.loads((ROOT / "pyproject.toml").read_text())["project"][
+        for item in tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
             "dependencies"
         ]
     }
@@ -271,7 +271,7 @@ def test_no_api_module_imports_the_evals_package() -> None:
     """The application itself never calls into `evals/` — evaluation reads
     the application's code, not the other way around."""
     for module in APP.rglob("*.py"):
-        for name in _imports(module.read_text()):
+        for name in _imports(module.read_text(encoding="utf-8")):
             assert not name.startswith("evals"), f"{module} imports {name}"
 
 
@@ -289,7 +289,7 @@ def test_evals_package_has_no_second_database_configured() -> None:
     """D11, locked: the evaluation harness uses the one configured
     KnowledgeOS database, never a `knowledgeos_evals`-style second one."""
     for path in (ROOT / "evals").rglob("*.py"):
-        source = path.read_text()
+        source = path.read_text(encoding="utf-8")
         assert "knowledgeos_evals" not in source
         assert "create_engine" not in source
 
@@ -308,7 +308,7 @@ def test_engineering_doc_m7_section_has_no_fabricated_metric_numbers() -> None:
     """
     import re
 
-    text = (ROOT / "docs" / "ENGINEERING.md").read_text()
+    text = (ROOT / "docs" / "ENGINEERING.md").read_text(encoding="utf-8")
     start = text.index("## What milestone 7 built")
     end = text.index("\n## ", start + 1)
     section = text[start:end]
@@ -327,7 +327,7 @@ def test_engineering_doc_m8_section_has_no_fabricated_answer_metric_numbers() ->
     recall number, or an abstention accuracy figure it never measured."""
     import re
 
-    text = (ROOT / "docs" / "ENGINEERING.md").read_text()
+    text = (ROOT / "docs" / "ENGINEERING.md").read_text(encoding="utf-8")
     start = text.index("## What milestone 8 built")
     end = text.index("\n## ", start + 1)
     section = text[start:end]
@@ -350,7 +350,7 @@ def test_bm25_never_describes_postgres_full_text_search() -> None:
         + [ROOT / "README.md", ROOT / "docs" / "ENGINEERING.md"]
     )
     for path in targets:
-        text = " ".join(path.read_text().split())
+        text = " ".join(path.read_text(encoding="utf-8").split())
         lowered = text.lower()
         start = 0
         while (index := lowered.find("bm25", start)) != -1:

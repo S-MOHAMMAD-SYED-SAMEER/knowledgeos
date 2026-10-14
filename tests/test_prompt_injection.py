@@ -141,7 +141,7 @@ def test_injected_text_in_evidence_never_reaches_a_python_format_or_eval() -> No
 
     generation_dir = pathlib.Path(__file__).resolve().parent.parent / "app" / "generation"
     for path in generation_dir.rglob("*.py"):
-        tree = ast.parse(path.read_text())
+        tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 assert node.func.id not in ("eval", "exec"), path

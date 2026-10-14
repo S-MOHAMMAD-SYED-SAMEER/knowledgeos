@@ -38,7 +38,7 @@ def test_citations_module_makes_no_provider_call_and_no_io() -> None:
         / "generation"
         / "citations.py"
     )
-    tree = ast.parse(path.read_text())
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     imported = {
         node.module
         for node in ast.walk(tree)

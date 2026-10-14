@@ -181,7 +181,7 @@ def test_a_successful_answers_run_writes_exactly_one_json_report(session, tmp_pa
 
     files = list(report_dir.glob("answers-*.json"))
     assert len(files) == 1
-    payload = json.loads(files[0].read_text())
+    payload = json.loads(files[0].read_text(encoding="utf-8"))
     assert payload["suite"] == "answers"
     assert payload["eval_run_id"] is not None
 

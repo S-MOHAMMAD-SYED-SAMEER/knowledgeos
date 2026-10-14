@@ -1,15 +1,16 @@
 """`python -m evals.run --suite retrieval`.
 
-The real local models are genuinely unavailable in this environment (no
-sentence-transformers cache), so the hard-failure path is exercised against
-the CLI's real, unmodified providers below -- no monkeypatching needed to
-prove that case. The success path is exercised with the CLI's two provider
+The hard-failure path is exercised against the CLI's real, unmodified
+providers with the `models_not_in_cache` fixture, which simulates a cache miss
+(the `OSError` a missing model raises), so it gives the same answer on CI,
+where nothing is cached, and on a laptop where both models are. The success path is exercised with the CLI's two provider
 classes replaced by deterministic stand-ins (D2's pytest-only allowance):
 what is under test there is `run.py`'s own wiring -- does it persist what
 `run_retrieval_suite` reports, write the JSON artifact, print a summary --
 not a claim that these numbers are an official evaluation result.
 """
 
+import pytest
 import evals.run as run_module
 from app.models import RETRIEVAL_SUITE, EvalRun
 from app.providers.fake_embeddings import FakeEmbeddingProvider
@@ -37,6 +38,7 @@ def test_main_requires_the_suite_argument() -> None:
 # --- hard failure: the real models are genuinely absent here -------------
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_run_retrieval_fails_hard_when_the_embedding_model_is_unavailable(
     session,
 ) -> None:
@@ -44,6 +46,7 @@ def test_run_retrieval_fails_hard_when_the_embedding_model_is_unavailable(
     assert exit_code != 0
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_a_failed_run_writes_no_eval_runs_row(session) -> None:
     from sqlalchemy import select
 
@@ -53,6 +56,7 @@ def test_a_failed_run_writes_no_eval_runs_row(session) -> None:
     assert rows == []
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_a_failed_run_writes_no_json_report(session, tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(run_module.report, "DEFAULT_REPORT_DIR", tmp_path / "eval_runs")
 
@@ -61,6 +65,7 @@ def test_a_failed_run_writes_no_json_report(session, tmp_path, monkeypatch) -> N
     assert not (tmp_path / "eval_runs").exists()
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_canary_failure_means_the_suite_never_runs_at_all(session, monkeypatch) -> None:
     """The corpus must never even be touched when the embedding model is
     unavailable -- proven by making `run_retrieval_suite` itself raise if
@@ -144,7 +149,7 @@ def test_a_successful_run_writes_exactly_one_json_report(
 
     files = list(report_dir.glob("retrieval-*.json"))
     assert len(files) == 1
-    payload = json.loads(files[0].read_text())
+    payload = json.loads(files[0].read_text(encoding="utf-8"))
     assert payload["suite"] == "retrieval"
     assert payload["eval_run_id"] is not None
 

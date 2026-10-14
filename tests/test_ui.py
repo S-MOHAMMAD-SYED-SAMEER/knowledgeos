@@ -333,7 +333,7 @@ def test_eval_page_reads_through_app_models_never_evals_package() -> None:
     import ast
     import pathlib
 
-    source = pathlib.Path("app/ui/routes.py").read_text()
+    source = pathlib.Path("app/ui/routes.py").read_text(encoding="utf-8")
     names = set()
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.Import):
@@ -411,12 +411,13 @@ def test_no_template_uses_the_safe_filter() -> None:
 
     templates_dir = pathlib.Path("app/ui/templates")
     for path in templates_dir.glob("*.html"):
-        assert "|safe" not in path.read_text(), path.name
+        assert "|safe" not in path.read_text(encoding="utf-8"), path.name
 
 
 # --- safe error handling everywhere --------------------------------------
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_provider_failure_in_the_ui_never_leaks_a_traceback(
     client: TestClient, migrated_engine: Engine
 ) -> None:
