@@ -220,6 +220,29 @@ def test_ci_forces_huggingface_offline_mode() -> None:
     assert "TRANSFORMERS_OFFLINE" in source
 
 
+def test_ci_has_the_four_jobs_the_audit_asked_for() -> None:
+    workflow = _ci_workflow()
+    assert set(workflow["jobs"]) == {"test", "windows", "docker-build", "audit"}
+
+    windows = workflow["jobs"]["windows"]
+    assert windows["runs-on"].startswith("windows")
+    assert any("pytest" in step.get("run", "") for step in windows["steps"])
+
+    build = " ".join(step.get("run", "") for step in workflow["jobs"]["docker-build"]["steps"])
+    assert "docker-compose.demo.yml up --build" in build
+    assert "/ready" in build
+    assert "/query" in build
+    assert "down -v" in build  # and it cleans up
+
+    audit = " ".join(step.get("run", "") for step in workflow["jobs"]["audit"]["steps"])
+    assert "pip-audit" in audit
+
+
+def test_the_image_build_copies_the_license_the_package_declares() -> None:
+    assert "LICENSE" in _dockerfile()
+    assert "LICENSE" not in (ROOT / ".dockerignore").read_text(encoding="utf-8")
+
+
 def test_ci_has_no_deployment_or_release_step() -> None:
     """Locked decision D9: keep CI focused."""
     workflow = _ci_workflow()
