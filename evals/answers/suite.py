@@ -20,10 +20,15 @@ rejected attempt (`CitationError`/`GenerationError`) is never persisted,
 for the same reason `POST /query` never persists one: there is no valid
 `GeneratedAnswer` to write.
 
-An `LLMError` (the provider itself failing, not the model's output)
-propagates uncaught — a real-provider evaluation run needs the provider to
-keep working for its entire duration; an outage partway through is an
-infrastructure failure for the run to fail on, not a data point to score.
+An `LLMError` (the provider itself failing, not the model's output) is not
+a data point to score, and it must not throw away the answers already paid
+for. The question is left pending (it is not scored as anything), the run
+carries on, and after `max_consecutive_failures` failures in a row it stops
+instead of hammering a service that is down or out of quota. What was done is
+reported through `on_progress` after every question, so the caller can save it;
+a later run resumes from `resume_from` and asks only the pending questions. A
+run with any pending question is incomplete, and the caller must not report
+it as a result.
 
 `total_ms` is the sum of the three measured stages (retrieval + rerank +
 generation-attempt, whether or not generation ultimately succeeded) —
@@ -32,7 +37,9 @@ which sets its `.ms` in a `finally` block, so a stage that raised still
 contributes its real measured time rather than leaving a gap.
 """
 
-from dataclasses import dataclass
+import logging
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import UUID
 
@@ -48,7 +55,7 @@ from app.generation.persistence import persist_query
 from app.observability.timing import stage_timer
 from app.parsing import normalize
 from app.providers.embeddings import EmbeddingProvider
-from app.providers.llm import LLMProvider
+from app.providers.llm import LLMError, LLMProvider
 from app.providers.reranker import RerankProvider
 from app.reranking.pipeline import rerank
 from app.retrieval.filters import RetrievalFilters
@@ -67,6 +74,14 @@ from evals.retrieval.corpus import (
 from evals.retrieval.questions import DEFAULT_QUESTIONS_DIR, load_question_set
 
 
+logger = logging.getLogger(__name__)
+
+# Stop after this many provider failures in a row, unless told otherwise.
+DEFAULT_MAX_CONSECUTIVE_FAILURES = 2
+
+ProgressCallback = Callable[[list[AnswerAttempt], list[UUID]], None]
+
+
 @dataclass(frozen=True)
 class AnswerSuiteResult:
     attempts: list[AnswerAttempt]
@@ -76,6 +91,17 @@ class AnswerSuiteResult:
     test_question_count: int
     total_question_count: int
     config: dict
+    # Questions with no result yet: the provider failed on them, or the run stopped before them.
+    # Empty for a complete run, which is the only kind that may be reported.
+    pending_question_ids: list[str] = field(default_factory=list)
+    # Why the run stopped before the end, or None.
+    stopped_early: str | None = None
+    # One entry per provider failure: {"question_id", "error"} (never a message from the model).
+    provider_errors: list[dict] = field(default_factory=list)
+
+    @property
+    def complete(self) -> bool:
+        return not self.pending_question_ids
 
 
 def _filters_to_dict(filters: RetrievalFilters) -> dict:
@@ -106,6 +132,9 @@ def run_answers_suite(
     questions_dir: Path = DEFAULT_QUESTIONS_DIR,
     splits_path: Path = DEFAULT_SPLITS_PATH,
     rrf_k: int = DEFAULT_RRF_K,
+    max_consecutive_failures: int = DEFAULT_MAX_CONSECUTIVE_FAILURES,
+    resume_from: tuple[list[AnswerAttempt], list[UUID]] | None = None,
+    on_progress: ProgressCallback | None = None,
 ) -> AnswerSuiteResult:
     """Evaluate every frozen question through the real pipeline.
 
@@ -121,10 +150,16 @@ def run_answers_suite(
     questions = load_question_set(questions_dir)
     split = apply_split(questions, splits_path)
 
-    attempts: list[AnswerAttempt] = []
-    persisted_query_ids: list[UUID] = []
+    attempts: list[AnswerAttempt] = list(resume_from[0]) if resume_from else []
+    persisted_query_ids: list[UUID] = list(resume_from[1]) if resume_from else []
+    already_done = {a.question_id for a in attempts}
+    provider_errors: list[dict] = []
+    consecutive_failures = 0
+    stopped_early: str | None = None
 
     for question in questions:
+        if question.id in already_done:
+            continue
         normalized_text = normalize(question.text)
 
         with stage_timer() as retrieval_timer:
@@ -140,14 +175,36 @@ def run_answers_suite(
         with stage_timer() as rerank_timer:
             reranked = rerank(normalized_text, result.candidates, reranker_provider)
 
-        with stage_timer() as llm_timer:
-            answer = generate_answer(
-                query_text=normalized_text,
-                candidates=reranked,
-                llm=llm,
-                abstention_threshold=abstention_threshold,
-                max_tokens=max_tokens,
+        try:
+            with stage_timer() as llm_timer:
+                answer = generate_answer(
+                    query_text=normalized_text,
+                    candidates=reranked,
+                    llm=llm,
+                    abstention_threshold=abstention_threshold,
+                    max_tokens=max_tokens,
+                )
+        except LLMError as exc:
+            # The provider failed, not the model's output. Leave the question pending.
+            consecutive_failures += 1
+            provider_errors.append({"question_id": question.id, "error": type(exc).__name__})
+            logger.warning(
+                "The provider failed on question %s (%s); %d failure(s) in a row.",
+                question.id,
+                type(exc).__name__,
+                consecutive_failures,
             )
+            if consecutive_failures >= max_consecutive_failures:
+                stopped_early = (
+                    f"{consecutive_failures} provider failures in a row (last: {type(exc).__name__}); "
+                    "stopped instead of retrying in a loop"
+                )
+                break
+            continue
+        if answer.model_name is not None:
+            # The provider answered. (A question that never reached it, a pre-LLM abstention,
+            # says nothing about whether it is back, so it does not end a run of failures.)
+            consecutive_failures = 0
 
         if answer.verification_failure is not None:
             # The model was asked (twice, unless it declined) and nothing it said could be shown:
@@ -163,6 +220,8 @@ def run_answers_suite(
                     llm_ms=llm_timer.ms,
                 )
             )
+            if on_progress is not None:
+                on_progress(attempts, persisted_query_ids)
             continue
 
         # `answer.model_name is None` marks a pre-LLM abstention (zero
@@ -222,6 +281,13 @@ def run_answers_suite(
             total_ms=total_ms,
         )
         persisted_query_ids.append(query_row.id)
+        if on_progress is not None:
+            on_progress(attempts, persisted_query_ids)
+
+    answered = {a.question_id for a in attempts}
+    pending = [q.id for q in questions if q.id not in answered]
+    if pending and stopped_early is None and provider_errors:
+        stopped_early = f"{len(pending)} question(s) have no result because the provider failed on them"
 
     config = {
         "embedding_model": embeddings.model_name,
@@ -244,6 +310,9 @@ def run_answers_suite(
         test_question_count=len(split.test),
         total_question_count=len(questions),
         config=config,
+        pending_question_ids=pending,
+        stopped_early=stopped_early,
+        provider_errors=provider_errors,
     )
 
 

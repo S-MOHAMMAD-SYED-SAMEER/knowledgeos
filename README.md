@@ -114,6 +114,17 @@ abstention triggering) are kept separate from model-judged checks, and the
 reports say which is which. Both suites run offline from the CLI:
 `python -m evals.run --suite retrieval | answers`.
 
+The retrieval suite needs no key. The answers suite calls a model about 53 times
+(one availability check, one call per question, a second call for any reply that
+has to be retried). It prints that budget before it starts, spaces the calls
+(`--requests-per-minute`, default 10, under a free tier's 15), stops after two
+provider failures in a row (`--max-consecutive-failures`), and saves its progress
+after every question, so `--resume <file>` continues without paying for the
+questions already answered. A stopped run writes a checkpoint and nothing
+official: no `eval_runs` row, no report. A reply the model could not make
+verifiable ("I couldn't verify this answer") is counted on its own, never as an
+abstention.
+
 **Results.** Retrieval has been measured. Answer quality has not.
 
 The retrieval suite (`python -m evals.run --suite retrieval`, offline, no API

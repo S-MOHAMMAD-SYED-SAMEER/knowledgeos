@@ -17,6 +17,8 @@ report -- not to claim these numbers are an official M9 result.
 
 import logging
 
+import pytest
+
 import evals.run as run_module
 from app.models import EvalRun
 from app.providers.fake_embeddings import FakeEmbeddingProvider
@@ -24,6 +26,7 @@ from app.providers.fake_reranker import FakeRerankProvider
 from tests.generation_fixtures import AutoCitingLLMProvider
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_main_dispatches_the_answers_suite_and_fails_hard_here(session) -> None:
     """No stubbing: proves `--suite answers` reaches `run_answers` and
     that the real, unavailable-here models are what stops it -- exit 1,
@@ -35,11 +38,13 @@ def test_main_dispatches_the_answers_suite_and_fails_hard_here(session) -> None:
 # --- hard failure: the real models are genuinely absent here ---------------
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_run_answers_fails_hard_when_the_embedding_model_is_unavailable(session) -> None:
     exit_code = run_module.run_answers(session)
     assert exit_code != 0
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_a_failed_official_answer_run_writes_no_eval_runs_row(session) -> None:
     from sqlalchemy import select
 
@@ -49,6 +54,7 @@ def test_a_failed_official_answer_run_writes_no_eval_runs_row(session) -> None:
     assert rows == []
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_a_failed_official_answer_run_writes_no_json_report(session, tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(run_module.answers_report, "DEFAULT_REPORT_DIR", tmp_path / "eval_runs")
 
@@ -57,6 +63,7 @@ def test_a_failed_official_answer_run_writes_no_json_report(session, tmp_path, m
     assert not (tmp_path / "eval_runs").exists()
 
 
+@pytest.mark.usefixtures("models_not_in_cache")
 def test_a_failed_official_answer_run_prints_the_blocking_reason(session, capsys) -> None:
     run_module.run_answers(session)
 
@@ -129,7 +136,7 @@ class _StubGeminiLLMProvider:
     same substitution `_StubEmbeddingProvider`/`_StubCrossEncoderProvider`
     already make for their real counterparts."""
 
-    def __init__(self, model_name: str | None) -> None:
+    def __init__(self, model_name: str | None, **kwargs) -> None:
         self._inner = AutoCitingLLMProvider()
 
     @property
@@ -143,6 +150,10 @@ class _StubGeminiLLMProvider:
 class _StubSettings:
     llm_model = "stub-gemini-model"
     llm_max_output_tokens = 512
+    llm_timeout_seconds = 30.0
+    llm_max_retries = 2
+    llm_retry_max_wait_seconds = 15.0
+    llm_temperature = None
     llm_pricing_usd_per_million_tokens: dict = {}
 
 
@@ -159,7 +170,7 @@ def test_a_successful_answers_run_writes_one_eval_runs_row(session, tmp_path, mo
     _patch_stub_providers(monkeypatch)
     monkeypatch.setattr(run_module.answers_report, "DEFAULT_REPORT_DIR", tmp_path / "eval_runs")
 
-    exit_code = run_module.run_answers(session)
+    exit_code = run_module.run_answers(session, requests_per_minute=0)
     assert exit_code == 0
 
     rows = session.execute(select(EvalRun)).scalars().all()
@@ -176,7 +187,7 @@ def test_a_successful_answers_run_writes_exactly_one_json_report(session, tmp_pa
     _patch_stub_providers(monkeypatch)
     monkeypatch.setattr(run_module.answers_report, "DEFAULT_REPORT_DIR", report_dir)
 
-    exit_code = run_module.run_answers(session)
+    exit_code = run_module.run_answers(session, requests_per_minute=0)
     assert exit_code == 0
 
     files = list(report_dir.glob("answers-*.json"))
@@ -192,7 +203,7 @@ def test_a_successful_answers_run_records_the_calibration_result(session, tmp_pa
     _patch_stub_providers(monkeypatch)
     monkeypatch.setattr(run_module.answers_report, "DEFAULT_REPORT_DIR", tmp_path / "eval_runs")
 
-    exit_code = run_module.run_answers(session)
+    exit_code = run_module.run_answers(session, requests_per_minute=0)
     assert exit_code == 0
 
     row = session.execute(select(EvalRun)).scalars().one()
