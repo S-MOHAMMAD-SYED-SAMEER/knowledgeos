@@ -663,6 +663,10 @@ when retrieval found nothing to score.
 
 ## What milestone 7 built
 
+> **Since updated (K3a-2):** the retrieval suite described here has since been run for real; the
+> record is in [results/2026-10-14-retrieval-eval.md](results/2026-10-14-retrieval-eval.md). The
+> narrative below is left as it was written, when no run existed.
+
 The retrieval evaluation harness. Everything before this milestone answers
 "does retrieval work at all?" by reading code and a handful of hand-picked
 examples; this milestone answers it with a fixed corpus, a frozen question
