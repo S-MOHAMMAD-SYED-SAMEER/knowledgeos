@@ -17,9 +17,9 @@ from app.models.document import (
 from app.models.eval_run import RETRIEVAL_SUITE, EvalRun
 from app.models.feedback import (
     MAX_REASON_LENGTH,
-    RATINGS,
     RATING_HELPFUL,
     RATING_NOT_HELPFUL,
+    RATINGS,
     Feedback,
 )
 from app.models.ingestion_job import (

@@ -23,7 +23,12 @@ from app.providers import (
     ScoredChunk,
     check_rerank_shape,
 )
-from app.reranking import RerankedChunk, get_rerank_provider, reset_rerank_provider, rerank
+from app.reranking import (
+    RerankedChunk,
+    get_rerank_provider,
+    rerank,
+    reset_rerank_provider,
+)
 from app.retrieval.pipeline import RetrievedChunk
 from app.retrieval.vector import ChunkEvidence
 
@@ -207,7 +212,6 @@ def test_the_fake_reranker_can_reorder_candidates() -> None:
 
 
 def test_higher_score_sorts_first() -> None:
-    candidates = [Candidate(id="low", text="x"), Candidate(id="high", text="y")]
     scored = [ScoredChunk(id="low", score=0.1), ScoredChunk(id="high", score=0.9)]
     ordered = sorted(scored, key=lambda item: -item.score)
     assert [item.id for item in ordered] == ["high", "low"]

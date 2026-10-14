@@ -15,7 +15,12 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.ingestion import service
-from app.ingestion.runner import IngestionRunner, claim_next_job, process_one, run_pending
+from app.ingestion.runner import (
+    IngestionRunner,
+    claim_next_job,
+    process_one,
+    run_pending,
+)
 from app.models import Chunk, DocumentVersion, IngestionJob, JobStatus
 from app.providers import FakeEmbeddingProvider
 from app.storage import LocalStorage
@@ -182,7 +187,7 @@ def test_the_version_is_never_promoted_by_the_runner(
 def test_a_failing_job_goes_back_to_queued_below_the_bound(
     session, storage, settings
 ) -> None:
-    result = _queued(session, storage, plain_zip_bytes(), "handbook.docx")
+    _queued(session, storage, plain_zip_bytes(), "handbook.docx")
 
     outcome = process_one(session, storage, settings)
 
@@ -191,7 +196,7 @@ def test_a_failing_job_goes_back_to_queued_below_the_bound(
 
 
 def test_attempts_increment_on_every_try(session, storage, settings) -> None:
-    result = _queued(session, storage, plain_zip_bytes(), "handbook.docx")
+    _queued(session, storage, plain_zip_bytes(), "handbook.docx")
 
     for expected in (1, 2, 3):
         outcome = process_one(session, storage, settings)
@@ -200,7 +205,7 @@ def test_attempts_increment_on_every_try(session, storage, settings) -> None:
 
 def test_the_job_fails_at_the_bound(session, storage, settings) -> None:
     """Deterministic: exactly max_attempts tries, then it stops."""
-    result = _queued(session, storage, plain_zip_bytes(), "handbook.docx")
+    _queued(session, storage, plain_zip_bytes(), "handbook.docx")
 
     for _ in range(settings.max_attempts):
         outcome = process_one(session, storage, settings)

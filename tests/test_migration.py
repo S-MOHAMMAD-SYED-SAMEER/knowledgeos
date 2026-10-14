@@ -3,8 +3,9 @@
 import logging
 import pathlib
 
-from alembic import command
 from sqlalchemy import Engine, create_engine, inspect, text
+
+from alembic import command
 
 VERSIONS = pathlib.Path(__file__).resolve().parent.parent / "alembic" / "versions"
 TABLES = {

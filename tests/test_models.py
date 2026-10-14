@@ -15,7 +15,6 @@ from app.models import Document, DocumentVersion, VersionStatus
 
 from .conftest import version
 
-
 # --- documents -------------------------------------------------------------
 
 

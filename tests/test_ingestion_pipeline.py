@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.ingestion import service
 from app.ingestion.pipeline import StageFailed, parse_and_normalize, run_job
-from app.models import Chunk, DocumentVersion, IngestionJob, JobStatus
+from app.models import Chunk, DocumentVersion, JobStatus
 from app.storage import LocalStorage
 
 from .fixtures import docx_bytes, pdf_bytes, plain_zip_bytes, words

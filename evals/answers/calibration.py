@@ -144,7 +144,6 @@ def calibrate_threshold(observations: list[DevObservation]) -> CalibrationResult
         # explicitly rather than sweeping over nothing.
         candidate_thresholds = [0.0]
 
-    best: tuple[float, float, float] | None = None  # (recall, precision, -threshold)
     best_threshold = candidate_thresholds[0]
     best_recall = -1.0
     best_precision = -1.0

@@ -25,7 +25,6 @@ from sqlalchemy.orm import Session
 from app.api.query import embedding_provider, llm_provider, rerank_provider
 from app.providers import EmbeddingError, FakeEmbeddingProvider
 from app.providers.passthrough_reranker import PassthroughRerankProvider
-from app.providers.reranker import RerankError
 from app.storage import LocalStorage
 
 from .generation_fixtures import AutoCitingLLMProvider

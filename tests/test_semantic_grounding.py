@@ -6,10 +6,9 @@ other pytest-only use of a fake reranker in this codebase, and nothing
 here is presented as an official semantic-grounding result.
 """
 
-import pytest
 
 from app.providers.fake_reranker import FakeRerankProvider
-from app.providers.reranker import Candidate, RerankError, ScoredChunk
+from app.providers.reranker import RerankError, ScoredChunk
 from evals.answers.semantic import (
     SemanticGroundingResult,
     check_semantic_scorer_available,

@@ -255,7 +255,7 @@ def test_a_failure_that_is_not_a_version_collision_is_not_retried(
     session: Session
 ) -> None:
     """This wrapper exists for one race, not as a general retry."""
-    created = _create(session)
+    _create(session)
     calls = 0
 
     def attempt():

@@ -38,9 +38,10 @@ Create Date: 2026-09-12 17:20:00.000000
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision: str = "3fdbad950293"
 down_revision: str | Sequence[str] | None = "2e809bd3b68b"

@@ -28,6 +28,8 @@ the same result object, so they can never disagree with each other.
 import argparse
 import sys
 from dataclasses import asdict
+from datetime import UTC, datetime
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -45,9 +47,20 @@ from app.providers.reranker import Candidate, RerankError
 from app.storage import get_storage
 from evals.answers import report as answers_report
 from evals.answers.calibration import calibrate_threshold, collect_dev_observations
+from evals.answers.checkpoint import (
+    CheckpointError,
+    fingerprint,
+    load_checkpoint,
+    save_checkpoint,
+)
+from evals.answers.pacing import (
+    DEFAULT_REQUESTS_PER_MINUTE,
+    PacedLLMProvider,
+    describe_call_budget,
+)
 from evals.answers.semantic import check_semantic_scorer_available
 from evals.answers.splits import SplitError, apply_split
-from evals.answers.suite import run_answers_suite
+from evals.answers.suite import DEFAULT_MAX_CONSECUTIVE_FAILURES, run_answers_suite
 from evals.retrieval import report
 from evals.retrieval.corpus import CorpusError, ensure_corpus_seeded
 from evals.retrieval.questions import QuestionSetError, load_question_set
@@ -138,7 +151,13 @@ def run_retrieval(session: Session) -> int:
     return 0
 
 
-def run_answers(session: Session) -> int:
+def run_answers(
+    session: Session,
+    *,
+    requests_per_minute: float = DEFAULT_REQUESTS_PER_MINUTE,
+    max_consecutive_failures: int = DEFAULT_MAX_CONSECUTIVE_FAILURES,
+    resume: Path | None = None,
+) -> int:
     """The `answers` suite (D1, D8): the frozen milestone 7 questions
     through the real retrieve -> rerank -> generate pipeline, scored by
     `evals/answers/metrics.py`.
@@ -147,6 +166,13 @@ def run_answers(session: Session) -> int:
     (shared with the retrieval suite) plus generation. All three are
     canary-checked before anything is written, mirroring
     `run_retrieval`'s own discipline exactly.
+
+    The run is paced (`requests_per_minute`, 0 for no pacing), says what it will
+    cost before it starts, saves a checkpoint after every question, and stops
+    after `max_consecutive_failures` provider failures in a row. A stopped run
+    writes the checkpoint and nothing official (no `eval_runs` row, no report)
+    and exits 2; `resume` continues from that checkpoint. Only a run that
+    answered every question is reported.
     """
     settings = get_settings()
     storage = get_storage()
@@ -163,7 +189,15 @@ def run_answers(session: Session) -> int:
             "been verified for this build (see app/config.py)",
             suite_label="answer",
         )
-    llm = GeminiLLMProvider(settings.llm_model)
+    llm = GeminiLLMProvider(
+        settings.llm_model,
+        timeout_seconds=settings.llm_timeout_seconds,
+        max_retries=settings.llm_max_retries,
+        retry_max_wait_seconds=settings.llm_retry_max_wait_seconds,
+        temperature=settings.llm_temperature,
+    )
+    if requests_per_minute > 0:
+        llm = PacedLLMProvider(llm, requests_per_minute=requests_per_minute)
 
     llm_reason = _llm_unavailable_reason(llm)
     if llm_reason is not None:
@@ -200,6 +234,52 @@ def run_answers(session: Session) -> int:
     except (CorpusError, EmbeddingError, RerankError) as exc:
         return _fail(str(exc), suite_label="answer")
 
+    # What makes two partial runs one run, and where the progress is kept.
+    expected = fingerprint(
+        llm_model=llm.model_name,
+        embedding_model=embeddings.model_name,
+        rerank_model=cross_encoder.model_name,
+        abstention_threshold=calibration.threshold,
+        question_ids=[q.id for q in questions],
+    )
+    resume_from = None
+    if resume is not None:
+        try:
+            saved = load_checkpoint(resume, expected_fingerprint=expected)
+        except CheckpointError as exc:
+            return _fail(str(exc), suite_label="answer")
+        resume_from = (saved.attempts, saved.persisted_query_ids)
+        checkpoint_path = resume
+    else:
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        checkpoint_path = answers_report.DEFAULT_REPORT_DIR / f"answers-{stamp}.partial.json"
+
+    done = len(resume_from[0]) if resume_from else 0
+    if requests_per_minute > 0:
+        print(
+            describe_call_budget(
+                question_count=len(questions),
+                already_done=done,
+                requests_per_minute=requests_per_minute,
+            ),
+            flush=True,
+        )
+    else:
+        print(
+            f"Call budget: about {1 + len(questions) - done} model calls, unpaced "
+            "(--requests-per-minute 0). Check that your quota allows it.",
+            flush=True,
+        )
+
+    def _save(attempts, persisted_query_ids, stopped_early=None) -> None:
+        save_checkpoint(
+            checkpoint_path,
+            fingerprint=expected,
+            attempts=attempts,
+            persisted_query_ids=persisted_query_ids,
+            stopped_early=stopped_early,
+        )
+
     try:
         result = run_answers_suite(
             session,
@@ -210,6 +290,9 @@ def run_answers(session: Session) -> int:
             semantic_scorer=semantic_scorer,
             abstention_threshold=calibration.threshold,
             max_tokens=settings.llm_max_output_tokens,
+            max_consecutive_failures=max_consecutive_failures,
+            resume_from=resume_from,
+            on_progress=_save,
         )
     except (
         CorpusError,
@@ -217,9 +300,21 @@ def run_answers(session: Session) -> int:
         SplitError,
         EmbeddingError,
         RerankError,
-        LLMError,
     ) as exc:
         return _fail(str(exc), suite_label="answer")
+
+    if not result.complete:
+        _save(result.attempts, result.persisted_query_ids, result.stopped_early)
+        print(
+            f"Answer evaluation stopped early: {result.stopped_early}.\n"
+            f"  {len(result.attempts)} of {result.total_question_count} questions are done; "
+            f"{len(result.pending_question_ids)} have no result yet.\n"
+            "  No eval_runs row was written and no report was produced: a partial run is not a result.\n"
+            f"  Progress is saved. Resume with:\n"
+            f"    python -m evals.run --suite answers --resume {checkpoint_path}",
+            file=sys.stderr,
+        )
+        return 2
 
     pricing_table = settings.llm_pricing_usd_per_million_tokens
 
@@ -249,20 +344,48 @@ def run_answers(session: Session) -> int:
         )
     )
     print(f"\nJSON report written to {report_path}")
+    checkpoint_path.unlink(missing_ok=True)  # the run is whole; its progress file is no longer needed
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m evals.run")
     parser.add_argument("--suite", required=True, choices=SUPPORTED_SUITES)
+    parser.add_argument(
+        "--requests-per-minute",
+        type=float,
+        default=DEFAULT_REQUESTS_PER_MINUTE,
+        help="answers suite: space model calls at most this fast; 0 turns pacing off "
+        f"(default {DEFAULT_REQUESTS_PER_MINUTE:g}, under the 15 a minute of a free tier)",
+    )
+    parser.add_argument(
+        "--max-consecutive-failures",
+        type=int,
+        default=DEFAULT_MAX_CONSECUTIVE_FAILURES,
+        help="answers suite: stop after this many provider failures in a row "
+        f"(default {DEFAULT_MAX_CONSECUTIVE_FAILURES})",
+    )
+    parser.add_argument(
+        "--resume",
+        type=Path,
+        default=None,
+        help="answers suite: continue from the checkpoint a stopped run printed",
+    )
     args = parser.parse_args(argv)
+    if args.requests_per_minute < 0 or args.max_consecutive_failures < 1:
+        parser.error("--requests-per-minute must be >= 0 and --max-consecutive-failures >= 1")
 
     session_factory = get_sessionmaker()
     with session_factory() as session:
         if args.suite == "retrieval":
             return run_retrieval(session)
         if args.suite == "answers":
-            return run_answers(session)
+            return run_answers(
+                session,
+                requests_per_minute=args.requests_per_minute,
+                max_consecutive_failures=args.max_consecutive_failures,
+                resume=args.resume,
+            )
         raise AssertionError(f"unhandled suite {args.suite!r}")  # argparse guards this
 
 

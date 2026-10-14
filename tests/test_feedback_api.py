@@ -174,7 +174,8 @@ def test_the_database_rejects_an_invalid_rating_bypassing_the_api(
 ) -> None:
     """The CHECK constraint (migration 0007), not just the pydantic layer
     -- a write that bypassed the API still cannot store a bad value."""
-    from app.models import Answer, Feedback as FeedbackModel
+    from app.models import Answer
+    from app.models import Feedback as FeedbackModel
 
     with Session(migrated_engine) as session:
         answer_id = _persisted_answer_id(session, storage, embeddings)

@@ -52,14 +52,6 @@ _CANARY_SENTENCE = "semantic grounding scorer availability check"
 _CANARY_CHUNK = "a chunk of evidence text used only to verify the scorer loads"
 
 
-class SemanticGroundingUnavailable(RuntimeError):
-    """The local cross-encoder could not score anything.
-
-    Never carries the sentence or chunk text that was being scored —
-    only what failed structurally.
-    """
-
-
 @dataclass(frozen=True)
 class SentenceEntailment:
     """One sentence's raw entailment-style score against the best of its
@@ -175,7 +167,6 @@ def score_answer_semantic(
 __all__ = [
     "DEFAULT_UNSUPPORTED_CLAIM_THRESHOLD",
     "SemanticGroundingResult",
-    "SemanticGroundingUnavailable",
     "SentenceEntailment",
     "check_semantic_scorer_available",
     "score_answer_semantic",

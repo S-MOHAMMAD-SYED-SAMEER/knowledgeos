@@ -7,7 +7,12 @@ no longer exists.
 
 import pytest
 
-from evals.answers.splits import DEFAULT_SPLITS_PATH, SplitError, apply_split, load_split_ids
+from evals.answers.splits import (
+    DEFAULT_SPLITS_PATH,
+    SplitError,
+    apply_split,
+    load_split_ids,
+)
 from evals.retrieval.questions import load_question_set
 
 
