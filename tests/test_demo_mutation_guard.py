@@ -70,20 +70,16 @@ def test_demo_mode_refuses_json_api_feedback(
 
 
 def test_demo_mode_refuses_ui_feedback(demo_client: TestClient, migrated_engine) -> None:
-    """As of the standalone-demo hardening work, this route declares
-    `require_mutation_allowed` as a route dependency (the same way the
-    JSON API's own feedback route already does), rather than calling it
-    explicitly and rendering `error.html` for the result -- the accepted
-    trade-off that lets `demo.app.create_demo_app()`'s override refuse
-    this route too. So this response is FastAPI's own default JSON 403
-    body here, matching the JSON API's response for the same refusal,
-    not this route's own HTML error page."""
+    """This route declares `require_mutation_allowed` as a route dependency (the same way the JSON
+    API's own feedback route does), which lets `demo.app.create_demo_app()`'s override refuse it
+    too. That refusal used to reach the browser as FastAPI's raw JSON 403; under `/ui` it is now the
+    styled error page, with the same status and the same explanation."""
     response = demo_client.post(
         f"/ui/answers/{RANDOM_ID}/feedback", data={"rating": "helpful"}
     )
     assert response.status_code == 403
-    assert response.headers["content-type"].startswith("application/json")
-    assert "demo mode" in response.json()["detail"].lower()
+    assert response.headers["content-type"].startswith("text/html")
+    assert "demo mode" in response.text.lower()
 
 
 def test_demo_mode_still_allows_reading_documents(
