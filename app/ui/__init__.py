@@ -1,4 +1,4 @@
-"""Milestone 10: the server-rendered UI.
+"""The server-rendered UI.
 
 Jinja2, minimal, five pages (§12): document list, document detail with
 version history, a query box, an answer page showing citations and

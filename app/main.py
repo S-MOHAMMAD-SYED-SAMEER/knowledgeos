@@ -1,21 +1,18 @@
 """Application entrypoint: `uvicorn app.main:app --reload`.
 
-Milestone 5 added `POST /query`; milestone 8 adds `GET /queries/{id}`
-alongside it, on the same router — both retrieval-and-generation routes live
-in `app/api/query.py`. Milestone 10 adds `POST /answers/{id}/feedback`
-(`app/api/feedback.py`) and the server-rendered UI (`app/ui/routes.py`,
-mounted under `/ui`, `include_in_schema=False` on every route — it never
-appears in `/openapi.json` and `tests/test_health.py`'s own exact-path
-guard proves it). The JSON API's HTTP surface is those routes, the two
-probes, `POST /documents`, `POST /documents/{id}/versions`, `GET
-/documents`, `GET /documents/{id}` and `GET /ingestion/{job_id}`, and
-`tests/test_health.py` asserts it, so a route belonging to a later
-milestone cannot arrive here quietly.
+The JSON API is `POST /query` and `GET /queries/{id}` (both in
+`app/api/query.py`), `POST /answers/{id}/feedback` (`app/api/feedback.py`), the
+two probes, `POST /documents`, `POST /documents/{id}/versions`, `POST
+/documents/{id}/reindex`, `GET /documents`, `GET /documents/{id}` and `GET
+/ingestion/{job_id}`. `tests/test_health.py` asserts exactly that list, so a
+route cannot arrive here quietly. The server-rendered UI (`app/ui/routes.py`) is
+mounted under `/ui` with `include_in_schema=False` on every route, so it never
+appears in `/openapi.json`.
 
-What is new is behind it: the lifespan starts the ingestion runner, which
-polls for queued jobs and parses and chunks them. The runner is held on the
-application rather than in a module-level variable, so nothing is shared
-between two applications built in one process.
+The lifespan starts the ingestion runner, which polls for queued jobs and
+parses and chunks them. The runner is held on the application rather than in a
+module-level variable, so nothing is shared between two applications built in
+one process.
 
 `create_app()` takes its settings as an argument so a test can build an
 application on a configuration of its own without reaching into a cache. The
