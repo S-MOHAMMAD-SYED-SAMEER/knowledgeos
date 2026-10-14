@@ -362,3 +362,42 @@ def test_standalone_demo_refuses_ui_feedback_for_an_existing_answer(
             select(Feedback).where(Feedback.answer_id == answer_id)
         ).scalars().all()
     assert rows == []
+
+
+# --- what a visitor is told ---------------------------------------------------------------------
+
+
+def test_the_ask_page_suggests_exactly_the_questions_the_demo_can_answer() -> None:
+    from markupsafe import escape
+
+    from demo.llm import flagship_questions
+
+    page = TestClient(create_demo_app()).get("/ui/query").text
+
+    questions = flagship_questions()
+    assert len(questions) == 5
+    for question in questions:
+        assert str(escape(question)) in page
+    assert "What is the approval process for production database access?" not in page  # not one it knows
+
+
+def test_every_suggested_question_is_one_the_demo_embedder_knows() -> None:
+    from demo.llm import flagship_questions
+    from demo.providers import DemoEmbeddingProvider
+
+    DemoEmbeddingProvider().embed(list(flagship_questions()))  # raises for any it does not know
+
+
+def test_a_question_the_demo_cannot_answer_is_a_clear_422_not_a_503_outage() -> None:
+    from demo.providers import UNSCRIPTED_QUESTION_DETAIL
+
+    client = TestClient(create_demo_app())
+
+    api = client.post("/query", json={"query": "What is the dress code on Fridays?"})
+    ui = client.post("/ui/query", data={"query": "What is the dress code on Fridays?"})
+
+    assert api.status_code == 422
+    assert api.json()["detail"] == UNSCRIPTED_QUESTION_DETAIL
+    assert ui.status_code == 422
+    assert "can only answer its example questions" in ui.text
+    assert "unavailable" not in ui.text.lower()

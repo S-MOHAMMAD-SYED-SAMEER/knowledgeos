@@ -31,7 +31,17 @@ class EmbeddingError(RuntimeError):
 
     The message names what failed structurally — a model that would not load,
     a vector of the wrong width — and never the text that was being embedded.
+
+    `public_detail`, when a provider sets it, is a sentence that is safe and useful to show
+    the person who asked, for a failure that is about their question and not about the
+    system (the standalone demo, which can only embed its own example questions, is the one
+    user). The route then answers 422 with that sentence instead of a 503 that says the
+    model is unavailable, which would be untrue.
     """
+
+    def __init__(self, message: str, *, public_detail: str | None = None) -> None:
+        super().__init__(message)
+        self.public_detail = public_detail
 
 
 @runtime_checkable

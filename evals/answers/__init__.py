@@ -1,11 +1,11 @@
-"""Milestone 9: the answer evaluation suite.
+"""The answer evaluation suite.
 
-Measures what milestone 8's generation pipeline actually produces —
+Measures what the generation pipeline actually produces —
 grounded-answer rate, citation validity and coverage, abstention
-precision/recall, latency, tokens, and cost — over the frozen milestone 7
+precision/recall, latency, tokens, and cost — over the frozen evaluation
 corpus and question set, through the real retrieve → rerank → generate
 pipeline. Nothing here reimplements retrieval, reranking, generation, or
-citation validation; every one of those is milestone 5/6/8's own function,
+citation validation; every one of those is the application's own function,
 called unmodified.
 
 `evals/answers/semantic.py` is the one module that calls a provider

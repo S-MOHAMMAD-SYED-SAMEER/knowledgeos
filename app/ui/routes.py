@@ -118,9 +118,27 @@ def ui_document_detail(
 # --- query box (GET the form, POST runs the pipeline) -----------------------
 
 
+# What the Ask page suggests. The standalone demo replaces this (see `demo/app.py`) with the
+# questions it can actually answer, because its embedder knows only those.
+DEFAULT_EXAMPLE_QUESTIONS: tuple[str, ...] = (
+    "How many days per week may an employee work remotely?",
+    "What is the approval process for production database access?",
+    "Within how many minutes must an executive be notified of a severity-one incident?",
+    "What is the company's policy on using generative AI tools for writing code?",
+)
+
+
+def example_questions() -> tuple[str, ...]:
+    """The example questions the Ask page lists. A dependency, so a deployment can override it."""
+    return DEFAULT_EXAMPLE_QUESTIONS
+
+
 @router.get("/query")
-def ui_query_form(request: Request):
-    return templates.TemplateResponse(request, "query.html", {})
+def ui_query_form(
+    request: Request,
+    examples: Annotated[tuple[str, ...], Depends(example_questions)],
+):
+    return templates.TemplateResponse(request, "query.html", {"examples": examples})
 
 
 @router.post("/query", dependencies=[Depends(rate_limit_demo_query)])
@@ -336,4 +354,9 @@ def ui_eval_results(
     return templates.TemplateResponse(request, "evals.html", {"runs": runs})
 
 
-__all__ = ["router"]
+def error_page(request: Request, *, status_code: int, detail: str):
+    """The styled error page, for a handler that has no `HTTPException` of its own to hand `_error`."""
+    return _error(request, HTTPException(status_code=status_code, detail=detail))
+
+
+__all__ = ["DEFAULT_EXAMPLE_QUESTIONS", "error_page", "example_questions", "router"]

@@ -1,7 +1,7 @@
 # KnowledgeOS — Standalone Demo Mode (`demo/`)
 
 **This document is specifically about the standalone, fixture-replay
-demo built in P3 (`demo/`).** The repository also contains a second,
+demo in `demo/`.** The repository also contains a second,
 independent demo mechanism — an integrated demo mode built directly into
 `app/` (`Settings.demo_mode`, `GET /demo`, `app.providers.demo_llm.
 DemoLLMProvider`) — documented in the README's own **Running modes**
@@ -15,7 +15,7 @@ instead of a live embedding model, a live reranking model, or a live LLM
 credential. For the project overview, the other demo mode, and the
 normal (Live Mode) run instructions, see [README.md](../README.md).
 
-This demo was built in P3 (`demo/`), entirely outside `app/`. Every
+This demo lives in `demo/`, entirely outside `app/`. Every
 package under `app/` — retrieval, reranking, generation, the API, the
 UI — is exactly what Live Mode runs; this demo never forks, reimplements,
 or weakens it. (`app/` does now contain its own, separate demo-mode
@@ -141,7 +141,7 @@ one:
 
 ## 4. Demo startup (manual)
 
-The entrypoint is `demo/app.py`, built by P3 Step 4:
+The entrypoint is `demo/app.py`:
 `demo.app.create_demo_app()` — the real `app.main.create_app()`, with
 `app.dependency_overrides` set for `embedding_provider`,
 `rerank_provider`, and `llm_provider`. The module also exposes a
@@ -160,8 +160,8 @@ curl localhost:8000/ready    # readiness: database, migrations, extension
 
 ## 5. Demo data initialization (manual)
 
-The demo corpus is seeded through the exact same function P1 built and
-P3's own tests already exercise — `demo.seed.seed_demo_corpus`, which
+The demo corpus is seeded through the exact same function the demo's own
+tests exercise — `demo.seed.seed_demo_corpus`, which
 calls the frozen `evals.retrieval.corpus.ensure_corpus_seeded` with
 `demo.providers.DemoEmbeddingProvider` in place of the real embedding
 model. No new seeding mechanism exists or is needed; run it once against
@@ -243,7 +243,7 @@ For `ie001`, the response instead carries `abstained: true`,
 text — no substantive claim is fabricated in its place.
 
 `cv001` additionally demonstrates that the superseded `access-sop` v1
-chunk never appears in `candidates` at all — milestone 5's own
+chunk never appears in `candidates` at all — retrieval's own
 current-version-only default, exercised unchanged.
 
 ## 8. UI/API access
@@ -252,10 +252,10 @@ Demo Mode serves the **existing, unmodified** UI and JSON API — nothing
 new was built for either. With the server running (either the Docker
 quick start in §2 or the manual startup in §4):
 
-- **UI:** `http://localhost:8000/ui/query` — the same query form P2
-  polished, POSTing to the same `/ui/query` route, landing on the same
+- **UI:** `http://localhost:8000/ui/query` — the same query form,
+  POSTing to the same `/ui/query` route, landing on the same
   `/ui/answers/{id}` answer page with citations, evidence, and the
-  grounded/citation-valid badges.
+  "Citations verified" badge.
 - **JSON API:** `POST http://localhost:8000/query` with
   `{"query": "<one of the five questions above>"}`; `GET
   http://localhost:8000/queries/{query_id}` to re-read a persisted
@@ -366,7 +366,7 @@ This table compares Live Mode against **this document's own demo
 mechanism only** (`demo/`) — not the other, integrated demo mode. See the
 README's **Running modes** section for that comparison.
 
-| | Production (Live Mode) | This demo (standalone, P3) |
+| | Production (Live Mode) | This demo (standalone) |
 | --- | --- | --- |
 | Embedding provider | `BgeEmbeddingProvider` — real `BAAI/bge-small-en-v1.5`, loaded from the local model cache | `DemoEmbeddingProvider` — the same model's real output, replayed from `demo/fixtures/embeddings.json` |
 | Reranking provider | `CrossEncoderRerankProvider` — real `cross-encoder/ms-marco-MiniLM-L-6-v2`, loaded from the local model cache | `DemoRerankProvider` — the same model's real output, replayed from `demo/fixtures/reranker_scores.json` |
@@ -388,11 +388,11 @@ mode, and unrelated to this one — but this demo's own overrides take
 effect at the FastAPI dependency layer, underneath that branch,
 regardless of its outcome. Each real provider's own cached accessor
 (`get_embedding_provider()`, `get_rerank_provider()`,
-`get_llm_provider()`) is otherwise exactly what it was before P3. The
+`get_llm_provider()`) is otherwise unchanged by this demo. The
 mutation guard is overridden the same way, as a fourth entry in
 `app.dependency_overrides` (`demo/app.py::_deny_mutations`) — it calls
 the real `require_mutation_allowed` directly, against a `Settings`
 instance built only for that one call, so this demo's own, shared
 `Settings.demo_mode` is never set to `True` and the integrated demo
-mode's separate, `demo_mode`-gated M1-M4 corpus seed
+mode's separate, `demo_mode`-gated corpus seed
 (`app/main.py`'s lifespan) is never reached from here.

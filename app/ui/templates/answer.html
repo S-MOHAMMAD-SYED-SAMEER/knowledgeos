@@ -17,15 +17,10 @@
         {% else %}
           <span class="badge answered">Answered</span>
         {% endif %}
-        {% if answer.grounded %}
-          <span class="badge positive">Grounded in evidence</span>
+        {% if answer.grounded and answer.citation_valid %}
+          <span class="badge positive" title="Every citation points at a retrieved passage, and every sentence has one. This does not check that the passage supports the sentence.">Citations verified</span>
         {% else %}
-          <span class="badge negative">Not grounded in evidence</span>
-        {% endif %}
-        {% if answer.citation_valid %}
-          <span class="badge positive">Citations verified</span>
-        {% else %}
-          <span class="badge negative">Citation issue detected</span>
+          <span class="badge negative">Citation check not passed</span>
         {% endif %}
       {% endif %}
     </p>
@@ -73,7 +68,17 @@
           {% if row.page %} &middot; page {{ row.page }}{% endif %}
           {% if row.section %} &middot; {{ row.section }}{% endif %}
         </p>
-        <p>{{ row.text }}</p>
+        {% if row.selected %}
+          <details open>
+            <summary>Passage sent to the model</summary>
+            <p>{{ row.text }}</p>
+          </details>
+        {% else %}
+          <details>
+            <summary>{{ row.text[:160] }}{% if row.text|length > 160 %}&hellip;{% endif %} <span class="muted">(not sent to the model; show all)</span></summary>
+            <p>{{ row.text }}</p>
+          </details>
+        {% endif %}
       </div>
     {% endfor %}
   {% else %}

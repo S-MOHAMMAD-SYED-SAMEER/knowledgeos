@@ -1,21 +1,18 @@
 """Application entrypoint: `uvicorn app.main:app --reload`.
 
-Milestone 5 added `POST /query`; milestone 8 adds `GET /queries/{id}`
-alongside it, on the same router — both retrieval-and-generation routes live
-in `app/api/query.py`. Milestone 10 adds `POST /answers/{id}/feedback`
-(`app/api/feedback.py`) and the server-rendered UI (`app/ui/routes.py`,
-mounted under `/ui`, `include_in_schema=False` on every route — it never
-appears in `/openapi.json` and `tests/test_health.py`'s own exact-path
-guard proves it). The JSON API's HTTP surface is those routes, the two
-probes, `POST /documents`, `POST /documents/{id}/versions`, `GET
-/documents`, `GET /documents/{id}` and `GET /ingestion/{job_id}`, and
-`tests/test_health.py` asserts it, so a route belonging to a later
-milestone cannot arrive here quietly.
+The JSON API is `POST /query` and `GET /queries/{id}` (both in
+`app/api/query.py`), `POST /answers/{id}/feedback` (`app/api/feedback.py`), the
+two probes, `POST /documents`, `POST /documents/{id}/versions`, `POST
+/documents/{id}/reindex`, `GET /documents`, `GET /documents/{id}` and `GET
+/ingestion/{job_id}`. `tests/test_health.py` asserts exactly that list, so a
+route cannot arrive here quietly. The server-rendered UI (`app/ui/routes.py`) is
+mounted under `/ui` with `include_in_schema=False` on every route, so it never
+appears in `/openapi.json`.
 
-What is new is behind it: the lifespan starts the ingestion runner, which
-polls for queued jobs and parses and chunks them. The runner is held on the
-application rather than in a module-level variable, so nothing is shared
-between two applications built in one process.
+The lifespan starts the ingestion runner, which polls for queued jobs and
+parses and chunks them. The runner is held on the application rather than in a
+module-level variable, so nothing is shared between two applications built in
+one process.
 
 `create_app()` takes its settings as an argument so a test can build an
 application on a configuration of its own without reaching into a cache. The
@@ -29,7 +26,13 @@ races the others to do. `/ready` is what notices when it has not happened.
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import (
+    http_exception_handler,
+    request_validation_exception_handler,
+)
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import __version__
 from app.api import documents, feedback, health, ingestion, query, ready
@@ -67,6 +70,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # `Settings.demo_mode` per request and answers 404 when it is off, so a
     # non-demo deployment gains no new reachable behaviour from this line.
     app.include_router(demo_routes.router)
+
+    # The UI is HTML, so its errors are HTML. FastAPI's own handlers answer with JSON, which is right
+    # for the API and wrong for a person who mistyped a URL or pressed a button a demo refuses.
+    # Anything outside `/ui` keeps FastAPI's behaviour exactly.
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_error(request: Request, exc: StarletteHTTPException):
+        if request.url.path.startswith("/ui"):
+            return ui_routes.error_page(request, status_code=exc.status_code, detail=str(exc.detail))
+        return await http_exception_handler(request, exc)
+
+    @app.exception_handler(RequestValidationError)
+    async def _validation_error(request: Request, exc: RequestValidationError):
+        if request.url.path.startswith("/ui"):
+            # A malformed id in the path is "no such page"; anything else is a bad request.
+            # Never the parser's own message, which echoes the input.
+            in_path = any(error.get("loc", ("",))[0] == "path" for error in exc.errors())
+            return ui_routes.error_page(
+                request,
+                status_code=404 if in_path else 422,
+                detail="No such page." if in_path else "That request was not valid.",
+            )
+        return await request_validation_exception_handler(request, exc)
+
     return app
 
 
