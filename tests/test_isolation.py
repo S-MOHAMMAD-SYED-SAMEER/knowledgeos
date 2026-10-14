@@ -34,7 +34,7 @@ def _imports(source: str) -> set[str]:
 @pytest.mark.parametrize("sibling", SIBLINGS)
 def test_no_module_imports_a_sibling_project(sibling: str) -> None:
     for module in _modules():
-        for name in _imports(module.read_text()):
+        for name in _imports(module.read_text(encoding="utf-8")):
             assert name.split(".")[0] != sibling, f"{module.name} imports {sibling}"
 
 
@@ -42,7 +42,7 @@ def test_no_module_imports_a_sibling_project(sibling: str) -> None:
 def test_no_module_mentions_a_sibling_project(sibling: str) -> None:
     """Not in a path, a default, a comment or a docstring either."""
     for module in _modules():
-        assert sibling not in module.read_text().lower(), module.name
+        assert sibling not in module.read_text(encoding="utf-8").lower(), module.name
 
 
 def test_the_configuration_prefix_is_our_own() -> None:
@@ -72,7 +72,7 @@ def test_milestone_one_installs_nothing_from_a_later_milestone() -> None:
     """Each of these arrives with the milestone that first imports it."""
     import tomllib
 
-    declared = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"][
+    declared = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
         "dependencies"
     ]
     names = {__import__("re").split(r"[><=\[]", item)[0].strip() for item in declared}
@@ -140,7 +140,7 @@ def test_jinja2_is_now_a_declared_dependency() -> None:
 
     declared = {
         re.split(r"[><=\[]", item)[0].strip().lower()
-        for item in tomllib.loads((ROOT / "pyproject.toml").read_text())["project"][
+        for item in tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
             "dependencies"
         ]
     }

@@ -88,7 +88,7 @@ def test_the_interface_is_decoupled_from_orm_and_retrieval_types() -> None:
     import pathlib
 
     module = pathlib.Path("app/providers/reranker.py")
-    tree = ast.parse(module.read_text())
+    tree = ast.parse(module.read_text(encoding="utf-8"))
     imported = {
         alias.name
         for node in ast.walk(tree)
@@ -233,7 +233,7 @@ def test_nothing_in_the_application_selects_the_fake_or_passthrough() -> None:
             "passthrough_reranker.py",
         ):
             continue
-        tree = ast.parse(module.read_text())
+        tree = ast.parse(module.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Name):
                 assert node.id not in ("FakeRerankProvider", "PassthroughRerankProvider"), (
@@ -328,7 +328,7 @@ def test_the_real_provider_reaches_no_network_at_import() -> None:
 
     from app.providers import cross_encoder as module
 
-    tree = ast.parse(pathlib.Path(module.__file__).read_text())
+    tree = ast.parse(pathlib.Path(module.__file__).read_text(encoding="utf-8"))
     top_level = {
         alias.name.split(".")[0]
         for node in tree.body

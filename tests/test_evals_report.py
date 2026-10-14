@@ -89,7 +89,7 @@ def test_write_json_report_writes_a_readable_file(tmp_path) -> None:
     assert path.exists()
     assert path.parent == tmp_path
 
-    on_disk = json.loads(path.read_text())
+    on_disk = json.loads(path.read_text(encoding="utf-8"))
     assert on_disk["eval_run_id"] == str(run_id)
     assert on_disk["metrics"]["cross_encoder"]["recall_at_10"] == 0.8
 

@@ -197,7 +197,7 @@ def test_the_demo_provider_never_imports_the_real_model_loading_code() -> None:
     frozen `MODEL_NAME` string constant, which triggers no model load."""
     import demo.reranking as module
 
-    tree = ast.parse(pathlib.Path(module.__file__).read_text())
+    tree = ast.parse(pathlib.Path(module.__file__).read_text(encoding="utf-8"))
     top_level = {
         alias.name.split(".")[0]
         for node in tree.body
@@ -219,5 +219,5 @@ def test_the_demo_provider_never_imports_the_real_cross_encoder_provider() -> No
     of this module is to never construct or call it."""
     import demo.reranking as module
 
-    source = pathlib.Path(module.__file__).read_text()
+    source = pathlib.Path(module.__file__).read_text(encoding="utf-8")
     assert "CrossEncoderRerankProvider" not in source

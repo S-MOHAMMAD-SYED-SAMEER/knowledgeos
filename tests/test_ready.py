@@ -101,7 +101,7 @@ def test_a_missing_extension_is_not_ready(
 
 def test_readiness_never_names_the_connection_string() -> None:
     """It carries a password."""
-    source = pathlib.Path(module.__file__).read_text()
+    source = pathlib.Path(module.__file__).read_text(encoding="utf-8")
 
     assert "database_url" not in source
 
@@ -110,7 +110,7 @@ def test_readiness_calls_no_provider() -> None:
     """There are none yet, and there must be none here when there are."""
     import ast
 
-    tree = ast.parse(pathlib.Path(module.__file__).read_text())
+    tree = ast.parse(pathlib.Path(module.__file__).read_text(encoding="utf-8"))
     imported = {
         node.module
         for node in ast.walk(tree)

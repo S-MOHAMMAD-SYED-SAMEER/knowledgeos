@@ -147,7 +147,7 @@ def test_demo_provider_module_never_imports_the_gemini_adapter() -> None:
         / "providers"
         / "demo_llm.py"
     )
-    tree = ast.parse(module_path.read_text())
+    tree = ast.parse(module_path.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module:
             assert "gemini" not in node.module.lower(), node.module
@@ -166,7 +166,7 @@ def test_nothing_outside_the_demo_seam_selects_the_demo_provider() -> None:
     for module in app_dir.rglob("*.py"):
         if module.name in allowed:
             continue
-        tree = ast.parse(module.read_text())
+        tree = ast.parse(module.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Name):
                 assert node.id != "DemoLLMProvider", module

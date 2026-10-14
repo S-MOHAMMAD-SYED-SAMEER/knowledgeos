@@ -53,7 +53,7 @@ def test_health_makes_no_query() -> None:
 
     from app.api import health as module
 
-    source = pathlib.Path(module.__file__).read_text()
+    source = pathlib.Path(module.__file__).read_text(encoding="utf-8")
     imported = {
         node.module
         for node in ast.walk(ast.parse(source))

@@ -47,6 +47,48 @@ TEST_DATABASE_URL = os.environ.get(
 )
 
 
+@pytest.fixture(autouse=True)
+def _eval_reports_go_to_a_temp_dir(tmp_path_factory, monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test may leave an evaluation report in the real `var/eval_runs/`.
+
+    When the real models are cached, the CLI tests that run the harness for real would otherwise
+    write one there each time the suite runs (twelve such files accumulated on one laptop). Tests
+    that look at the report directory set their own, which wins over this one.
+    """
+    import evals.answers.report as answers_report
+    import evals.retrieval.report as retrieval_report
+
+    directory = tmp_path_factory.mktemp("eval_reports")
+    monkeypatch.setattr(retrieval_report, "DEFAULT_REPORT_DIR", directory)
+    monkeypatch.setattr(answers_report, "DEFAULT_REPORT_DIR", directory)
+
+
+@pytest.fixture
+def models_not_in_cache(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Make BGE and the cross-encoder behave as if they were not in the local cache.
+
+    The tests that prove "a missing model is an honest 503, never a silent fallback" must not
+    depend on the machine they run on: on CI nothing is cached, on a development laptop both
+    models are. Only the loading of the weights is simulated (the same `OSError` a cache miss
+    raises); the providers, the routes and the CLI are the real ones.
+    """
+    import sentence_transformers
+
+    from app.ingestion.runner import reset_embedding_provider
+    from app.reranking.provider import reset_rerank_provider
+
+    def _cache_miss(*args, **kwargs):
+        raise OSError("not in the local cache (simulated by the test)")
+
+    monkeypatch.setattr(sentence_transformers, "SentenceTransformer", _cache_miss)
+    monkeypatch.setattr(sentence_transformers, "CrossEncoder", _cache_miss)
+    reset_embedding_provider()
+    reset_rerank_provider()
+    yield
+    reset_embedding_provider()
+    reset_rerank_provider()
+
+
 @pytest.fixture
 def settings_env(
     monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory

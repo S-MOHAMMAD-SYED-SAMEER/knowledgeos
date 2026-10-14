@@ -166,7 +166,7 @@ def test_the_error_never_carries_evidence_text() -> None:
 def test_the_demo_provider_never_imports_a_real_or_network_provider() -> None:
     import demo.llm as module
 
-    tree = ast.parse(pathlib.Path(module.__file__).read_text())
+    tree = ast.parse(pathlib.Path(module.__file__).read_text(encoding="utf-8"))
     top_level = {
         alias.name.split(".")[0]
         for node in tree.body
@@ -195,7 +195,7 @@ def test_the_demo_provider_never_imports_a_real_or_network_provider() -> None:
 def test_the_demo_provider_never_references_the_real_gemini_provider() -> None:
     import demo.llm as module
 
-    source = pathlib.Path(module.__file__).read_text()
+    source = pathlib.Path(module.__file__).read_text(encoding="utf-8")
     assert "GeminiLLMProvider" not in source
     assert "gemini_llm" not in source
 
@@ -211,7 +211,7 @@ def test_the_demo_provider_never_imports_generation_orchestration_or_validation(
     """
     import demo.llm as module
 
-    tree = ast.parse(pathlib.Path(module.__file__).read_text())
+    tree = ast.parse(pathlib.Path(module.__file__).read_text(encoding="utf-8"))
     imported_names = {
         alias.asname or alias.name
         for node in tree.body

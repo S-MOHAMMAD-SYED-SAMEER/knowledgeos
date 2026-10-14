@@ -18,11 +18,11 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def _dockerfile() -> str:
-    return (ROOT / "Dockerfile").read_text()
+    return (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
 
 def _compose() -> dict:
-    return yaml.safe_load((ROOT / "docker-compose.yml").read_text())
+    return yaml.safe_load((ROOT / "docker-compose.yml").read_text(encoding="utf-8"))
 
 
 def test_dockerfile_exists() -> None:
@@ -152,7 +152,7 @@ def test_compose_contains_no_literal_external_credential() -> None:
     throwaway container, not a real secret -- but nothing naming a real
     provider credential (a Gemini key, a production database password)
     may appear as a literal value."""
-    source = (ROOT / "docker-compose.yml").read_text()
+    source = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     for forbidden in ("GEMINI_API_KEY:", "GOOGLE_API_KEY:", "KNOWLEDGEOS_LLM_MODEL:"):
         line = next(l for l in source.splitlines() if forbidden in l)
         assert "${" in line, f"{forbidden} is not read from the environment: {line!r}"
@@ -162,7 +162,7 @@ def test_compose_migration_step_is_documented_not_automatic() -> None:
     """Locked decision D8: `docker compose run --rm app alembic upgrade
     head` is documented as a separate command, and the app service's own
     command is never alembic."""
-    source = (ROOT / "docker-compose.yml").read_text()
+    source = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     assert "alembic upgrade head" in source  # documented in a comment
     compose = _compose()
     assert "command" not in compose["services"]["app"] or "alembic" not in str(
@@ -174,14 +174,14 @@ def test_compose_migration_step_is_documented_not_automatic() -> None:
 
 
 def test_dockerignore_excludes_secrets_and_local_state() -> None:
-    source = (ROOT / ".dockerignore").read_text()
+    source = (ROOT / ".dockerignore").read_text(encoding="utf-8")
     required = [".env", ".venv", "__pycache__", "var/", ".git", ".pytest_cache"]
     for entry in required:
         assert entry in source, f"{entry!r} is not excluded"
 
 
 def test_dockerignore_keeps_env_example() -> None:
-    source = (ROOT / ".dockerignore").read_text()
+    source = (ROOT / ".dockerignore").read_text(encoding="utf-8")
     assert "!.env.example" in source
 
 
@@ -189,7 +189,7 @@ def test_dockerignore_keeps_env_example() -> None:
 
 
 def _ci_workflow() -> dict:
-    return yaml.safe_load((ROOT / ".github" / "workflows" / "ci.yml").read_text())
+    return yaml.safe_load((ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
 
 
 def test_ci_uses_pgvector_capable_postgres() -> None:
@@ -200,13 +200,13 @@ def test_ci_uses_pgvector_capable_postgres() -> None:
 
 
 def test_ci_installs_dependencies_and_runs_the_suite() -> None:
-    source = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    source = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert "pip install" in source
     assert re.search(r"run:\s*pytest\b", source)
 
 
 def test_ci_never_sets_an_external_provider_api_key() -> None:
-    source = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    source = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     for forbidden in ("ANTHROPIC_API_KEY:", "GEMINI_API_KEY:", "GOOGLE_API_KEY:", "OPENAI_API_KEY:"):
         assert forbidden not in source
 
@@ -215,7 +215,7 @@ def test_ci_forces_huggingface_offline_mode() -> None:
     """Locked decision D9: CI must never download HuggingFace model
     weights -- the deterministic way to guarantee that regardless of
     whether the runner happens to have internet access."""
-    source = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    source = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert "HF_HUB_OFFLINE" in source
     assert "TRANSFORMERS_OFFLINE" in source
 

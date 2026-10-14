@@ -218,7 +218,7 @@ def test_the_retrieval_package_imports_no_provider() -> None:
     )
 
     for path in package.glob("*.py"):
-        tree = ast.parse(path.read_text())
+        tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 names = {alias.name for alias in node.names}
@@ -235,7 +235,7 @@ def test_the_retrieval_package_does_not_reference_a_session_maker_globally() -> 
     takes its `Session` as an argument rather than reaching for one."""
     package = pathlib.Path(__file__).resolve().parent.parent / "app" / "retrieval"
     for path in package.glob("*.py"):
-        source = path.read_text()
+        source = path.read_text(encoding="utf-8")
         assert "get_engine" not in source
         assert "get_sessionmaker" not in source
         assert "sessionmaker(" not in source
