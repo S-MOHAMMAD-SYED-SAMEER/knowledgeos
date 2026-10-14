@@ -1,7 +1,7 @@
 """The demo's reranking provider: real cross-encoder/ms-marco-MiniLM-L-6-v2
 scores, precomputed once and replayed from a fixture.
 
-Not a fake and not the passthrough. PROJECT_PLAN.md's P3 architecture
+Not a fake and not the passthrough. docs/history/PROJECT_PLAN.md's P3 architecture
 decision is explicit: the cs001 flagship scenario ("cited correctly")
 only ranks its golden chunk first after real cross-encoder reranking --
 P1's own triage established that raw RRF fusion alone does not, and the

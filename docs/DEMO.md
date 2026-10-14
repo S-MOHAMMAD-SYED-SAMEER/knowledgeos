@@ -203,7 +203,7 @@ KNOWLEDGEOS_DATABASE_URL=postgresql+psycopg://knowledgeos:knowledgeos@localhost:
 
 Five flagship questions, pinned in
 `demo/generate_embeddings.py::FLAGSHIP_QUERIES` and answered in
-`demo/fixtures/answers.yaml` — the same five PROJECT_PLAN.md names and
+`demo/fixtures/answers.yaml` — the same five docs/history/PROJECT_PLAN.md names and
 the same five `tests/test_demo_e2e.py` verifies end to end:
 
 | id | scenario | question |

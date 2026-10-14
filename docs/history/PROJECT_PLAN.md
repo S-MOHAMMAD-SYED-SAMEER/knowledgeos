@@ -1,3 +1,8 @@
+> **Historical record, not a plan.** This is the plan for the P1-P3 demo work, kept as it
+> was written. Its "Current State" section is out of date (it says HEAD is `050fe0d` and
+> that no Gemini credential was available). For what is true now, read the README and
+> `docs/ENGINEERING.md`.
+
 # KnowledgeOS — Project Plan
 
 The authoritative source for KnowledgeOS's remaining work. Future work

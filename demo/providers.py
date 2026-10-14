@@ -5,7 +5,7 @@ Not a fake. Every vector `DemoEmbeddingProvider` returns is the real
 model's own output, generated once (`demo/generate_embeddings.py`) in an
 environment with the model available, and replayed byte-for-byte offline
 here. `FakeEmbeddingProvider`'s hash-derived vectors are unusable as a
-retrieval foundation -- PROJECT_PLAN.md records a verified probe where they
+retrieval foundation -- docs/history/PROJECT_PLAN.md records a verified probe where they
 failed 3 of 5 flagship scenarios -- and this provider exists so the demo
 never needs them.
 

@@ -58,27 +58,27 @@ services:
       - "8000:8000"
     volumes:
       - storage:/var/lib/knowledgeos/storage
-      # Local Windows verification only -- NOT the future VPS deployment
-      # strategy. app/providers/bge.py and app/providers/cross_encoder.py
-      # both load BAAI/bge-small-en-v1.5 and
-      # cross-encoder/ms-marco-MiniLM-L-6-v2 with local_files_only=True,
-      # so neither is ever downloaded automatically, here or anywhere else
-      # -- a cache miss raises EmbeddingError/RerankError instead. Rather
-      # than an empty named volume nothing ever populated, these two bind
-      # mounts expose exactly the two model directories already present in
-      # this developer's own host sentence-transformers cache, read-only,
-      # preserving the same `models--<org>--<name>` cache layout
-      # huggingface_hub itself uses so `local_files_only=True` finds them
-      # exactly where it already looks. This is a one-laptop, one-developer
-      # arrangement (the host paths below are specific to this machine) --
-      # a real deployment (e.g. a future VPS) needs its own strategy for
-      # making these weights available, not this bind mount.
+      # The two local models. app/providers/bge.py and
+      # app/providers/cross_encoder.py load BAAI/bge-small-en-v1.5 and
+      # cross-encoder/ms-marco-MiniLM-L-6-v2 with local_files_only=True, so
+      # neither is ever downloaded while the app runs -- a cache miss raises
+      # EmbeddingError/RerankError instead. These two bind mounts expose the two
+      # model directories from YOUR Hugging Face cache, read-only, keeping the
+      # `models--<org>--<name>` layout huggingface_hub uses so
+      # `local_files_only=True` finds them where it already looks.
+      #
+      # Put the models in that cache once with
+      #     python scripts/download_models.py
+      # The cache location defaults to ~/.cache/huggingface/hub (USERPROFILE on
+      # Windows). If yours is elsewhere, set KNOWLEDGEOS_HF_HUB to the `hub`
+      # directory, e.g. in a `.env` file next to this one. A real deployment
+      # (a VPS, say) needs its own way of making the weights available.
       - type: bind
-        source: C:/Users/sameer/.cache/huggingface/hub/models--BAAI--bge-small-en-v1.5
+        source: ${KNOWLEDGEOS_HF_HUB:-${USERPROFILE:-${HOME}}/.cache/huggingface/hub}/models--BAAI--bge-small-en-v1.5
         target: /home/knowledgeos/.cache/huggingface/hub/models--BAAI--bge-small-en-v1.5
         read_only: true
       - type: bind
-        source: C:/Users/sameer/.cache/huggingface/hub/models--cross-encoder--ms-marco-MiniLM-L-6-v2
+        source: ${KNOWLEDGEOS_HF_HUB:-${USERPROFILE:-${HOME}}/.cache/huggingface/hub}/models--cross-encoder--ms-marco-MiniLM-L-6-v2
         target: /home/knowledgeos/.cache/huggingface/hub/models--cross-encoder--ms-marco-MiniLM-L-6-v2
         read_only: true
 
