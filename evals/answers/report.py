@@ -27,6 +27,7 @@ from evals.answers.metrics import (
     latency_summary,
     token_summary,
     unsupported_claim_rate,
+    verification_summary,
 )
 from evals.answers.suite import AnswerSuiteResult
 
@@ -87,6 +88,12 @@ def metrics_payload(result: AnswerSuiteResult, *, pricing_table: dict) -> dict:
         payload["grounded_answer_rate"] = grounded_answer_rate(attempts)
     except ValueError:
         payload["grounded_answer_rate"] = None
+
+    try:
+        verification = verification_summary(attempts)
+        payload["verification"] = asdict(verification)
+    except ValueError:
+        payload["verification"] = None
 
     payload["unsupported_claim_rate"] = unsupported_claim_rate(attempts)
     payload["semantic_grounding"] = _semantic_section(attempts)
@@ -188,6 +195,15 @@ def render_console_summary(
     lines.append(f"  invalid citation rate:     {_fmt(metrics['invalid_citation_rate'])}  (gate: 0%)")
     lines.append(f"  citation coverage (mean):  {_fmt(metrics['citation_coverage_mean'])}  (gate: 100% on non-abstained)")
     lines.append(f"  grounded-answer rate:      {_fmt(metrics['grounded_answer_rate'])}")
+    verification = metrics["verification"]
+    if verification is not None:
+        lines.append(
+            "  could-not-verify replies:  "
+            f"{verification['unverified']} of {verification['asked_count']} asked "
+            f"({verification['unverified_rate']:.1%}); retried: {verification['retry_rate']:.1%}; "
+            f"verified on the retry: {verification['verified_after_retry']}  "
+            "(counted on their own, not as abstentions)"
+        )
     lines.append(
         f"  unsupported-claim rate:    {_fmt(metrics['unsupported_claim_rate'])}"
         + ("" if metrics["unsupported_claim_rate"] is not None else "  (no threshold calibrated -- see evals/answers/semantic.py)")

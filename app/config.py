@@ -147,7 +147,25 @@ class Settings(BaseSettings):
     # The specification names no cap on generation length. This exists for
     # the same reason `query_max_length` does — an explicit limit rather
     # than whatever the provider's own default happens to be.
-    llm_max_output_tokens: int = Field(default=2048, gt=0)
+    # 4096, not 2048: a thinking model spends output tokens on reasoning before it
+    # writes the answer, and the cap covers both. An answer cut off at the cap is
+    # invalid JSON, which the generator reports as such.
+    llm_max_output_tokens: int = Field(default=4096, gt=0)
+
+    # How the Gemini adapter treats a slow or failing service. A call is cut off
+    # after `llm_timeout_seconds`; a transient failure (timeout, connection error,
+    # 429, 5xx) is retried `llm_max_retries` more times, waiting what the service
+    # asks (Retry-After) or an exponential back-off. A requested wait longer than
+    # `llm_retry_max_wait_seconds` is not waited out (that is what a spent daily
+    # quota looks like): the caller is told to try later.
+    llm_timeout_seconds: float = Field(default=30.0, gt=0)
+    llm_max_retries: int = Field(default=2, ge=0)
+    llm_retry_max_wait_seconds: float = Field(default=15.0, gt=0)
+
+    # Unset means the provider's own default, on purpose: some models are tuned for
+    # their default and do worse below it. Set it (0 for the most repeatable
+    # answers) when reproducibility matters more, for example for an evaluation run.
+    llm_temperature: float | None = Field(default=None, ge=0, le=2)
 
     # The specification's own words: the abstention threshold "is calibrated
     # on a dev split of the eval questions, not chosen by taste." No

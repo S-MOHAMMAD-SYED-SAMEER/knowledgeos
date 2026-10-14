@@ -7,21 +7,26 @@
 
   {% if answer %}
     <h1>Answer</h1>
+    {% set generation = answer.grounding_detail.get("generation") or {} %}
     <p>
-      {% if answer.abstained %}
-        <span class="badge abstained">Abstained &mdash; insufficient evidence</span>
+      {% if generation.get("verified") is false %}
+        <span class="badge negative">Could not verify this answer</span>
       {% else %}
-        <span class="badge answered">Answered</span>
-      {% endif %}
-      {% if answer.grounded %}
-        <span class="badge positive">Grounded in evidence</span>
-      {% else %}
-        <span class="badge negative">Not grounded in evidence</span>
-      {% endif %}
-      {% if answer.citation_valid %}
-        <span class="badge positive">Citations verified</span>
-      {% else %}
-        <span class="badge negative">Citation issue detected</span>
+        {% if answer.abstained %}
+          <span class="badge abstained">Abstained &mdash; insufficient evidence</span>
+        {% else %}
+          <span class="badge answered">Answered</span>
+        {% endif %}
+        {% if answer.grounded %}
+          <span class="badge positive">Grounded in evidence</span>
+        {% else %}
+          <span class="badge negative">Not grounded in evidence</span>
+        {% endif %}
+        {% if answer.citation_valid %}
+          <span class="badge positive">Citations verified</span>
+        {% else %}
+          <span class="badge negative">Citation issue detected</span>
+        {% endif %}
       {% endif %}
     </p>
     <p>{{ answer.answer_text }}</p>

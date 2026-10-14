@@ -94,7 +94,9 @@ class AutoCitingLLMProvider:
 
     model_name = "auto-citing-test-double"
 
-    def complete(self, *, system: str, user: str, max_tokens: int) -> LLMResult:
+    def complete(
+        self, *, system: str, user: str, max_tokens: int, json_schema: dict | None = None
+    ) -> LLMResult:
         uids = _CHUNK_UID_ATTR.findall(user)
         answer = cited_answer_text(*uids) if uids else "No evidence was provided."
         text = valid_json(answer, uids, sufficient_evidence=bool(uids))

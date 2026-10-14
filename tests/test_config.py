@@ -70,3 +70,45 @@ def test_no_credential_is_needed_to_configure_this_application() -> None:
         for shape in credentials:
             assert shape not in field.lower(), field
     assert settings.app_name
+
+
+# --- the generation provider's settings -------------------------------------
+
+
+def test_the_llm_resilience_defaults() -> None:
+    settings = Settings(_env_file=None)
+
+    assert settings.llm_max_output_tokens == 4096  # room for reasoning tokens as well as the answer
+    assert settings.llm_timeout_seconds == 30
+    assert settings.llm_max_retries == 2
+    assert settings.llm_retry_max_wait_seconds == 15
+    assert settings.llm_temperature is None  # the model's own default unless asked
+
+
+def test_the_llm_settings_can_be_overridden(monkeypatch) -> None:
+    monkeypatch.setenv("KNOWLEDGEOS_LLM_TIMEOUT_SECONDS", "5.5")
+    monkeypatch.setenv("KNOWLEDGEOS_LLM_MAX_RETRIES", "0")
+    monkeypatch.setenv("KNOWLEDGEOS_LLM_TEMPERATURE", "0")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.llm_timeout_seconds == 5.5
+    assert settings.llm_max_retries == 0
+    assert settings.llm_temperature == 0.0
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("KNOWLEDGEOS_LLM_TIMEOUT_SECONDS", "0"),
+        ("KNOWLEDGEOS_LLM_MAX_RETRIES", "-1"),
+        ("KNOWLEDGEOS_LLM_RETRY_MAX_WAIT_SECONDS", "0"),
+        ("KNOWLEDGEOS_LLM_TEMPERATURE", "3"),
+        ("KNOWLEDGEOS_LLM_TEMPERATURE", "-0.1"),
+    ],
+)
+def test_nonsense_llm_settings_are_refused(monkeypatch, name: str, value: str) -> None:
+    monkeypatch.setenv(name, value)
+
+    with pytest.raises(ValueError):
+        Settings(_env_file=None)

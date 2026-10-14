@@ -37,8 +37,12 @@ class AttemptOutcome(StrEnum):
 
     PRE_LLM_ABSTAIN = "pre_llm_abstain"
     SUCCESS = "success"
+    # The next three are the "I couldn't verify this answer" reply: the model was asked up to
+    # twice and nothing it said could be shown. They are counted on their own, never as an
+    # abstention (the evidence was not judged insufficient) and never as a success.
     CITATION_INVALID = "citation_invalid"
     MALFORMED_OUTPUT = "malformed_output"
+    MODEL_BLOCKED = "model_blocked"
 
 
 @dataclass(frozen=True)
@@ -65,6 +69,55 @@ class AnswerAttempt:
     rerank_ms: float | None
     llm_ms: float | None
     total_ms: float | None
+    # How many times the model was asked for this question (1, or 2 after a rejected first
+    # reply). None when it was never asked.
+    attempts_used: int | None = None
+
+
+UNVERIFIED_OUTCOMES = frozenset(
+    {AttemptOutcome.CITATION_INVALID, AttemptOutcome.MALFORMED_OUTPUT, AttemptOutcome.MODEL_BLOCKED}
+)
+
+
+@dataclass(frozen=True)
+class VerificationSummary:
+    """How often the model's reply had to be retried, and how often it still could not be shown.
+
+    `unverified_rate` is over the attempts that reached the model at all; a pre-LLM abstention
+    is excluded, as it is from the other rates here.
+    """
+
+    asked_count: int
+    verified_first_try: int
+    verified_after_retry: int
+    unverified: int
+    unverified_by_reason: dict[str, int]
+    retry_rate: float
+    unverified_rate: float
+
+
+def verification_summary(attempts: list[AnswerAttempt]) -> VerificationSummary:
+    asked = [a for a in attempts if a.outcome != AttemptOutcome.PRE_LLM_ABSTAIN]
+    if not asked:
+        raise ValueError("verification summary is undefined with no attempt that reached the model")
+    unverified = [a for a in asked if a.outcome in UNVERIFIED_OUTCOMES]
+    verified = [a for a in asked if a.outcome == AttemptOutcome.SUCCESS]
+    after_retry = sum(1 for a in verified if (a.attempts_used or 1) > 1)
+    # Retried at all: verified on the second try, or never verified (an unverified reply always
+    # followed a rejected first try, except a blocked prompt, which is not retried).
+    retried = after_retry + sum(1 for a in unverified if (a.attempts_used or 1) > 1)
+    return VerificationSummary(
+        asked_count=len(asked),
+        verified_first_try=len(verified) - after_retry,
+        verified_after_retry=after_retry,
+        unverified=len(unverified),
+        unverified_by_reason={
+            outcome.value: sum(1 for a in unverified if a.outcome == outcome)
+            for outcome in sorted(UNVERIFIED_OUTCOMES, key=lambda o: o.value)
+        },
+        retry_rate=retried / len(asked),
+        unverified_rate=len(unverified) / len(asked),
+    )
 
 
 def invalid_citation_rate(attempts: list[AnswerAttempt]) -> float:
@@ -280,6 +333,8 @@ __all__ = [
     "LatencySummary",
     "PricingError",
     "TokenSummary",
+    "UNVERIFIED_OUTCOMES",
+    "VerificationSummary",
     "abstention_precision_recall",
     "citation_coverage_mean",
     "cost_summary",
@@ -288,4 +343,5 @@ __all__ = [
     "latency_summary",
     "token_summary",
     "unsupported_claim_rate",
+    "verification_summary",
 ]

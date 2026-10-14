@@ -40,6 +40,34 @@ class LLMError(RuntimeError):
     """
 
 
+class LLMRateLimited(LLMError):
+    """The service said to slow down (HTTP 429) and retrying did not clear it.
+
+    `retry_after` is how long the service asked for, in seconds, when it said.
+    A spent daily quota shows up as a long `retry_after`, which is not waited out.
+    """
+
+    def __init__(self, message: str, *, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class LLMTimeout(LLMError):
+    """The model did not answer within the configured time, even after retries."""
+
+
+class LLMBlocked(LLMError):
+    """The model declined to answer: a blocked prompt, or a safety stop with no text.
+
+    Not an outage, so it is not reported as one. `reason` is the service's own
+    label ("SAFETY", "PROHIBITED_CONTENT", ...), never the prompt or the output.
+    """
+
+    def __init__(self, message: str, *, reason: str | None = None) -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
 class LLMResult(NamedTuple):
     """One generation call's raw output: text, plus what it cost.
 
@@ -50,7 +78,8 @@ class LLMResult(NamedTuple):
 
     text: str
     input_tokens: int
-    output_tokens: int
+    output_tokens: int  # includes any reasoning ("thinking") tokens, which are billed as output
+    finish_reason: str | None = None  # "STOP", "MAX_TOKENS", ...; None when the provider has none
 
 
 @runtime_checkable
@@ -62,13 +91,32 @@ class LLMProvider(Protocol):
         """Which model produced the text, for the record."""
         ...
 
-    def complete(self, *, system: str, user: str, max_tokens: int) -> LLMResult:
+    def complete(
+        self,
+        *,
+        system: str,
+        user: str,
+        max_tokens: int,
+        json_schema: dict | None = None,
+    ) -> LLMResult:
         """One generation call.
 
-        Raises `LLMError` rather than returning something the caller would
-        have to guess about.
+        `json_schema`, when given, asks the provider for a single JSON document
+        of that shape. A provider that cannot do so ignores it; the caller
+        validates what comes back either way.
+
+        Raises `LLMError` (or a subclass: `LLMRateLimited`, `LLMTimeout`,
+        `LLMBlocked`) rather than returning something the caller would have to
+        guess about.
         """
         ...
 
 
-__all__ = ["LLMError", "LLMProvider", "LLMResult"]
+__all__ = [
+    "LLMBlocked",
+    "LLMError",
+    "LLMProvider",
+    "LLMRateLimited",
+    "LLMResult",
+    "LLMTimeout",
+]

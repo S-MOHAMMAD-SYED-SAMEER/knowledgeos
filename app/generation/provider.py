@@ -25,7 +25,14 @@ def get_llm_provider() -> LLMProvider:
     """
     from app.providers.gemini_llm import GeminiLLMProvider
 
-    return GeminiLLMProvider(get_settings().llm_model)
+    settings = get_settings()
+    return GeminiLLMProvider(
+        settings.llm_model,
+        timeout_seconds=settings.llm_timeout_seconds,
+        max_retries=settings.llm_max_retries,
+        retry_max_wait_seconds=settings.llm_retry_max_wait_seconds,
+        temperature=settings.llm_temperature,
+    )
 
 
 def reset_llm_provider() -> None:

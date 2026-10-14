@@ -35,12 +35,21 @@ class FakeLLMProvider:
         self._responses: list[ScriptedItem] = list(responses or [])
         self._index = 0
         self._model_name = model_name
+        self.last_json_schema: dict | None = None  # what the last call asked for
 
     @property
     def model_name(self) -> str:
         return self._model_name
 
-    def complete(self, *, system: str, user: str, max_tokens: int) -> LLMResult:
+    def complete(
+        self,
+        *,
+        system: str,
+        user: str,
+        max_tokens: int,
+        json_schema: dict | None = None,
+    ) -> LLMResult:
+        self.last_json_schema = json_schema
         if self._index >= len(self._responses):
             raise LLMError(
                 f"the fake has no scripted response left for call {self._index + 1}"

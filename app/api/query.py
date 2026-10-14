@@ -40,6 +40,7 @@ ever fabricated: every one is either a real measurement or `None`.
 """
 
 import logging
+import math
 import uuid
 from typing import Annotated
 
@@ -63,9 +64,8 @@ from app.api.schemas import (
 from app.config import Settings, get_settings
 from app.db.session import get_session
 from app.generation import get_llm_provider
-from app.generation.citations import CitationError
 from app.generation.evidence import select_evidence
-from app.generation.generator import GeneratedAnswer, GenerationError, generate_answer
+from app.generation.generator import GeneratedAnswer, generate_answer
 from app.generation.grounding import SEMANTIC_UNAVAILABLE_REASON
 from app.generation.persistence import PersistenceError, persist_query
 from app.ingestion.runner import get_embedding_provider
@@ -75,7 +75,7 @@ from app.observability.timing import stage_timer
 from app.parsing import normalize
 from app.providers.demo_llm import DemoAnswerNotAvailable, DemoLLMProvider
 from app.providers.embeddings import EmbeddingError, EmbeddingProvider
-from app.providers.llm import LLMError, LLMProvider
+from app.providers.llm import LLMError, LLMProvider, LLMRateLimited, LLMTimeout
 from app.providers.reranker import RerankError, RerankProvider
 from app.reranking import get_rerank_provider
 from app.reranking.pipeline import RerankedChunk, rerank
@@ -247,21 +247,32 @@ def run_query(
             # own answer, its own model name, and is never marked grounded
             # merely because real retrieval found chunks.
             answer = _demo_unsupported_answer(reranked)
+        except LLMRateLimited as exc:
+            logger.warning("Generation was rate limited (retry after %s s).", exc.retry_after)
+            headers = (
+                {"Retry-After": str(max(1, math.ceil(exc.retry_after)))}
+                if exc.retry_after is not None
+                else None
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="the language model is busy right now; please try again shortly",
+                headers=headers,
+            ) from exc
+        except LLMTimeout as exc:
+            logger.warning("Generation timed out.")
+            raise HTTPException(
+                status_code=503,
+                detail="the language model did not answer in time; please try again",
+            ) from exc
         except LLMError as exc:
             logger.warning("Generation failed (%s).", type(exc).__name__)
             raise HTTPException(
                 status_code=503, detail="the language model is unavailable"
             ) from exc
-        except (GenerationError, CitationError) as exc:
-            # The specification's own words for an invalid citation: "answer
-            # rejected." Never the raw model output, never the evidence, never
-            # a traceback.
-            logger.warning(
-                "Generated answer failed validation (%s).", type(exc).__name__
-            )
-            raise HTTPException(
-                status_code=502, detail="the model's output could not be validated"
-            ) from exc
+        # A reply that fails validation is not an exception any more: `generate_answer`
+        # retries once and then returns the fixed "could not verify" answer
+        # (`answer.verification_failure`), so there is no 502 for the person to see.
 
     # `answer.model_name is None` marks a pre-LLM abstention (zero
     # candidates, or the score threshold) -- generate_answer never called
@@ -330,6 +341,8 @@ def run_query(
         grounding_detail=answer.grounding_detail,
         model=answer.model_name,
         prompt_version=answer.prompt_version,
+        verified=answer.verification_failure is None,
+        verification_attempts=answer.attempts,
     )
 
 
