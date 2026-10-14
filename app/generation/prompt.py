@@ -76,15 +76,30 @@ def _one_block(item: SelectedEvidence) -> str:
         f'<evidence chunk_uid="{evidence.chunk_uid}" '
         f'document="{_escape(evidence.document_title)}" '
         f'version="{evidence.version_number}">\n'
-        f"{evidence.text}\n"
+        f"{_escape_text(evidence.text)}\n"
         f"</evidence>"
     )
 
 
 def _escape(value: str) -> str:
     """Minimal XML attribute escaping — this project has no XML dependency
-    and needs none for two characters."""
-    return value.replace("&", "&amp;").replace('"', "&quot;")
+    and needs none for a handful of characters."""
+    return _escape_text(value).replace('"', "&quot;")
+
+
+def _escape_text(value: str) -> str:
+    """Make document text unable to look like markup.
+
+    A chunk is whatever a user uploaded. Left as it is, a chunk containing
+    `</evidence>` would end its own data block and anything after it would sit
+    outside the block, where the model reads it as instructions. Writing `&`,
+    `<` and `>` as entities means the only `<evidence ...>` and `</evidence>`
+    tags in the prompt are the ones this module writes. The model reads the
+    entities as the characters they stand for, and a citation names a
+    `chunk_uid`, which is computed from the original text, so nothing
+    downstream is affected.
+    """
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 __all__ = [
