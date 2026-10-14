@@ -136,7 +136,7 @@ class _StubGeminiLLMProvider:
     def model_name(self) -> str:
         return self._inner.model_name
 
-    def complete(self, *, system: str, user: str, max_tokens: int):
+    def complete(self, *, system: str, user: str, max_tokens: int, json_schema: dict | None = None):
         return self._inner.complete(system=system, user=user, max_tokens=max_tokens)
 
 

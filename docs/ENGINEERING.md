@@ -972,6 +972,16 @@ failed generation, a parsing failure, or a rejected citation leaves **no**
 `queries`, `retrieved_chunks`, or `answers` row behind — there is nothing
 partial to clean up, because nothing was ever written.
 
+> **Since updated (K3a-3):** a rejected answer is still never shown, never
+> stored and never repaired, but it no longer ends in an error page. The
+> request is retried once; if the second reply is rejected too, `POST /query`
+> answers `200` with a fixed reply, "I couldn't verify this answer ...", and
+> `verified: false` (with `grounding_detail.generation` saying why). That row
+> is stored, with no citations. Both rejections are logged (the rule that
+> failed, never the model's text) and the answers evaluation counts them on
+> their own, apart from abstentions and successes. The `502` described above
+> is gone.
+
 ### Errors
 
 `503` for a provider that could not be reached — embedding, reranking, or
@@ -983,6 +993,16 @@ cannot use" are distinguishable in logs. `200` for an abstention, always —
 insufficient evidence is a real, valid answer at this layer, never a
 failure. No response or log line ever carries an API key, the prompt, the
 retrieved chunk text, the model's raw output, a traceback, or a file path.
+
+> **Since updated (K3a-3):** the `502` is gone (see the note under "Answer
+> rejected" above). `503` is now specific about why, and never carries the
+> provider's own wording: a rate limit says the model is busy and sets
+> `Retry-After` when the service said how long; a timeout says it did not
+> answer in time; anything else says it is unavailable. A model that declines
+> to answer (a safety block) is not an outage: it gets the same
+> "I couldn't verify this answer" reply as a rejected one. The adapter has a
+> timeout (30 s), retries transient failures twice with back-off that honours
+> `Retry-After`, and asks Gemini for JSON mode with the answer's schema.
 
 > **The real Gemini model had not been exercised in the environment this
 > milestone was built in.** No `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) was

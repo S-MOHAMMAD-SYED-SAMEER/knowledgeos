@@ -208,7 +208,7 @@ def test_llm_provider_failure_is_503_with_a_safe_body(
     class BrokenLLM:
         model_name = "broken"
 
-        def complete(self, *, system, user, max_tokens):
+        def complete(self, *, system, user, max_tokens, json_schema=None):
             raise LLMError("the model could not be reached")
 
     _override_all(client, embeddings, BrokenLLM())
@@ -250,42 +250,149 @@ def test_the_unmodified_endpoint_reaches_for_the_real_gemini_provider(
     assert "language model is unavailable" in response.json()["detail"]
 
 
-def test_invalid_citation_from_the_model_is_502(
-    client: TestClient, migrated_engine: Engine, storage, embeddings
-) -> None:
-    with Session(migrated_engine) as session:
-        _seed(session, storage, embeddings)
-
-    fake_llm = FakeLLMProvider([valid_json("Fact [" + "f" * 32 + "].", ["f" * 32])])
-    _override_all(client, embeddings, fake_llm)
+def _post(client, embeddings, llm):
+    _override_all(client, embeddings, llm)
     try:
-        response = client.post(
-            "/query", json={"query": "production database access"}
-        )
+        return client.post("/query", json={"query": "production database access"})
     finally:
         client.app.dependency_overrides.clear()
 
-    assert response.status_code == 502
-    assert "could not be validated" in response.json()["detail"]
+
+def test_an_invalid_citation_twice_is_a_200_with_the_could_not_verify_reply(
+    client: TestClient, migrated_engine: Engine, storage, embeddings
+) -> None:
+    from app.generation.generator import UNVERIFIED_ANSWER_TEXT
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    bad = valid_json("Fact [" + "f" * 32 + "].", ["f" * 32])
+    fake_llm = FakeLLMProvider([bad, bad])
+
+    response = _post(client, embeddings, fake_llm)
+
+    assert response.status_code == 200  # never a raw 502
+    body = response.json()
+    assert body["answer"] == UNVERIFIED_ANSWER_TEXT
+    assert body["verified"] is False
+    assert body["verification_attempts"] == 2
+    assert body["citations"] == []
+    assert body["abstained"] is False
+    assert body["grounded"] is False
+    assert body["grounding_detail"]["generation"]["failure"] == "citation_invalid"
     assert "Traceback" not in response.text
+    assert "f" * 32 not in response.text  # nothing the model wrote is shown
 
 
-def test_malformed_json_from_the_model_is_502(
+def test_malformed_json_twice_is_a_200_with_the_could_not_verify_reply(
     client: TestClient, migrated_engine: Engine, storage, embeddings
 ) -> None:
     with Session(migrated_engine) as session:
         _seed(session, storage, embeddings)
 
-    fake_llm = FakeLLMProvider(["not valid json at all {"])
-    _override_all(client, embeddings, fake_llm)
+    response = _post(client, embeddings, FakeLLMProvider(["not valid json at all {"] * 2))
+
+    assert response.status_code == 200
+    assert response.json()["verified"] is False
+    assert response.json()["grounding_detail"]["generation"]["failure"] == "malformed_output"
+
+
+def test_a_bad_first_reply_and_a_good_second_one_is_a_verified_answer(
+    client: TestClient, migrated_engine: Engine, storage, embeddings
+) -> None:
+    from sqlalchemy import select
+
+    from app.models import Chunk
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+        uids = session.execute(select(Chunk.chunk_uid)).scalars().all()
+    good = valid_json(" ".join(f"Fact [{u}]." for u in uids), uids)
+
+    response = _post(client, embeddings, FakeLLMProvider(["not json", good]))
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["verified"] is True
+    assert body["verification_attempts"] == 2
+    assert body["grounding_detail"]["generation"] == {"verified": True, "attempts": 2}
+    assert body["citation_valid"] and body["grounded"]
+
+
+def test_a_model_that_declines_is_a_200_with_the_could_not_verify_reply(
+    client: TestClient, migrated_engine: Engine, storage, embeddings
+) -> None:
+    from app.providers.llm import LLMBlocked
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    response = _post(client, embeddings, FakeLLMProvider([LLMBlocked("blocked", reason="SAFETY")]))
+
+    assert response.status_code == 200
+    assert response.json()["verified"] is False
+    assert response.json()["grounding_detail"]["generation"]["failure"] == "model_blocked"
+
+
+def test_the_could_not_verify_reply_is_stored_and_read_back(
+    client: TestClient, migrated_engine: Engine, storage, embeddings
+) -> None:
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    _override_all(client, embeddings, FakeLLMProvider(["nope"] * 2))
     try:
-        response = client.post(
-            "/query", json={"query": "production database access"}
-        )
+        query_id = client.post("/query", json={"query": "production database access"}).json()["query_id"]
+        stored = client.get(f"/queries/{query_id}").json()
     finally:
         client.app.dependency_overrides.clear()
 
-    assert response.status_code == 502
+    assert stored["answer"]["grounding_detail"]["generation"]["verified"] is False
+    assert stored["answer"]["citations"] == []
+
+
+def test_a_rate_limited_model_is_a_503_with_retry_after_and_a_clear_message(
+    client: TestClient, migrated_engine: Engine, storage, embeddings
+) -> None:
+    from app.providers.llm import LLMRateLimited
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    response = _post(client, embeddings, FakeLLMProvider([LLMRateLimited("slow down", retry_after=42.2)]))
+
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "43"
+    assert "busy" in response.json()["detail"]
+    assert "slow down" not in response.text  # the provider's own wording stays in the log
+
+
+def test_a_rate_limit_without_a_known_delay_has_no_retry_after_header(
+    client: TestClient, migrated_engine: Engine, storage, embeddings
+) -> None:
+    from app.providers.llm import LLMRateLimited
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    response = _post(client, embeddings, FakeLLMProvider([LLMRateLimited("slow down")]))
+
+    assert response.status_code == 503
+    assert "retry-after" not in response.headers
+
+
+def test_a_timed_out_model_is_a_503_that_says_so(
+    client: TestClient, migrated_engine: Engine, storage, embeddings
+) -> None:
+    from app.providers.llm import LLMTimeout
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    response = _post(client, embeddings, FakeLLMProvider([LLMTimeout("too slow")]))
+
+    assert response.status_code == 503
+    assert "did not answer in time" in response.json()["detail"]
 
 
 # --- GET /queries/{id} ------------------------------------------------

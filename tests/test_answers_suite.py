@@ -127,7 +127,7 @@ def test_rejected_attempts_are_not_persisted(session, storage, embeddings) -> No
     # Every call returns malformed JSON, forcing GenerationError for every
     # question that reaches the model at all.
     questions = load_question_set()
-    llm = FakeLLMProvider(["not valid json"] * len(questions))
+    llm = FakeLLMProvider(["not valid json"] * (2 * len(questions)))  # asked twice per question
 
     result = run_answers_suite(
         session,
@@ -145,7 +145,9 @@ def test_rejected_attempts_are_not_persisted(session, storage, embeddings) -> No
     for attempt in malformed:
         assert attempt.retrieval_ms is not None
         assert attempt.rerank_ms is not None
-        assert attempt.llm_ms is None
+        assert attempt.llm_ms is not None  # the model was asked, so its time was spent
+        assert attempt.attempts_used == 2
+        assert attempt.input_tokens and attempt.output_tokens  # and so were its tokens
     rows = session.execute(select(Query)).scalars().all()
     assert len(rows) == len(result.persisted_query_ids)
     assert len(rows) < len(questions)

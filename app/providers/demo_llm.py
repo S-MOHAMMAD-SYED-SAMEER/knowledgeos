@@ -71,8 +71,15 @@ class DemoLLMProvider:
 
     model_name = DEMO_MODEL_NAME
 
-    def complete(self, *, system: str, user: str, max_tokens: int) -> LLMResult:
-        del max_tokens  # Matching depends only on the question.
+    def complete(
+        self,
+        *,
+        system: str,
+        user: str,
+        max_tokens: int,
+        json_schema: dict | None = None,
+    ) -> LLMResult:
+        del max_tokens, json_schema  # Matching depends only on the question.
 
         question_text = _extract_question(user)
         scenario = find_scenario(question_text)

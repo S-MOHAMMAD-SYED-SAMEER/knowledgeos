@@ -244,3 +244,55 @@ def test_cost_summary_undefined_with_no_measured_attempts() -> None:
     attempts = [_attempt(outcome=AttemptOutcome.PRE_LLM_ABSTAIN, abstained=True, model_name=None, input_tokens=None, output_tokens=None)]
     with pytest.raises(ValueError):
         cost_summary(attempts, pricing_table={})
+
+
+# --- could-not-verify replies, counted on their own ---------------------------------
+
+
+def test_verification_summary_separates_first_try_retry_and_unverified() -> None:
+    from evals.answers.metrics import verification_summary
+
+    attempts = [
+        _attempt(question_id="a"),  # verified at once (attempts_used unset means 1)
+        _attempt(question_id="b", **{}),
+        _attempt(question_id="c", abstained=True, model_name=None, outcome=AttemptOutcome.PRE_LLM_ABSTAIN),
+        _attempt(question_id="d", outcome=AttemptOutcome.CITATION_INVALID, abstained=None, grounded=None),
+        _attempt(question_id="e", outcome=AttemptOutcome.MALFORMED_OUTPUT, abstained=None, grounded=None),
+        _attempt(question_id="f", outcome=AttemptOutcome.MODEL_BLOCKED, abstained=None, grounded=None),
+    ]
+    attempts[1] = AnswerAttempt(**{**attempts[1].__dict__, "attempts_used": 2})  # verified on the retry
+    attempts[3] = AnswerAttempt(**{**attempts[3].__dict__, "attempts_used": 2})
+    attempts[4] = AnswerAttempt(**{**attempts[4].__dict__, "attempts_used": 2})
+    attempts[5] = AnswerAttempt(**{**attempts[5].__dict__, "attempts_used": 1})  # a block is not retried
+
+    summary = verification_summary(attempts)
+
+    assert summary.asked_count == 5  # the pre-LLM abstention never reached the model
+    assert summary.verified_first_try == 1
+    assert summary.verified_after_retry == 1
+    assert summary.unverified == 3
+    assert summary.unverified_by_reason == {"citation_invalid": 1, "malformed_output": 1, "model_blocked": 1}
+    assert summary.unverified_rate == pytest.approx(3 / 5)
+    assert summary.retry_rate == pytest.approx(3 / 5)  # b, d and e were asked twice
+
+
+def test_verification_summary_is_undefined_without_any_attempt_that_reached_the_model() -> None:
+    from evals.answers.metrics import verification_summary
+
+    only_abstention = [_attempt(abstained=True, model_name=None, outcome=AttemptOutcome.PRE_LLM_ABSTAIN)]
+
+    with pytest.raises(ValueError):
+        verification_summary(only_abstention)
+
+
+def test_an_unverified_reply_is_never_counted_as_an_abstention() -> None:
+    """The reply says "I couldn't verify this", not "the evidence is insufficient"."""
+    attempts = [
+        _attempt(question_id="x", expected_abstain=True, outcome=AttemptOutcome.CITATION_INVALID, abstained=None, grounded=None),
+        _attempt(question_id="y", expected_abstain=True, abstained=True),
+    ]
+
+    score = abstention_precision_recall(attempts)
+
+    assert score.true_positives == 1  # only the real abstention
+    assert score.false_negatives == 1  # the unverified reply is a predicted non-abstention

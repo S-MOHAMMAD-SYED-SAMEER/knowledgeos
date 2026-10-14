@@ -204,6 +204,12 @@ class QueryResponse(BaseModel):
     grounding_detail: dict
     model: str | None
     prompt_version: str
+    # False when no reply from the model could be verified, in which case `answer` is the
+    # fixed "I couldn't verify this answer" text and `citations` is empty. Not an error:
+    # the request succeeded, and nothing unverified was shown.
+    verified: bool = True
+    # How many times the model was asked: 2 after a rejected first reply.
+    verification_attempts: int = 1
 
 
 # --- persisted query detail (milestone 8) -----------------------------

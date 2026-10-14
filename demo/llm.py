@@ -75,8 +75,15 @@ class DemoLLMProvider:
     def model_name(self) -> str:
         return DEMO_LLM_MODEL_NAME
 
-    def complete(self, *, system: str, user: str, max_tokens: int) -> LLMResult:
-        del max_tokens  # the fixture's answer never depends on it
+    def complete(
+        self,
+        *,
+        system: str,
+        user: str,
+        max_tokens: int,
+        json_schema: dict | None = None,
+    ) -> LLMResult:
+        del max_tokens, json_schema  # the fixture's answer never depends on them
 
         match = _QUESTION_PATTERN.match(user)
         if not match:

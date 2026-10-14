@@ -203,4 +203,6 @@ def test_response_schema_is_unchanged_in_demo_mode(
         "grounding_detail",
         "model",
         "prompt_version",
+        "verified",
+        "verification_attempts",
     }

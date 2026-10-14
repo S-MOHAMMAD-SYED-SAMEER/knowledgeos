@@ -38,8 +38,12 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.generation.citations import CitationError
-from app.generation.generator import GenerationError, generate_answer
+from app.generation.generator import (
+    FAILURE_CITATION_INVALID,
+    FAILURE_MALFORMED_OUTPUT,
+    FAILURE_MODEL_BLOCKED,
+    generate_answer,
+)
 from app.generation.persistence import persist_query
 from app.observability.timing import stage_timer
 from app.parsing import normalize
@@ -137,34 +141,29 @@ def run_answers_suite(
             reranked = rerank(normalized_text, result.candidates, reranker_provider)
 
         with stage_timer() as llm_timer:
-            try:
-                answer = generate_answer(
-                    query_text=normalized_text,
-                    candidates=reranked,
-                    llm=llm,
-                    abstention_threshold=abstention_threshold,
-                    max_tokens=max_tokens,
+            answer = generate_answer(
+                query_text=normalized_text,
+                candidates=reranked,
+                llm=llm,
+                abstention_threshold=abstention_threshold,
+                max_tokens=max_tokens,
+            )
+
+        if answer.verification_failure is not None:
+            # The model was asked (twice, unless it declined) and nothing it said could be shown:
+            # the person gets "I couldn't verify this answer". Counted on its own, and not
+            # persisted, as a rejected answer never was.
+            attempts.append(
+                _failed_attempt(
+                    question,
+                    _UNVERIFIED_OUTCOME[answer.verification_failure],
+                    retrieval_timer.ms,
+                    rerank_timer.ms,
+                    answer=answer,
+                    llm_ms=llm_timer.ms,
                 )
-            except CitationError:
-                attempts.append(
-                    _failed_attempt(
-                        question,
-                        AttemptOutcome.CITATION_INVALID,
-                        retrieval_timer.ms,
-                        rerank_timer.ms,
-                    )
-                )
-                continue
-            except GenerationError:
-                attempts.append(
-                    _failed_attempt(
-                        question,
-                        AttemptOutcome.MALFORMED_OUTPUT,
-                        retrieval_timer.ms,
-                        rerank_timer.ms,
-                    )
-                )
-                continue
+            )
+            continue
 
         # `answer.model_name is None` marks a pre-LLM abstention (zero
         # candidates, or the score threshold) -- generate_answer never
@@ -206,6 +205,7 @@ def run_answers_suite(
                 rerank_ms=rerank_timer.ms,
                 llm_ms=llm_ms,
                 total_ms=total_ms,
+                attempts_used=answer.attempts if answer.model_name is not None else None,
             )
         )
 
@@ -247,7 +247,17 @@ def run_answers_suite(
     )
 
 
-def _failed_attempt(question, outcome, retrieval_ms, rerank_ms) -> AnswerAttempt:
+_UNVERIFIED_OUTCOME = {
+    FAILURE_CITATION_INVALID: AttemptOutcome.CITATION_INVALID,
+    FAILURE_MALFORMED_OUTPUT: AttemptOutcome.MALFORMED_OUTPUT,
+    FAILURE_MODEL_BLOCKED: AttemptOutcome.MODEL_BLOCKED,
+}
+
+
+def _failed_attempt(question, outcome, retrieval_ms, rerank_ms, *, answer, llm_ms) -> AnswerAttempt:
+    """A question whose answer could not be verified. The tokens are real (the model was
+    asked), so they count towards cost; there is no answer to describe, so every field about
+    the answer is None, and the abstention score treats it as a predicted non-abstention."""
     return AnswerAttempt(
         question_id=question.id,
         expected_abstain=question.expected_abstain,
@@ -257,13 +267,14 @@ def _failed_attempt(question, outcome, retrieval_ms, rerank_ms) -> AnswerAttempt
         citation_coverage=None,
         grounded=None,
         semantic=None,
-        model_name=None,
-        input_tokens=None,
-        output_tokens=None,
+        model_name=answer.model_name,
+        input_tokens=answer.input_tokens,
+        output_tokens=answer.output_tokens,
         retrieval_ms=retrieval_ms,
         rerank_ms=rerank_ms,
-        llm_ms=None,
-        total_ms=retrieval_ms + rerank_ms,
+        llm_ms=llm_ms,
+        total_ms=retrieval_ms + rerank_ms + llm_ms,
+        attempts_used=answer.attempts,
     )
 
 

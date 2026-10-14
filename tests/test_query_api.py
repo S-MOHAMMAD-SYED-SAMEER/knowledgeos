@@ -117,6 +117,8 @@ def test_the_response_shape(
         "grounding_detail",
         "model",
         "prompt_version",
+        "verified",
+        "verification_attempts",
     }
     assert body["candidates"]
     candidate = body["candidates"][0]

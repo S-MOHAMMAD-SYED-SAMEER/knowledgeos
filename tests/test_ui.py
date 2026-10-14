@@ -15,6 +15,7 @@ real providers directly (which would make overriding impossible — see
 import uuid
 
 import pytest
+from markupsafe import escape
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
@@ -429,3 +430,57 @@ def test_provider_failure_in_the_ui_never_leaks_a_traceback(
     assert "Traceback" not in response.text
     assert "File \"" not in response.text
     assert "/home/" not in response.text
+
+
+# --- the "could not verify" reply -----------------------------------------------------
+
+
+def test_an_unverified_answer_is_labelled_as_such_and_not_as_answered(
+    client: TestClient, migrated_engine: Engine, storage, embeddings
+) -> None:
+    from app.generation.generator import UNVERIFIED_ANSWER_TEXT
+    from app.providers.fake_llm import FakeLLMProvider
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    client.app.dependency_overrides[embedding_provider] = lambda: embeddings
+    client.app.dependency_overrides[rerank_provider] = lambda: PassthroughRerankProvider()
+    client.app.dependency_overrides[llm_provider] = lambda: FakeLLMProvider(["not json"] * 2)
+    try:
+        response = client.post("/ui/query", data={"query": "production database access"})
+    finally:
+        client.app.dependency_overrides.clear()
+
+    assert response.status_code == 200  # the redirect was followed to the answer page
+    assert str(escape(UNVERIFIED_ANSWER_TEXT)) in response.text  # the template escapes the apostrophe
+    assert "Could not verify this answer" in response.text
+    assert "badge answered" not in response.text
+    assert "Citations verified" not in response.text
+
+
+def test_a_verified_answer_after_a_retry_looks_like_any_other_answer(
+    client: TestClient, migrated_engine: Engine, storage, embeddings
+) -> None:
+    from sqlalchemy import select
+
+    from app.models import Chunk
+    from app.providers.fake_llm import FakeLLMProvider
+
+    from .generation_fixtures import valid_json
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+        uids = session.execute(select(Chunk.chunk_uid)).scalars().all()
+    good = valid_json(" ".join(f"Fact [{u}]." for u in uids), uids)
+
+    client.app.dependency_overrides[embedding_provider] = lambda: embeddings
+    client.app.dependency_overrides[rerank_provider] = lambda: PassthroughRerankProvider()
+    client.app.dependency_overrides[llm_provider] = lambda: FakeLLMProvider(["not json", good])
+    try:
+        response = client.post("/ui/query", data={"query": "production database access"})
+    finally:
+        client.app.dependency_overrides.clear()
+
+    assert "badge answered" in response.text
+    assert "Could not verify this answer" not in response.text

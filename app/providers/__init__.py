@@ -26,7 +26,14 @@ from app.providers.fake_embeddings import FakeEmbeddingProvider
 from app.providers.fake_llm import FAKE_LLM_MODEL_NAME, FakeLLMProvider
 from app.providers.fake_reranker import FakeRerankProvider
 from app.providers.gemini_llm import GeminiLLMProvider
-from app.providers.llm import LLMError, LLMProvider, LLMResult
+from app.providers.llm import (
+    LLMBlocked,
+    LLMError,
+    LLMProvider,
+    LLMRateLimited,
+    LLMResult,
+    LLMTimeout,
+)
 from app.providers.passthrough_reranker import PassthroughRerankProvider
 from app.providers.reranker import Candidate, RerankError, RerankProvider, ScoredChunk
 from app.providers.reranker import check_shape as check_rerank_shape
@@ -45,9 +52,12 @@ __all__ = [
     "FakeLLMProvider",
     "FakeRerankProvider",
     "GeminiLLMProvider",
+    "LLMBlocked",
     "LLMError",
     "LLMProvider",
+    "LLMRateLimited",
     "LLMResult",
+    "LLMTimeout",
     "PassthroughRerankProvider",
     "RerankError",
     "RerankProvider",
