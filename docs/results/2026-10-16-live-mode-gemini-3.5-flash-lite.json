@@ -1,0 +1,88 @@
+{
+  "kind": "live-mode-check",
+  "date": "2026-10-16",
+  "timestamp": "2026-10-16T09:19:58+00:00",
+  "models": [
+    "gemini-3.5-flash-lite"
+  ],
+  "temperature": "unset: the model's own default (KNOWLEDGEOS_LLM_TEMPERATURE not set)",
+  "provenance": "Questions and intents written by Claude Code (AI assistant); not part of the frozen evaluation set; no gold labels; nothing is scored.",
+  "questions_planned": 9,
+  "questions_answered": 2,
+  "generation_requests_used": 2,
+  "stopped": "lm03: HTTP 503 {\"detail\":\"the language model is unavailable\"}",
+  "feedback": {
+    "answer_id": "87562a71-5a7d-4c87-ad12-a826d952c853",
+    "status": 201
+  },
+  "results": [
+    {
+      "id": "lm01",
+      "category": "conflicting versions",
+      "question": "How many managers must approve a production database access request right now, and how long does the access last?",
+      "filters": {},
+      "intent": "answer from version 2 of the SOP (data owner and two engineering managers; the shorter grant), cited",
+      "answer": "A standard production database access request requires sign-off from the data owner and from two engineering managers [da1cdb5e0e87ad69728e9d2781239d13]. Once approved, the access is granted for three days [da1cdb5e0e87ad69728e9d2781239d13].",
+      "abstained": false,
+      "citations": [
+        "da1cdb5e0e87ad69728e9d2781239d13"
+      ],
+      "citation_valid": true,
+      "grounded": true,
+      "grounding_detail": {
+        "deterministic": {
+          "citation_valid": true,
+          "citation_coverage": 1.0,
+          "abstention_flag_consistent": true
+        },
+        "semantic": {
+          "status": "unavailable",
+          "reason": "the local cross-encoder NLI scorer is not available in this environment; semantic grounding was not exercised for this answer"
+        }
+      },
+      "verified": true,
+      "verification_attempts": 1,
+      "model": "gemini-3.5-flash-lite",
+      "prompt_version": "knowledge_answer_v1",
+      "input_tokens": 5948,
+      "output_tokens": 151,
+      "seconds": 18.8,
+      "candidates_returned": 20,
+      "answer_id": "87562a71-5a7d-4c87-ad12-a826d952c853"
+    },
+    {
+      "id": "lm02",
+      "category": "directly answerable",
+      "question": "Within how many days of incurring an expense should the report be submitted?",
+      "filters": {},
+      "intent": "thirty days, from the Expense Policy, cited",
+      "answer": "Expense reports should be submitted within thirty days of the expense being incurred [922fa6065681666dbffe4f7cb644da41].",
+      "abstained": false,
+      "citations": [
+        "922fa6065681666dbffe4f7cb644da41"
+      ],
+      "citation_valid": true,
+      "grounded": true,
+      "grounding_detail": {
+        "deterministic": {
+          "citation_valid": true,
+          "citation_coverage": 1.0,
+          "abstention_flag_consistent": true
+        },
+        "semantic": {
+          "status": "unavailable",
+          "reason": "the local cross-encoder NLI scorer is not available in this environment; semantic grounding was not exercised for this answer"
+        }
+      },
+      "verified": true,
+      "verification_attempts": 1,
+      "model": "gemini-3.5-flash-lite",
+      "prompt_version": "knowledge_answer_v1",
+      "input_tokens": 5954,
+      "output_tokens": 98,
+      "seconds": 4.8,
+      "candidates_returned": 20,
+      "answer_id": "6e4b64ee-f106-499b-a224-ec4e9655f9c4"
+    }
+  ]
+}
