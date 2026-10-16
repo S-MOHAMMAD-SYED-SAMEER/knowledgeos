@@ -72,6 +72,16 @@ class AnswerAttempt:
     # How many times the model was asked for this question (1, or 2 after a rejected first
     # reply). None when it was never asked.
     attempts_used: int | None = None
+    # What the model said and what was shown, kept so the run can be scored again offline
+    # (None when a run was made without them, e.g. an older checkpoint).
+    # The verified answer text (never the fixed "could not verify" text), its citations, and the
+    # chunks that were selected as evidence for it.
+    answer_text: str | None = None
+    citations: list[str] | None = None
+    selected_chunk_uids: list[str] | None = None
+    # Every raw reply the model returned for this question, before parsing or validation, with its
+    # tokens and finish reason: one entry, or two after a rejected first reply.
+    raw_replies: list[dict] | None = None
 
 
 UNVERIFIED_OUTCOMES = frozenset(

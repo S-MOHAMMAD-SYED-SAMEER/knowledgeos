@@ -139,15 +139,37 @@ def report_filename(*, when: datetime | None = None) -> str:
     return f"answers-{moment.strftime('%Y%m%dT%H%M%SZ')}.json"
 
 
+# Printed on every result, because it is what the numbers mean: the questions, the expected chunks
+# and the abstain flags were written by an AI assistant, and no person has reviewed them yet.
+GOLD_LABEL = "scored against AI-written gold (Claude-written, not yet human-reviewed)"
+
+
+def _attempt_record(attempt) -> dict:
+    """One question's result as saved: every field, so the run can be scored again offline."""
+    record = asdict(attempt)
+    record["outcome"] = attempt.outcome.value
+    if attempt.semantic is not None:
+        record["semantic"]["sentence_scores"] = [
+            {**score, "cited_chunk_uids": sorted(score["cited_chunk_uids"])}
+            for score in record["semantic"]["sentence_scores"]
+        ]
+    return record
+
+
 def build_json_report(
     result: AnswerSuiteResult, *, eval_run_id: UUID | None, pricing_table: dict
 ) -> dict:
     return {
         "suite": "answers",
+        "gold_label": GOLD_LABEL,
         "eval_run_id": str(eval_run_id) if eval_run_id is not None else None,
         "config": result.config,
         "metrics": metrics_payload(result, pricing_table=pricing_table),
         "persisted_query_ids": [str(qid) for qid in result.persisted_query_ids],
+        # Every question's result, in question order, with the raw model replies
+        # (answer_text, citations, selected_chunk_uids, raw_replies).
+        "attempts": [_attempt_record(a) for a in result.attempts],
+        "provider_errors": result.provider_errors,
     }
 
 
@@ -170,13 +192,15 @@ def render_console_summary(
     result: AnswerSuiteResult, *, eval_run_id: UUID | None, pricing_table: dict
 ) -> str:
     metrics = metrics_payload(result, pricing_table=pricing_table)
-    lines = ["Answer evaluation (suite=answers)"]
+    lines = ["Answer evaluation (suite=answers)", f"  gold: {GOLD_LABEL}"]
     if eval_run_id is not None:
         lines.append(f"  eval_run_id: {eval_run_id}")
 
     lines.append(f"  embedding model:  {result.config['embedding_model']}")
     lines.append(f"  rerank model:     {result.config['rerank_model']}")
     lines.append(f"  llm model:        {result.config['llm_model']}")
+    if "llm_temperature" in result.config:
+        lines.append(f"  llm temperature:  {result.config['llm_temperature']}")
     lines.append(f"  semantic scorer:  {result.config['semantic_scorer_model']}")
     lines.append(
         f"  abstention threshold: {result.config['abstention_threshold']}"
