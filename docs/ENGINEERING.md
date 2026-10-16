@@ -848,13 +848,15 @@ without changing anything in `app/generation/`.
 
 ### The model ID was never chosen from memory
 
-`Settings.llm_model` (env `KNOWLEDGEOS_LLM_MODEL`) has **no default**. At
-the time `app/providers/gemini_llm.py` was written, no Gemini credential
-was available in the build environment to verify a model against the live
-API (`client.models.list()`), so none was guessed. An operator who has
-verified one sets it; `GeminiLLMProvider.complete()` raises a structural
-`LLMError` — never a fabricated model name — if it is unset when generation
-is attempted.
+`Settings.llm_model` (env `KNOWLEDGEOS_LLM_MODEL`) had **no default** when
+`app/providers/gemini_llm.py` was written: no Gemini credential was available in the
+build environment to verify a model against the live API, so none was guessed.
+**Update, 2026-10-16:** the project owner chose `gemini-3.5-flash-lite`; it was
+verified with `models.get` (`generateContent` supported, default temperature 1.0) and
+one real call, and is now the default. Any other model must be verified the same
+way first. `GeminiLLMProvider.complete()` still raises a structural `LLMError` if
+the setting is emptied. The temperature is sent explicitly at 1.0, the model's own
+default and what Google's prompting guide says to keep for Gemini 3 models.
 
 ### Evidence selection: top 8, fixed, no threshold
 
@@ -1528,8 +1530,8 @@ thing on every run.
 ### Configuration
 
 `.env.example` now documents the full milestone 1-10 surface, including
-milestone 8's `KNOWLEDGEOS_LLM_MODEL` (no default, required before
-generation works), milestone 9's `KNOWLEDGEOS_ABSTENTION_RERANK_THRESHOLD`
+milestone 8's `KNOWLEDGEOS_LLM_MODEL` (no default when this was written;
+`gemini-3.5-flash-lite` since 2026-10-16), milestone 9's `KNOWLEDGEOS_ABSTENTION_RERANK_THRESHOLD`
 and `KNOWLEDGEOS_LLM_PRICING_USD_PER_MILLION_TOKENS`, and milestone 10's own
 deployment notes (the absolute storage root and the compose network's
 database host, both already set for you inside `docker-compose.yml`) — every

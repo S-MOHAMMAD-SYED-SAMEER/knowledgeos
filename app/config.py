@@ -133,16 +133,16 @@ class Settings(BaseSettings):
     query_max_length: int = Field(default=1000, gt=0)
 
     # --- Generation (milestone 8) ---
-    # Deliberately no default. The generation provider for this build is
-    # Google Gemini (a documented deviation from the specification's
-    # Anthropic wording — see the README's milestone 8 section), and no
-    # model ID is chosen from memory anywhere in this codebase: at the time
-    # this setting was added, no Gemini credential was available in the
-    # build environment to verify one against the live API. An operator who
-    # has verified a model with `client.models.list()` sets it here; a
-    # missing value is a config error the moment generation is attempted
-    # (`app/providers/gemini_llm.py`), not a silently wrong guess.
-    llm_model: str | None = None
+    # The generation provider for this build is Google Gemini (a documented
+    # deviation from the specification's Anthropic wording — see the README's
+    # milestone 8 section). The default is `gemini-3.5-flash-lite`, chosen by the
+    # project owner and verified against the live API on 2026-10-16: `models.get`
+    # returned it with `generateContent` supported, and one real call answered
+    # (docs/results/2026-10-16-smoke-gemini-3.5-flash-lite.json). It was not
+    # picked from memory. Set `KNOWLEDGEOS_LLM_MODEL` to use another model, after
+    # verifying it the same way; an empty value is a config error the moment
+    # generation is attempted (`app/providers/gemini_llm.py`).
+    llm_model: str | None = "gemini-3.5-flash-lite"
 
     # The specification names no cap on generation length. This exists for
     # the same reason `query_max_length` does — an explicit limit rather
@@ -162,10 +162,15 @@ class Settings(BaseSettings):
     llm_max_retries: int = Field(default=2, ge=0)
     llm_retry_max_wait_seconds: float = Field(default=15.0, gt=0)
 
-    # Unset means the provider's own default, on purpose: some models are tuned for
-    # their default and do worse below it. Set it (0 for the most repeatable
-    # answers) when reproducibility matters more, for example for an evaluation run.
-    llm_temperature: float | None = Field(default=None, ge=0, le=2)
+    # 1.0, which is both this model's own default (`models.get` for
+    # gemini-3.5-flash-lite reported temperature 1.0, 2026-10-16) and what Google's
+    # prompting guide says to keep: "For earlier Gemini 3 models, keep these
+    # parameters at their default values to avoid degraded reasoning performance"
+    # (https://ai.google.dev/gemini-api/docs/prompting-strategies, read 2026-10-16).
+    # It is sent explicitly so every recorded run states it. The same page says
+    # Gemini 3.6+ and 4 models ignore custom temperature values and will reject them in
+    # a future release; if you move to one, change this default to None so it is not sent.
+    llm_temperature: float | None = Field(default=1.0, ge=0, le=2)
 
     # The specification's own words: the abstention threshold "is calibrated
     # on a dev split of the eval questions, not chosen by taste." No

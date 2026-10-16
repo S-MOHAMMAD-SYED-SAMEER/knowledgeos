@@ -82,7 +82,9 @@ def test_the_llm_resilience_defaults() -> None:
     assert settings.llm_timeout_seconds == 30
     assert settings.llm_max_retries == 2
     assert settings.llm_retry_max_wait_seconds == 15
-    assert settings.llm_temperature is None  # the model's own default unless asked
+    # Explicit, and the model's own default (1.0), which is what Google says to keep for Gemini 3.
+    assert settings.llm_temperature == 1.0
+    assert settings.llm_model == "gemini-3.5-flash-lite"
 
 
 def test_the_llm_settings_can_be_overridden(monkeypatch) -> None:

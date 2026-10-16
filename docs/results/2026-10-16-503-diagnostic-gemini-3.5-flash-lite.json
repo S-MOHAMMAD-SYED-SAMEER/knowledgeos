@@ -1,0 +1,19 @@
+{
+  "kind": "503-diagnostic",
+  "date": "2026-10-16",
+  "purpose": "One approved retry of the request that returned the app's 503 during the live-mode check, with the adapter message now logged, to see what the 503 is.",
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "temperature": 1.0,
+  "temperature_note": "sent explicitly; the model's own default and Google's recommendation for Gemini 3 models",
+  "adapter_max_retries": 0,
+  "request": "POST /query: \"What are the three incident severity levels and what does each one require?\" (lm03), no filters",
+  "generation_requests": 1,
+  "first_failure_time_ist": "2026-10-16 about 14:49",
+  "diagnostic_time_ist": "2026-10-16 15:21 (about 32 minutes later)",
+  "http_status_from_app": 503,
+  "app_body": {"detail": "the language model is unavailable"},
+  "server_log": "Generation failed (LLMError): generation failed (HTTP 503)",
+  "seconds_to_failure": 23.3,
+  "reading": "Google's API itself answered HTTP 503 (the adapter message carries the upstream status). It happened twice for the same question, 32 minutes apart, after two other questions had been answered by the same model within the same run. Whether it is the question, the model's capacity or chance cannot be told from two attempts, and the rule is to stop on a 503, so nothing further was tried."
+}

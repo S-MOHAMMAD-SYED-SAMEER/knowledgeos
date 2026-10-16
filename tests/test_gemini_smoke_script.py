@@ -46,7 +46,8 @@ def test_records_model_temperature_tokens_and_uses_no_retries(smoke, monkeypatch
     (path,) = tmp_path.glob("*-smoke-some-model.json")
     saved = json.loads(path.read_text("utf-8"))
     assert saved["model"] == "some-model"
-    assert saved["temperature"] is None and "default" in saved["temperature_note"]
+    assert saved["temperature"] == 1.0  # the configured default, sent explicitly
+    assert saved["temperature_note"] is None
     assert (saved["input_tokens"], saved["output_tokens"], saved["requests"]) == (23, 4, 1)
 
 
