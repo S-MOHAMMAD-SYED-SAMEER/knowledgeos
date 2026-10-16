@@ -545,3 +545,38 @@ def test_a_question_that_never_reached_the_model_does_not_end_a_run_of_failures(
 
     assert result.stopped_early is not None
     assert "2 different questions failed in a row" in result.stopped_early
+
+
+# --- the availability check ----------------------------------------------------------------------
+
+
+def test_a_server_error_on_the_availability_check_does_not_end_the_run_before_it_starts(
+    session, tmp_path, monkeypatch, capsys
+) -> None:
+    _patch(monkeypatch, tmp_path, lambda: FlakyLLM(failing_calls={1}))  # call 1 is the availability check
+
+    assert _unpaced(session) == 0
+
+    assert "Availability check failed with a server error" in capsys.readouterr().out
+    report = json.loads(next((tmp_path / "eval_runs").glob("answers-*.json")).read_text(encoding="utf-8"))
+    assert report["config"]["availability_check_error"] == "generation failed (HTTP 503)"
+    assert report["config"]["model_requests"]["availability_check"] == 0  # it failed, so it has no reply
+    assert report["config"]["model_requests"]["total"] > 1  # the questions were asked
+
+
+@pytest.mark.parametrize(
+    "error",
+    [LLMRateLimited("slow down"), LLMError("generation failed (HTTP 429)"), LLMError("generation failed (HTTP 403)")],
+)
+def test_a_rate_limit_or_a_rejected_request_on_the_availability_check_still_ends_the_run(
+    session, tmp_path, monkeypatch, capsys, error
+) -> None:
+    class Refusing(FlakyLLM):
+        def complete(self, **kwargs):
+            raise error
+
+    _patch(monkeypatch, tmp_path, lambda: Refusing(failing_calls=set()))
+
+    assert _unpaced(session) == 1
+    assert "answer evaluation cannot run" in capsys.readouterr().err
+    assert session.execute(select(EvalRun)).scalars().all() == []

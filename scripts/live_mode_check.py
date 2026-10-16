@@ -10,9 +10,10 @@ set, and have no gold labels. The record keeps each question's category and what
 would do (the "intent"), as the author's expectation, not as ground truth.
 
 Every question costs one generation request, two if the first reply fails verification and is asked
-again (`verification_attempts`). The script prints that budget first, stops at the first non-200
-answer (a 429/503 included; it never loops), and records the model, the prompt version and the
-tokens. It never prints a key.
+again (`verification_attempts`). The script prints that budget first. A question that fails (a 5xx, a
+timeout) is recorded with its error and the run carries on; it stops when two different questions in a
+row fail, or at once on a rate-limit / quota answer (HTTP 429, or a 503 that carries Retry-After).
+Nothing is retried. It records the model, the prompt version and the tokens, and never prints a key.
 """
 
 import argparse
@@ -103,6 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--seed", action="store_true", help="seed the fixture corpus first (real ingestion)")
     parser.add_argument("--record", action="store_true")
+    parser.add_argument("--suffix", default="", help="added to the record's file name, e.g. -run2")
     parser.add_argument("--pause", type=float, default=7.0, help="seconds between questions (default 7)")
     args = parser.parse_args(argv)
 
@@ -126,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
     http = httpx.Client(base_url=args.base_url, timeout=90)
     print("health:", http.get("/health").json(), "| ready:", http.get("/ready").json(), flush=True)
 
-    rows, stopped, requests_used = [], None, 0
+    rows, failures, stopped, requests_used, in_a_row = [], [], None, 0, 0
     for i, (qid, category, question, filters, intent) in enumerate(QUESTIONS):
         if i:
             time.sleep(args.pause)
@@ -134,9 +136,28 @@ def main(argv: list[str] | None = None) -> int:
         response = http.post("/query", json={"query": question, "filters": filters})
         seconds = round(time.monotonic() - started, 1)
         if response.status_code != 200:
-            stopped = f"{qid}: HTTP {response.status_code} {response.text[:200]}"
-            print("STOP:", stopped, flush=True)
-            break
+            failure = {
+                "id": qid,
+                "category": category,
+                "question": question,
+                "http_status": response.status_code,
+                "detail": response.text[:200],
+                "retry_after": response.headers.get("retry-after"),
+                "seconds": seconds,
+            }
+            failures.append(failure)
+            in_a_row += 1
+            print(f"{qid} [{category}] FAILED: HTTP {response.status_code} {response.text[:120]} ({seconds}s)", flush=True)
+            if response.status_code == 429 or failure["retry_after"] is not None:
+                stopped = f"{qid}: rate limit / quota (HTTP {response.status_code}, Retry-After {failure['retry_after']})"
+                print("STOP:", stopped, flush=True)
+                break
+            if in_a_row >= 2:
+                stopped = f"two different questions failed in a row (last: {qid}, HTTP {response.status_code})"
+                print("STOP:", stopped, flush=True)
+                break
+            continue
+        in_a_row = 0
         body = response.json()
         detail = http.get(f"/queries/{body['query_id']}").json()
         requests_used += body["verification_attempts"]
@@ -194,16 +215,20 @@ def main(argv: list[str] | None = None) -> int:
         ),
         "questions_planned": n,
         "questions_answered": len(rows),
+        "questions_failed": failures,
         "generation_requests_used": requests_used,
         "stopped": stopped,
         "feedback": feedback,
         "results": rows,
     }
-    print(f"answered {len(rows)} of {n}; generation requests used: {requests_used}; stopped: {stopped}")
-    if args.record and rows:
+    print(
+        f"answered {len(rows)} of {n}; failed {len(failures)}; successful generation requests: {requests_used} "
+        f"(+{len(failures)} that failed); stopped: {stopped}"
+    )
+    if args.record and (rows or failures):
         RESULTS_DIR.mkdir(parents=True, exist_ok=True)
         name = models[0] if models else "none"
-        path = RESULTS_DIR / f"{record['date']}-live-mode-{name}.json"
+        path = RESULTS_DIR / f"{record['date']}-live-mode-{name}{args.suffix}.json"
         path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         print(f"saved {path}")
     return 0 if stopped is None else 2

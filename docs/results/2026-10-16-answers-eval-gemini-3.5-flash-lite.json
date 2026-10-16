@@ -1,0 +1,2618 @@
+{
+  "attempts": [
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "adv001",
+      "raw_replies": [],
+      "rerank_ms": 2717.612999957055,
+      "retrieval_ms": 69.27570002153516,
+      "selected_chunk_uids": [
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "91d4f121536a0880dff84e83193cd833",
+        "4e4e98406eefe99581efced749bd708b",
+        "1520a2137d9557a94fc05784da189fc0",
+        "da1cdb5e0e87ad69728e9d2781239d13"
+      ],
+      "semantic": null,
+      "total_ms": 2786.88869997859
+    },
+    {
+      "abstained": false,
+      "answer_text": "Yes, a standard on-call shift is one week, running from Monday morning to the following Monday morning [bdc1a9ee1fad6334d396205966574a15].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "bdc1a9ee1fad6334d396205966574a15"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5506,
+      "llm_ms": 3186.8445000145584,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 110,
+      "question_id": "adv002",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5506,
+          "output_tokens": 110,
+          "seconds": 3.184,
+          "text": "{\n  \"answer\": \"Yes, a standard on-call shift is one week, running from Monday morning to the following Monday morning [bdc1a9ee1fad6334d396205966574a15].\",\n  \"citations\": [\n    \"bdc1a9ee1fad6334d396205966574a15\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 2905.754200182855,
+      "retrieval_ms": 86.42100007273257,
+      "selected_chunk_uids": [
+        "bdc1a9ee1fad6334d396205966574a15",
+        "a5e0064284e68f8558c67644b75dd9dd",
+        "2810dafda596e424dcddc4756cee378c",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "49446816bd2ba01147d70c4fcfeaa7fc",
+        "922b302489f00c4323d6a6ee63e27500"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "bdc1a9ee1fad6334d396205966574a15"
+            ],
+            "max_score": 1.7172236442565918,
+            "sentence": "Yes, a standard on-call shift is one week, running from Monday morning to the following Monday morning [bdc1a9ee1fad6334d396205966574a15].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 6179.019700270146
+    },
+    {
+      "abstained": null,
+      "answer_text": null,
+      "attempts_used": 2,
+      "citation_coverage": null,
+      "citation_valid": null,
+      "citations": null,
+      "error": null,
+      "expected_abstain": false,
+      "grounded": null,
+      "input_tokens": 11908,
+      "llm_ms": 16223.439099965617,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "citation_invalid",
+      "output_tokens": 789,
+      "question_id": "adv003",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5954,
+          "output_tokens": 354,
+          "seconds": 8.468,
+          "text": "{\n  \"answer\": \"While the Security Policy still describes the older rule of one manager sign-off and a seven-day duration, that is no longer the current rule [da1cdb5e0e87ad69728e9d2781239d13, fa6a8fa3ff7c9abfd858f139e55ab66d, e3e91b1f9845f9e5b17e8e375d325dd9]. The Production Database Access SOP governs these operational steps and has updated the rules: approval now requires sign-off from the data owner and **two** engineering managers (one from a different team), and the duration has been shortened from seven days to **three days** [da1cdb5e0e87ad69728e9d2781239d13, fa6a8fa3ff7c9abfd858f139e55ab66d].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"fa6a8fa3ff7c9abfd858f139e55ab66d\",\n    \"e3e91b1f9845f9e5b17e8e375d325dd9\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        },
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5954,
+          "output_tokens": 435,
+          "seconds": 7.753,
+          "text": "{\n  \"answer\": \"While the Security Policy still describes the older rule of seven-day duration and approval from one engineering manager, the Production Database Access SOP updates these rules [da1cdb5e0e87ad69728e9d2781239d13, fa6a8fa3ff7c9abfd858f139e55ab66d, e3e91b1f9845f9e5b17e8e375d325dd9, 91d4f121536a0880dff84e83193cd833]. The current authoritative rule requires sign-off from the data owner and two engineering managers (with one from a different team), and the access duration is now three days instead of seven [da1cdb5e0e87ad69728e9d2781239d13, fa6a8fa3ff7c9abfd858f139e55ab66d, 91d4f121536a0880dff84e83193cd833].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"fa6a8fa3ff7c9abfd858f139e55ab66d\",\n    \"e3e91b1f9845f9e5b17e8e375d325dd9\",\n    \"91d4f121536a0880dff84e83193cd833\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1817.7310000173748,
+      "retrieval_ms": 67.04219989478588,
+      "selected_chunk_uids": null,
+      "semantic": null,
+      "total_ms": 18108.212299877778
+    },
+    {
+      "abstained": true,
+      "answer_text": "The provided evidence does not contain information about how mileage for a personal vehicle used on business travel is reimbursed under the Remote Work Policy.",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5889,
+      "llm_ms": 23669.633800163865,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 49,
+      "question_id": "adv004",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5889,
+          "output_tokens": 49,
+          "seconds": 23.668,
+          "text": "{\n  \"answer\": \"The provided evidence does not contain information about how mileage for a personal vehicle used on business travel is reimbursed under the Remote Work Policy.\",\n  \"citations\": [],\n  \"sufficient_evidence\": false\n}"
+        }
+      ],
+      "rerank_ms": 1841.3585000671446,
+      "retrieval_ms": 135.2395999711007,
+      "selected_chunk_uids": [
+        "f3db0cedd94359653e4daa1f0536c9fa",
+        "922fa6065681666dbffe4f7cb644da41",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "1520a2137d9557a94fc05784da189fc0",
+        "e87adc078430e416644386f1783dc1f5",
+        "eeee995d9289e3401502bfc86c516b30",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "ad3e426ed2057b246c92f05fa8be0f13"
+      ],
+      "semantic": null,
+      "total_ms": 25646.23190020211
+    },
+    {
+      "abstained": true,
+      "answer_text": "According to the Remote Work Policy, the evidence does not contain information about the maximum number of unused paid time off days that can be carried over into the following year.",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 6440,
+      "llm_ms": 4074.087099870667,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 56,
+      "question_id": "adv005",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6440,
+          "output_tokens": 56,
+          "seconds": 4.073,
+          "text": "{\n  \"answer\": \"According to the Remote Work Policy, the evidence does not contain information about the maximum number of unused paid time off days that can be carried over into the following year.\",\n  \"citations\": [],\n  \"sufficient_evidence\": false\n}"
+        }
+      ],
+      "rerank_ms": 1830.216399859637,
+      "retrieval_ms": 89.26909998990595,
+      "selected_chunk_uids": [
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "f3db0cedd94359653e4daa1f0536c9fa",
+        "1520a2137d9557a94fc05784da189fc0",
+        "b63716038fc7ad343c814ed2e3cdc563",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "eeee995d9289e3401502bfc86c516b30",
+        "ac735f6387ca659b3a009e78d98f0118"
+      ],
+      "semantic": null,
+      "total_ms": 5993.57259972021
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": true,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "adv006",
+      "raw_replies": [],
+      "rerank_ms": 1936.8029998149723,
+      "retrieval_ms": 76.10169984400272,
+      "selected_chunk_uids": [
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "b27f10fcc77b64d06f491ca98fd343c7"
+      ],
+      "semantic": null,
+      "total_ms": 2012.904699658975
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "am001",
+      "raw_replies": [],
+      "rerank_ms": 1818.3435001410544,
+      "retrieval_ms": 64.27620002068579,
+      "selected_chunk_uids": [
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "91d4f121536a0880dff84e83193cd833",
+        "4e4e98406eefe99581efced749bd708b",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "b9350574821da460a18df3d0a5389e65"
+      ],
+      "semantic": null,
+      "total_ms": 1882.6197001617402
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "am002",
+      "raw_replies": [],
+      "rerank_ms": 1788.4720999281853,
+      "retrieval_ms": 57.053100084885955,
+      "selected_chunk_uids": [
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "91d4f121536a0880dff84e83193cd833",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "b9350574821da460a18df3d0a5389e65"
+      ],
+      "semantic": null,
+      "total_ms": 1845.5252000130713
+    },
+    {
+      "abstained": false,
+      "answer_text": "Retention periods vary depending on the category of data: customer account data and employee records are retained for the duration of the account or employment and for seven years after closure or departure [ac735f6387ca659b3a009e78d98f0118]; customer content data is kept as long as the account is active and deleted within ninety days of closure [ac735f6387ca659b3a009e78d98f0118]; security and access logs are retained for one year [ac735f6387ca659b3a009e78d98f0118]; database backups are kept for thirty days on a rolling basis [ac735f6387ca659b3a009e78d98f0118]; and postmortems and incident timelines are retained indefinitely [ac735f6387ca659b3a009e78d98f0118].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "ac735f6387ca659b3a009e78d98f0118"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 6149,
+      "llm_ms": 24526.631799992174,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 304,
+      "question_id": "am003",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6149,
+          "output_tokens": 304,
+          "seconds": 24.525,
+          "text": "{\n  \"answer\": \"Retention periods vary depending on the category of data: customer account data and employee records are retained for the duration of the account or employment and for seven years after closure or departure [ac735f6387ca659b3a009e78d98f0118]; customer content data is kept as long as the account is active and deleted within ninety days of closure [ac735f6387ca659b3a009e78d98f0118]; security and access logs are retained for one year [ac735f6387ca659b3a009e78d98f0118]; database backups are kept for thirty days on a rolling basis [ac735f6387ca659b3a009e78d98f0118]; and postmortems and incident timelines are retained indefinitely [ac735f6387ca659b3a009e78d98f0118].\",\n  \"citations\": [\n    \"ac735f6387ca659b3a009e78d98f0118\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1828.1534002162516,
+      "retrieval_ms": 62.4142000451684,
+      "selected_chunk_uids": [
+        "ac735f6387ca659b3a009e78d98f0118",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "b9350574821da460a18df3d0a5389e65",
+        "91d4f121536a0880dff84e83193cd833",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "b63716038fc7ad343c814ed2e3cdc563",
+        "ad3e426ed2057b246c92f05fa8be0f13"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "ac735f6387ca659b3a009e78d98f0118"
+            ],
+            "max_score": 5.808999061584473,
+            "sentence": "Retention periods vary depending on the category of data: customer account data and employee records are retained for the duration of the account or employment and for seven years after closure or departure [ac735f6387ca659b3a009e78d98f0118]; customer content data is kept as long as the account is active and deleted within ninety days of closure [ac735f6387ca659b3a009e78d98f0118]; security and access logs are retained for one year [ac735f6387ca659b3a009e78d98f0118]; database backups are kept for thirty days on a rolling basis [ac735f6387ca659b3a009e78d98f0118]; and postmortems and incident timelines are retained indefinitely [ac735f6387ca659b3a009e78d98f0118].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 26417.199400253594
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "am004",
+      "raw_replies": [],
+      "rerank_ms": 1832.1710999589413,
+      "retrieval_ms": 76.2337998021394,
+      "selected_chunk_uids": [
+        "91d4f121536a0880dff84e83193cd833",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "f3db0cedd94359653e4daa1f0536c9fa",
+        "922fa6065681666dbffe4f7cb644da41"
+      ],
+      "semantic": null,
+      "total_ms": 1908.4048997610807
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "am005",
+      "raw_replies": [],
+      "rerank_ms": 1795.779700158164,
+      "retrieval_ms": 59.059099992737174,
+      "selected_chunk_uids": [
+        "3420a80f00690e841d4060ffde749ba5",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "91d4f121536a0880dff84e83193cd833",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "2c0cc4d3bc666b5aec30bd5ffadfc2c7",
+        "49446816bd2ba01147d70c4fcfeaa7fc",
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "a5e0064284e68f8558c67644b75dd9dd"
+      ],
+      "semantic": null,
+      "total_ms": 1854.838800150901
+    },
+    {
+      "abstained": false,
+      "answer_text": "An executive must be notified within thirty minutes of declaring a severity-one incident [f9cbee4e0939d52e95eebe93a063a85c].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "f9cbee4e0939d52e95eebe93a063a85c"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5605,
+      "llm_ms": 2789.640499977395,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 104,
+      "question_id": "cs001",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5605,
+          "output_tokens": 104,
+          "seconds": 2.788,
+          "text": "{\n  \"answer\": \"An executive must be notified within thirty minutes of declaring a severity-one incident [f9cbee4e0939d52e95eebe93a063a85c].\",\n  \"citations\": [\n    \"f9cbee4e0939d52e95eebe93a063a85c\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1794.1891001537442,
+      "retrieval_ms": 55.96169992350042,
+      "selected_chunk_uids": [
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "49446816bd2ba01147d70c4fcfeaa7fc",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "2c0cc4d3bc666b5aec30bd5ffadfc2c7",
+        "3420a80f00690e841d4060ffde749ba5",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "a5e0064284e68f8558c67644b75dd9dd"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "f9cbee4e0939d52e95eebe93a063a85c"
+            ],
+            "max_score": 4.077548503875732,
+            "sentence": "An executive must be notified within thirty minutes of declaring a severity-one incident [f9cbee4e0939d52e95eebe93a063a85c].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 4639.79130005464
+    },
+    {
+      "abstained": false,
+      "answer_text": "Under the Security Policy, passwords must be at least fourteen characters [e3e91b1f9845f9e5b17e8e375d325dd9].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "e3e91b1f9845f9e5b17e8e375d325dd9"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 6034,
+      "llm_ms": 22067.796299932525,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 107,
+      "question_id": "cs002",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6034,
+          "output_tokens": 107,
+          "seconds": 22.066,
+          "text": "{\n  \"answer\": \"Under the Security Policy, passwords must be at least fourteen characters [e3e91b1f9845f9e5b17e8e375d325dd9].\",\n  \"citations\": [\n    \"e3e91b1f9845f9e5b17e8e375d325dd9\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1790.0621998123825,
+      "retrieval_ms": 56.87239998951554,
+      "selected_chunk_uids": [
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "1520a2137d9557a94fc05784da189fc0"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "e3e91b1f9845f9e5b17e8e375d325dd9"
+            ],
+            "max_score": 3.602663040161133,
+            "sentence": "Under the Security Policy, passwords must be at least fourteen characters [e3e91b1f9845f9e5b17e8e375d325dd9].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 23914.730899734423
+    },
+    {
+      "abstained": false,
+      "answer_text": "Security patches classified as critical must be applied to production systems within forty-eight hours of their release [cadfd10c7ce0b82b9b54035419a41eba].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "cadfd10c7ce0b82b9b54035419a41eba"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5997,
+      "llm_ms": 3485.8327000401914,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 104,
+      "question_id": "cs003",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5997,
+          "output_tokens": 104,
+          "seconds": 3.485,
+          "text": "{\n  \"answer\": \"Security patches classified as critical must be applied to production systems within forty-eight hours of their release [cadfd10c7ce0b82b9b54035419a41eba].\",\n  \"citations\": [\n    \"cadfd10c7ce0b82b9b54035419a41eba\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1805.7711999863386,
+      "retrieval_ms": 54.27550012245774,
+      "selected_chunk_uids": [
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "49446816bd2ba01147d70c4fcfeaa7fc"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "cadfd10c7ce0b82b9b54035419a41eba"
+            ],
+            "max_score": 6.191189765930176,
+            "sentence": "Security patches classified as critical must be applied to production systems within forty-eight hours of their release [cadfd10c7ce0b82b9b54035419a41eba].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 5345.879400148988
+    },
+    {
+      "abstained": false,
+      "answer_text": "If neither the primary nor the secondary on-call engineer acknowledges the page within twenty minutes, the incident commander on duty is paged directly [49446816bd2ba01147d70c4fcfeaa7fc].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "49446816bd2ba01147d70c4fcfeaa7fc"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5184,
+      "llm_ms": 21267.798700137064,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 112,
+      "question_id": "cs004",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5184,
+          "output_tokens": 112,
+          "seconds": 21.266,
+          "text": "{\n  \"answer\": \"If neither the primary nor the secondary on-call engineer acknowledges the page within twenty minutes, the incident commander on duty is paged directly [49446816bd2ba01147d70c4fcfeaa7fc].\",\n  \"citations\": [\n    \"49446816bd2ba01147d70c4fcfeaa7fc\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1876.2934999540448,
+      "retrieval_ms": 60.859099961817265,
+      "selected_chunk_uids": [
+        "49446816bd2ba01147d70c4fcfeaa7fc",
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "a5e0064284e68f8558c67644b75dd9dd",
+        "bdc1a9ee1fad6334d396205966574a15",
+        "3420a80f00690e841d4060ffde749ba5",
+        "2c0cc4d3bc666b5aec30bd5ffadfc2c7",
+        "2810dafda596e424dcddc4756cee378c",
+        "cadfd10c7ce0b82b9b54035419a41eba"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "49446816bd2ba01147d70c4fcfeaa7fc"
+            ],
+            "max_score": 6.432512283325195,
+            "sentence": "If neither the primary nor the secondary on-call engineer acknowledges the page within twenty minutes, the incident commander on duty is paged directly [49446816bd2ba01147d70c4fcfeaa7fc].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 23204.951300052926
+    },
+    {
+      "abstained": false,
+      "answer_text": "Expenses under one hundred dollars require only manager approval [922fa6065681666dbffe4f7cb644da41].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "922fa6065681666dbffe4f7cb644da41"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 6018,
+      "llm_ms": 4238.45830000937,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 94,
+      "question_id": "cs005",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6018,
+          "output_tokens": 94,
+          "seconds": 4.237,
+          "text": "{\n  \"answer\": \"Expenses under one hundred dollars require only manager approval [922fa6065681666dbffe4f7cb644da41].\",\n  \"citations\": [\n    \"922fa6065681666dbffe4f7cb644da41\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1851.5228000469506,
+      "retrieval_ms": 72.41670018993318,
+      "selected_chunk_uids": [
+        "922fa6065681666dbffe4f7cb644da41",
+        "e87adc078430e416644386f1783dc1f5",
+        "1520a2137d9557a94fc05784da189fc0",
+        "f3db0cedd94359653e4daa1f0536c9fa",
+        "91d4f121536a0880dff84e83193cd833",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "e3e91b1f9845f9e5b17e8e375d325dd9"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "922fa6065681666dbffe4f7cb644da41"
+            ],
+            "max_score": 3.9188356399536133,
+            "sentence": "Expenses under one hundred dollars require only manager approval [922fa6065681666dbffe4f7cb644da41].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 6162.397800246254
+    },
+    {
+      "abstained": false,
+      "answer_text": "Standard production database access is granted for three days [da1cdb5e0e87ad69728e9d2781239d13].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "da1cdb5e0e87ad69728e9d2781239d13"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5958,
+      "llm_ms": 4720.388400135562,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 100,
+      "question_id": "cv001",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5958,
+          "output_tokens": 100,
+          "seconds": 4.719,
+          "text": "{\n  \"answer\": \"Standard production database access is granted for three days [da1cdb5e0e87ad69728e9d2781239d13].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1877.0454998593777,
+      "retrieval_ms": 56.82529998011887,
+      "selected_chunk_uids": [
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "91d4f121536a0880dff84e83193cd833",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "5a04c330c14efaf8f4da83ebf6d6854f"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 5.1281280517578125,
+            "sentence": "Standard production database access is granted for three days [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 6654.259199975058
+    },
+    {
+      "abstained": false,
+      "answer_text": "Approval for a standard production database access request requires sign-off from the data owner for the system in question and from two engineering managers [da1cdb5e0e87ad69728e9d2781239d13].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "da1cdb5e0e87ad69728e9d2781239d13"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5552,
+      "llm_ms": 18185.800099978223,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 117,
+      "question_id": "cv002",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5552,
+          "output_tokens": 117,
+          "seconds": 18.184,
+          "text": "{\n  \"answer\": \"Approval for a standard production database access request requires sign-off from the data owner for the system in question and from two engineering managers [da1cdb5e0e87ad69728e9d2781239d13].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1821.3196999859065,
+      "retrieval_ms": 59.239800088107586,
+      "selected_chunk_uids": [
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "91d4f121536a0880dff84e83193cd833",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "4e4e98406eefe99581efced749bd708b"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 5.925698757171631,
+            "sentence": "Approval for a standard production database access request requires sign-off from the data owner for the system in question and from two engineering managers [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 20066.359600052238
+    },
+    {
+      "abstained": false,
+      "answer_text": "The access grant log is reviewed weekly by Security Engineering as part of the standard access review [91d4f121536a0880dff84e83193cd833].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "91d4f121536a0880dff84e83193cd833"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5993,
+      "llm_ms": 16755.770600168034,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 110,
+      "question_id": "cv003",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5993,
+          "output_tokens": 110,
+          "seconds": 16.754,
+          "text": "{\n  \"answer\": \"The access grant log is reviewed weekly by Security Engineering as part of the standard access review [91d4f121536a0880dff84e83193cd833].\",\n  \"citations\": [\n    \"91d4f121536a0880dff84e83193cd833\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1877.5291999336332,
+      "retrieval_ms": 59.93520002812147,
+      "selected_chunk_uids": [
+        "91d4f121536a0880dff84e83193cd833",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "54b5200c0f4ab243c0eb22bd471d9068"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "91d4f121536a0880dff84e83193cd833"
+            ],
+            "max_score": 6.052020072937012,
+            "sentence": "The access grant log is reviewed weekly by Security Engineering as part of the standard access review [91d4f121536a0880dff84e83193cd833].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 18693.23500012979
+    },
+    {
+      "abstained": null,
+      "answer_text": null,
+      "attempts_used": 2,
+      "citation_coverage": null,
+      "citation_valid": null,
+      "citations": null,
+      "error": null,
+      "expected_abstain": false,
+      "grounded": null,
+      "input_tokens": 11932,
+      "llm_ms": 11784.956499934196,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "citation_invalid",
+      "output_tokens": 565,
+      "question_id": "cv004",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5966,
+          "output_tokens": 240,
+          "seconds": 5.237,
+          "text": "{\n  \"answer\": \"Standard production database access lasts for three days under version two of the SOP [da1cdb5e0e87ad69728e9d2781239d13], and lasted for seven days under version one of the SOP and the current Security Policy [fa6a8fa3ff7c9abfd858f139e55ab66d, eef29ba299e4f0dd72c16e1741ac6928].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"fa6a8fa3ff7c9abfd858f139e55ab66d\",\n    \"eef29ba299e4f0dd72c16e1741ac6928\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        },
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5966,
+          "output_tokens": 325,
+          "seconds": 6.546,
+          "text": "{\n  \"answer\": \"Standard production database access lasts for three days under version two of the SOP, and lasted for seven days under version one [da1cdb5e0e87ad69728e9d2781239d13, eef29ba299e4f0dd72c16e1741ac6928]. Additionally, the Security Policy document continues to describe the seven-day duration from version one while it awaits an update to match the SOP [fa6a8fa3ff7c9abfd858f139e55ab66d, 91d4f121536a0880dff84e83193cd833].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"eef29ba299e4f0dd72c16e1741ac6928\",\n    \"fa6a8fa3ff7c9abfd858f139e55ab66d\",\n    \"91d4f121536a0880dff84e83193cd833\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1830.7630000635982,
+      "retrieval_ms": 65.02359989099205,
+      "selected_chunk_uids": null,
+      "semantic": null,
+      "total_ms": 13680.743099888787
+    },
+    {
+      "abstained": false,
+      "answer_text": "The original, version one version of the Production Database Access SOP required sign-off from the data owner for the system in question and from one engineering manager [eef29ba299e4f0dd72c16e1741ac6928].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "eef29ba299e4f0dd72c16e1741ac6928"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5070,
+      "llm_ms": 18564.554400043562,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 119,
+      "question_id": "cv005",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5070,
+          "output_tokens": 119,
+          "seconds": 18.563,
+          "text": "{\n  \"answer\": \"The original, version one version of the Production Database Access SOP required sign-off from the data owner for the system in question and from one engineering manager [eef29ba299e4f0dd72c16e1741ac6928].\",\n  \"citations\": [\n    \"eef29ba299e4f0dd72c16e1741ac6928\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1822.4818999879062,
+      "retrieval_ms": 87.87699998356402,
+      "selected_chunk_uids": [
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "209b713245d37165fa90d0683a94ba32",
+        "eef29ba299e4f0dd72c16e1741ac6928",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "1fcd23afa51fceca39bcb61a8def263f",
+        "4e4e98406eefe99581efced749bd708b",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "91d4f121536a0880dff84e83193cd833"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "eef29ba299e4f0dd72c16e1741ac6928"
+            ],
+            "max_score": 3.75685453414917,
+            "sentence": "The original, version one version of the Production Database Access SOP required sign-off from the data owner for the system in question and from one engineering manager [eef29ba299e4f0dd72c16e1741ac6928].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 20474.913300015032
+    },
+    {
+      "abstained": false,
+      "answer_text": "Employees may work remotely up to three days per week with their manager's approval, although some roles are fully remote by design as specified in their offer letter [5a04c330c14efaf8f4da83ebf6d6854f].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "5a04c330c14efaf8f4da83ebf6d6854f"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5944,
+      "llm_ms": 4169.487100094557,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 120,
+      "question_id": "da001",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5944,
+          "output_tokens": 120,
+          "seconds": 4.168,
+          "text": "{\n  \"answer\": \"Employees may work remotely up to three days per week with their manager's approval, although some roles are fully remote by design as specified in their offer letter [5a04c330c14efaf8f4da83ebf6d6854f].\",\n  \"citations\": [\n    \"5a04c330c14efaf8f4da83ebf6d6854f\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1871.803699992597,
+      "retrieval_ms": 55.19869993440807,
+      "selected_chunk_uids": [
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "b63716038fc7ad343c814ed2e3cdc563",
+        "eeee995d9289e3401502bfc86c516b30",
+        "2414f3e390da06a356a479b0c44c0abf",
+        "bdc1a9ee1fad6334d396205966574a15",
+        "e3e91b1f9845f9e5b17e8e375d325dd9"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "5a04c330c14efaf8f4da83ebf6d6854f"
+            ],
+            "max_score": 5.83648157119751,
+            "sentence": "Employees may work remotely up to three days per week with their manager's approval, although some roles are fully remote by design as specified in their offer letter [5a04c330c14efaf8f4da83ebf6d6854f].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 6096.489500021562
+    },
+    {
+      "abstained": false,
+      "answer_text": "A standard on-call shift is one week, running from Monday morning to the following Monday morning [bdc1a9ee1fad6334d396205966574a15].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "bdc1a9ee1fad6334d396205966574a15"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5933,
+      "llm_ms": 12970.807800069451,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 108,
+      "question_id": "da002",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5933,
+          "output_tokens": 108,
+          "seconds": 12.97,
+          "text": "{\n  \"answer\": \"A standard on-call shift is one week, running from Monday morning to the following Monday morning [bdc1a9ee1fad6334d396205966574a15].\",\n  \"citations\": [\n    \"bdc1a9ee1fad6334d396205966574a15\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1895.3207000158727,
+      "retrieval_ms": 53.281000116840005,
+      "selected_chunk_uids": [
+        "bdc1a9ee1fad6334d396205966574a15",
+        "a5e0064284e68f8558c67644b75dd9dd",
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "2810dafda596e424dcddc4756cee378c",
+        "49446816bd2ba01147d70c4fcfeaa7fc",
+        "5a04c330c14efaf8f4da83ebf6d6854f"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "bdc1a9ee1fad6334d396205966574a15"
+            ],
+            "max_score": 2.1474711894989014,
+            "sentence": "A standard on-call shift is one week, running from Monday morning to the following Monday morning [bdc1a9ee1fad6334d396205966574a15].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 14919.409500202164
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "da003",
+      "raw_replies": [],
+      "rerank_ms": 1839.111699955538,
+      "retrieval_ms": 59.49950008653104,
+      "selected_chunk_uids": [
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "3027fe56edb8a271d3c2c248a764ee3f",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "1520a2137d9557a94fc05784da189fc0",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "b63716038fc7ad343c814ed2e3cdc563",
+        "bdc1a9ee1fad6334d396205966574a15"
+      ],
+      "semantic": null,
+      "total_ms": 1898.611200042069
+    },
+    {
+      "abstained": false,
+      "answer_text": "Database backups are retained for thirty days on a rolling basis, after which older backups are automatically deleted [ac735f6387ca659b3a009e78d98f0118].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "ac735f6387ca659b3a009e78d98f0118"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 6239,
+      "llm_ms": 12570.35809988156,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 112,
+      "question_id": "da004",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6239,
+          "output_tokens": 112,
+          "seconds": 12.569,
+          "text": "{\n  \"answer\": \"Database backups are retained for thirty days on a rolling basis, after which older backups are automatically deleted [ac735f6387ca659b3a009e78d98f0118].\",\n  \"citations\": [\n    \"ac735f6387ca659b3a009e78d98f0118\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1820.583499968052,
+      "retrieval_ms": 66.33349996991456,
+      "selected_chunk_uids": [
+        "ac735f6387ca659b3a009e78d98f0118",
+        "b9350574821da460a18df3d0a5389e65",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "91d4f121536a0880dff84e83193cd833",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "e3e91b1f9845f9e5b17e8e375d325dd9"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "ac735f6387ca659b3a009e78d98f0118"
+            ],
+            "max_score": 4.900493144989014,
+            "sentence": "Database backups are retained for thirty days on a rolling basis, after which older backups are automatically deleted [ac735f6387ca659b3a009e78d98f0118].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 14457.275099819526
+    },
+    {
+      "abstained": null,
+      "answer_text": null,
+      "attempts_used": 2,
+      "citation_coverage": null,
+      "citation_valid": null,
+      "citations": null,
+      "error": null,
+      "expected_abstain": false,
+      "grounded": null,
+      "input_tokens": 10530,
+      "llm_ms": 10797.712900210172,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "citation_invalid",
+      "output_tokens": 383,
+      "question_id": "da005",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5265,
+          "output_tokens": 186,
+          "seconds": 3.902,
+          "text": "{\n  \"answer\": \"Vendor contracts typically require vendors to notify the company within seventy-two hours of any security incident on the vendor's side that could affect company or customer data [3420a80f00690e841d4060ffde749ba5, 54b5200c0f4ab243c0eb22bd471d9068].\",\n  \"citations\": [\n    \"3420a80f00690e841d4060ffde749ba5\",\n    \"54b5200c0f4ab243c0eb22bd471d9068\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        },
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5265,
+          "output_tokens": 197,
+          "seconds": 6.894,
+          "text": "{\n  \"answer\": \"Vendor contracts are expected to include a requirement that the vendor notify the company within a specified window, typically seventy-two hours, of any security incident on the vendor's side that could affect company or customer data [3420a80f00690e841d4060ffde749ba5, 54b5200c0f4ab243c0eb22bd471d9068].\",\n  \"citations\": [\n    \"3420a80f00690e841d4060ffde749ba5\",\n    \"54b5200c0f4ab243c0eb22bd471d9068\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1840.6694999430329,
+      "retrieval_ms": 60.435299994423985,
+      "selected_chunk_uids": null,
+      "semantic": null,
+      "total_ms": 12698.817700147629
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "da006",
+      "raw_replies": [],
+      "rerank_ms": 1885.513799963519,
+      "retrieval_ms": 157.11929998360574,
+      "selected_chunk_uids": [
+        "49446816bd2ba01147d70c4fcfeaa7fc",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "2c0cc4d3bc666b5aec30bd5ffadfc2c7",
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "922fa6065681666dbffe4f7cb644da41"
+      ],
+      "semantic": null,
+      "total_ms": 2042.6330999471247
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "da007",
+      "raw_replies": [],
+      "rerank_ms": 1800.8819001261145,
+      "retrieval_ms": 69.11000004038215,
+      "selected_chunk_uids": [
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "1520a2137d9557a94fc05784da189fc0",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "3027fe56edb8a271d3c2c248a764ee3f",
+        "91d4f121536a0880dff84e83193cd833"
+      ],
+      "semantic": null,
+      "total_ms": 1869.9919001664966
+    },
+    {
+      "abstained": false,
+      "answer_text": "A standard production database access request currently requires approval from two engineering managers [da1cdb5e0e87ad69728e9d2781239d13].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "da1cdb5e0e87ad69728e9d2781239d13"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5941,
+      "llm_ms": 28269.185699988157,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 104,
+      "question_id": "da008",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5941,
+          "output_tokens": 104,
+          "seconds": 28.268,
+          "text": "{\n  \"answer\": \"A standard production database access request currently requires approval from two engineering managers [da1cdb5e0e87ad69728e9d2781239d13].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1764.7353999782354,
+      "retrieval_ms": 57.36760003492236,
+      "selected_chunk_uids": [
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "91d4f121536a0880dff84e83193cd833",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "cadfd10c7ce0b82b9b54035419a41eba"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 5.595529556274414,
+            "sentence": "A standard production database access request currently requires approval from two engineering managers [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 30091.288700001314
+    },
+    {
+      "abstained": false,
+      "answer_text": "Vendor access is granted for the shorter of the length of the engagement or ninety days, whichever is less [eee7938e3bf0085d571e51f5a07a0389].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "eee7938e3bf0085d571e51f5a07a0389"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5629,
+      "llm_ms": 23299.276999896392,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 111,
+      "question_id": "da009",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5629,
+          "output_tokens": 111,
+          "seconds": 23.298,
+          "text": "{\n  \"answer\": \"Vendor access is granted for the shorter of the length of the engagement or ninety days, whichever is less [eee7938e3bf0085d571e51f5a07a0389].\",\n  \"citations\": [\n    \"eee7938e3bf0085d571e51f5a07a0389\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1778.1054999213666,
+      "retrieval_ms": 59.66889997944236,
+      "selected_chunk_uids": [
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "91d4f121536a0880dff84e83193cd833",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "3420a80f00690e841d4060ffde749ba5",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "b9350574821da460a18df3d0a5389e65",
+        "a406e8bef073c09e54f3c1a17ebd1352"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "eee7938e3bf0085d571e51f5a07a0389"
+            ],
+            "max_score": 5.7979736328125,
+            "sentence": "Vendor access is granted for the shorter of the length of the engagement or ninety days, whichever is less [eee7938e3bf0085d571e51f5a07a0389].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 25137.0513997972
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "da010",
+      "raw_replies": [],
+      "rerank_ms": 1880.986399948597,
+      "retrieval_ms": 65.27679995633662,
+      "selected_chunk_uids": [
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "91d4f121536a0880dff84e83193cd833",
+        "b63716038fc7ad343c814ed2e3cdc563",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "5a04c330c14efaf8f4da83ebf6d6854f"
+      ],
+      "semantic": null,
+      "total_ms": 1946.2631999049336
+    },
+    {
+      "abstained": null,
+      "answer_text": null,
+      "attempts_used": 2,
+      "citation_coverage": null,
+      "citation_valid": null,
+      "citations": null,
+      "error": null,
+      "expected_abstain": false,
+      "grounded": null,
+      "input_tokens": 12118,
+      "llm_ms": 9126.236400101334,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "citation_invalid",
+      "output_tokens": 335,
+      "question_id": "da011",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6059,
+          "output_tokens": 168,
+          "seconds": 4.478,
+          "text": "{\n  \"answer\": \"The primary on-call engineer has ten minutes to acknowledge a page before it automatically escalates to the secondary engineer [49446816bd2ba01147d70c4fcfeaa7fc, bdc1a9ee1fad6334d396205966574a15].\",\n  \"citations\": [\n    \"49446816bd2ba01147d70c4fcfeaa7fc\",\n    \"bdc1a9ee1fad6334d396205966574a15\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        },
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6059,
+          "output_tokens": 167,
+          "seconds": 4.647,
+          "text": "{\n  \"answer\": \"The primary on-call engineer has ten minutes to acknowledge a page before it automatically escalates to the secondary [49446816bd2ba01147d70c4fcfeaa7fc, bdc1a9ee1fad6334d396205966574a15].\",\n  \"citations\": [\n    \"49446816bd2ba01147d70c4fcfeaa7fc\",\n    \"bdc1a9ee1fad6334d396205966574a15\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1776.9983001053333,
+      "retrieval_ms": 63.73729999177158,
+      "selected_chunk_uids": null,
+      "semantic": null,
+      "total_ms": 10966.972000198439
+    },
+    {
+      "abstained": false,
+      "answer_text": "Employee records, including HR files and performance history, are retained for the duration of employment and for seven years after departure [ac735f6387ca659b3a009e78d98f0118].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "ac735f6387ca659b3a009e78d98f0118"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5673,
+      "llm_ms": 6049.17009989731,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 116,
+      "question_id": "da012",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5673,
+          "output_tokens": 116,
+          "seconds": 6.048,
+          "text": "{\n  \"answer\": \"Employee records, including HR files and performance history, are retained for the duration of employment and for seven years after departure [ac735f6387ca659b3a009e78d98f0118].\",\n  \"citations\": [\n    \"ac735f6387ca659b3a009e78d98f0118\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1806.556100025773,
+      "retrieval_ms": 70.60529990121722,
+      "selected_chunk_uids": [
+        "ac735f6387ca659b3a009e78d98f0118",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "b9350574821da460a18df3d0a5389e65",
+        "1520a2137d9557a94fc05784da189fc0",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "f3db0cedd94359653e4daa1f0536c9fa",
+        "3027fe56edb8a271d3c2c248a764ee3f"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "ac735f6387ca659b3a009e78d98f0118"
+            ],
+            "max_score": 4.217621803283691,
+            "sentence": "Employee records, including HR files and performance history, are retained for the duration of employment and for seven years after departure [ac735f6387ca659b3a009e78d98f0118].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 7926.3314998243
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": true,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "ie001",
+      "raw_replies": [],
+      "rerank_ms": 1767.1949998475611,
+      "retrieval_ms": 57.09220003336668,
+      "selected_chunk_uids": [
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "f3db0cedd94359653e4daa1f0536c9fa",
+        "1520a2137d9557a94fc05784da189fc0",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "eeee995d9289e3401502bfc86c516b30"
+      ],
+      "semantic": null,
+      "total_ms": 1824.2871998809278
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": true,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "ie002",
+      "raw_replies": [],
+      "rerank_ms": 1790.235800202936,
+      "retrieval_ms": 59.85150020569563,
+      "selected_chunk_uids": [
+        "3027fe56edb8a271d3c2c248a764ee3f",
+        "922fa6065681666dbffe4f7cb644da41",
+        "f3db0cedd94359653e4daa1f0536c9fa",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "1520a2137d9557a94fc05784da189fc0",
+        "91d4f121536a0880dff84e83193cd833",
+        "f9cbee4e0939d52e95eebe93a063a85c"
+      ],
+      "semantic": null,
+      "total_ms": 1850.0873004086316
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": true,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "ie003",
+      "raw_replies": [],
+      "rerank_ms": 1792.9463998880237,
+      "retrieval_ms": 63.50450008176267,
+      "selected_chunk_uids": [
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "91d4f121536a0880dff84e83193cd833",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "1520a2137d9557a94fc05784da189fc0",
+        "b63716038fc7ad343c814ed2e3cdc563",
+        "e3e91b1f9845f9e5b17e8e375d325dd9"
+      ],
+      "semantic": null,
+      "total_ms": 1856.4508999697864
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": true,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "ie004",
+      "raw_replies": [],
+      "rerank_ms": 1785.539099946618,
+      "retrieval_ms": 66.0536999348551,
+      "selected_chunk_uids": [
+        "4e4e98406eefe99581efced749bd708b",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "91d4f121536a0880dff84e83193cd833"
+      ],
+      "semantic": null,
+      "total_ms": 1851.5927998814732
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": true,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "ie005",
+      "raw_replies": [],
+      "rerank_ms": 1840.0655998848379,
+      "retrieval_ms": 61.94879999384284,
+      "selected_chunk_uids": [
+        "f3db0cedd94359653e4daa1f0536c9fa",
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "1520a2137d9557a94fc05784da189fc0",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "54b5200c0f4ab243c0eb22bd471d9068"
+      ],
+      "semantic": null,
+      "total_ms": 1902.0143998786807
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": true,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "ie006",
+      "raw_replies": [],
+      "rerank_ms": 1779.771599918604,
+      "retrieval_ms": 59.6157000400126,
+      "selected_chunk_uids": [
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "b63716038fc7ad343c814ed2e3cdc563",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "bdc1a9ee1fad6334d396205966574a15",
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "eeee995d9289e3401502bfc86c516b30",
+        "3027fe56edb8a271d3c2c248a764ee3f",
+        "f3db0cedd94359653e4daa1f0536c9fa"
+      ],
+      "semantic": null,
+      "total_ms": 1839.3872999586165
+    },
+    {
+      "abstained": false,
+      "answer_text": "Engineers request production database access through the access request form on the internal tools portal by specifying the database, table or schema, the reason, and the expected duration [da1cdb5e0e87ad69728e9d2781239d13]. Approval requires sign-off from the system's data owner and two engineering managers, with one manager from a different team than the requesting engineer [da1cdb5e0e87ad69728e9d2781239d13]. All approvals must be recorded in the form, and requesting engineers must have completed annual security training within the last ninety days [da1cdb5e0e87ad69728e9d2781239d13]. For emergencies during an incident, an on-call engineer may use break-glass access without waiting for standard approval [da1cdb5e0e87ad69728e9d2781239d13].",
+      "attempts_used": 2,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "da1cdb5e0e87ad69728e9d2781239d13"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 11404,
+      "llm_ms": 41244.52710011974,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 753,
+      "question_id": "mf001",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5702,
+          "output_tokens": 464,
+          "seconds": 21.484,
+          "text": "{\n  \"answer\": \"Engineers request production database access through the access request form available in the internal tools portal [da1cdb5e0e87ad69728e9d2781239d13]. Approval requires sign-off from the data owner for the system and from two engineering managers, one of whom must be from a different team than the requesting engineer [da1cdb5e0e87ad69728e9d2781239d13]. All approvals must be recorded in the form before access is provisioned [da1cdb5e0e87ad69728e9d2781239d13]. Additionally, requesting engineers must have completed the annual security training within the last ninety days [da1cdb5e0e87ad69728e9d2781239d13]. For break-glass emergency access during an incident, an on-call engineer may request access without waiting for standard approval [da1cdb5e0e87ad69728e9d2781239d13, f9cbee4e0939d52e95eebe93a063a85c]. Service accounts and automated jobs follow a similar approval process requiring sign-off from the data owner and two engineering managers [91d4f121536a0880dff84e83193cd833].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"f9cbee4e0939d52e95eebe93a063a85c\",\n    \"91d4f121536a0880dff84e83193cd833\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        },
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5702,
+          "output_tokens": 289,
+          "seconds": 19.759,
+          "text": "{\n  \"answer\": \"Engineers request production database access through the access request form on the internal tools portal by specifying the database, table or schema, the reason, and the expected duration [da1cdb5e0e87ad69728e9d2781239d13]. Approval requires sign-off from the system's data owner and two engineering managers, with one manager from a different team than the requesting engineer [da1cdb5e0e87ad69728e9d2781239d13]. All approvals must be recorded in the form, and requesting engineers must have completed annual security training within the last ninety days [da1cdb5e0e87ad69728e9d2781239d13]. For emergencies during an incident, an on-call engineer may use break-glass access without waiting for standard approval [da1cdb5e0e87ad69728e9d2781239d13].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 793.5923999175429,
+      "retrieval_ms": 56.16019992157817,
+      "selected_chunk_uids": [
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "91d4f121536a0880dff84e83193cd833",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "bdc1a9ee1fad6334d396205966574a15",
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "a5e0064284e68f8558c67644b75dd9dd",
+        "49446816bd2ba01147d70c4fcfeaa7fc",
+        "2c0cc4d3bc666b5aec30bd5ffadfc2c7"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 5.61594295501709,
+            "sentence": "Engineers request production database access through the access request form on the internal tools portal by specifying the database, table or schema, the reason, and the expected duration [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 4.18862771987915,
+            "sentence": "Approval requires sign-off from the system's data owner and two engineering managers, with one manager from a different team than the requesting engineer [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 5.707619667053223,
+            "sentence": "All approvals must be recorded in the form, and requesting engineers must have completed annual security training within the last ninety days [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": -5.583930492401123,
+            "sentence": "For emergencies during an incident, an on-call engineer may use break-glass access without waiting for standard approval [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 42094.27969995886
+    },
+    {
+      "abstained": false,
+      "answer_text": "Data retention periods vary depending on the category of data: customer account data and employee records are retained for as long as the account or employment is active and for seven years after closure or departure [ac735f6387ca659b3a009e78d98f0118]. Customer content data is retained for as long as the account is active and deleted within ninety days of account closure unless specified otherwise [ac735f6387ca659b3a009e78d98f0118]. Security and access logs are kept for one year [ac735f6387ca659b3a009e78d98f0118], database backups are retained for thirty days on a rolling basis [ac735f6387ca659b3a009e78d98f0118], and postmortems and incident timelines are retained indefinitely [ac735f6387ca659b3a009e78d98f0118]. Aggregated, de-identified analytics data may also be retained indefinitely [b27f10fcc77b64d06f491ca98fd343c7].",
+      "attempts_used": 2,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "ac735f6387ca659b3a009e78d98f0118",
+        "b27f10fcc77b64d06f491ca98fd343c7"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 11296,
+      "llm_ms": 38487.775599816814,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 766,
+      "question_id": "mf002",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5648,
+          "output_tokens": 377,
+          "seconds": 18.815,
+          "text": "{\n  \"answer\": \"Data retention periods vary depending on the category of data: customer account data and employee records are retained for as long as the account or employment is active and for seven years afterward [ac735f6387ca659b3a009e78d98f0118]; customer content data is retained while the account is active and deleted within ninety days of account closure [ac735f6387ca659b3a009e78d98f0118]; security and access logs are kept for one year [ac735f6387ca659b3a009e78d98f0118]; database backups are retained for thirty days on a rolling basis [ac735f6387ca659b3a009e78d98f0118]; postmortems and incident timelines, as well as aggregated, de-identified analytics data, are retained indefinitely [ac735f6387ca659b3a009e78d98f0118, b27f10fcc77b64d06f491ca98fd343c7].\",\n  \"citations\": [\n    \"ac735f6387ca659b3a009e78d98f0118\",\n    \"b27f10fcc77b64d06f491ca98fd343c7\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        },
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5648,
+          "output_tokens": 389,
+          "seconds": 19.671,
+          "text": "{\n  \"answer\": \"Data retention periods vary depending on the category of data: customer account data and employee records are retained for as long as the account or employment is active and for seven years after closure or departure [ac735f6387ca659b3a009e78d98f0118]. Customer content data is retained for as long as the account is active and deleted within ninety days of account closure unless specified otherwise [ac735f6387ca659b3a009e78d98f0118]. Security and access logs are kept for one year [ac735f6387ca659b3a009e78d98f0118], database backups are retained for thirty days on a rolling basis [ac735f6387ca659b3a009e78d98f0118], and postmortems and incident timelines are retained indefinitely [ac735f6387ca659b3a009e78d98f0118]. Aggregated, de-identified analytics data may also be retained indefinitely [b27f10fcc77b64d06f491ca98fd343c7].\",\n  \"citations\": [\n    \"ac735f6387ca659b3a009e78d98f0118\",\n    \"b27f10fcc77b64d06f491ca98fd343c7\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1378.083199961111,
+      "retrieval_ms": 67.63079995289445,
+      "selected_chunk_uids": [
+        "ac735f6387ca659b3a009e78d98f0118",
+        "b9350574821da460a18df3d0a5389e65",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "3420a80f00690e841d4060ffde749ba5",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "e3e91b1f9845f9e5b17e8e375d325dd9"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "ac735f6387ca659b3a009e78d98f0118"
+            ],
+            "max_score": 5.9727582931518555,
+            "sentence": "Data retention periods vary depending on the category of data: customer account data and employee records are retained for as long as the account or employment is active and for seven years after closure or departure [ac735f6387ca659b3a009e78d98f0118].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "ac735f6387ca659b3a009e78d98f0118"
+            ],
+            "max_score": 4.1434431076049805,
+            "sentence": "Customer content data is retained for as long as the account is active and deleted within ninety days of account closure unless specified otherwise [ac735f6387ca659b3a009e78d98f0118].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "ac735f6387ca659b3a009e78d98f0118"
+            ],
+            "max_score": 3.098127603530884,
+            "sentence": "Security and access logs are kept for one year [ac735f6387ca659b3a009e78d98f0118], database backups are retained for thirty days on a rolling basis [ac735f6387ca659b3a009e78d98f0118], and postmortems and incident timelines are retained indefinitely [ac735f6387ca659b3a009e78d98f0118].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "b27f10fcc77b64d06f491ca98fd343c7"
+            ],
+            "max_score": 1.7477986812591553,
+            "sentence": "Aggregated, de-identified analytics data may also be retained indefinitely [b27f10fcc77b64d06f491ca98fd343c7].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 39933.48959973082
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "mf003",
+      "raw_replies": [],
+      "rerank_ms": 815.7381000928581,
+      "retrieval_ms": 43.36520005017519,
+      "selected_chunk_uids": [
+        "bdc1a9ee1fad6334d396205966574a15",
+        "a5e0064284e68f8558c67644b75dd9dd",
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "49446816bd2ba01147d70c4fcfeaa7fc",
+        "2810dafda596e424dcddc4756cee378c",
+        "2c0cc4d3bc666b5aec30bd5ffadfc2c7",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "91d4f121536a0880dff84e83193cd833"
+      ],
+      "semantic": null,
+      "total_ms": 859.1033001430333
+    },
+    {
+      "abstained": false,
+      "answer_text": "Any suspected security incident should be reported immediately to the security channel [cadfd10c7ce0b82b9b54035419a41eba]. Additionally, employees who observe a likely incident can declare one by posting in the incident channel with the word \"incident\" and a one-line description [f9cbee4e0939d52e95eebe93a063a85c].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "f9cbee4e0939d52e95eebe93a063a85c"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5247,
+      "llm_ms": 4095.648900140077,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 188,
+      "question_id": "mf004",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5247,
+          "output_tokens": 188,
+          "seconds": 4.094,
+          "text": "{\n  \"answer\": \"Any suspected security incident should be reported immediately to the security channel [cadfd10c7ce0b82b9b54035419a41eba]. Additionally, employees who observe a likely incident can declare one by posting in the incident channel with the word \\\"incident\\\" and a one-line description [f9cbee4e0939d52e95eebe93a063a85c].\",\n  \"citations\": [\n    \"cadfd10c7ce0b82b9b54035419a41eba\",\n    \"f9cbee4e0939d52e95eebe93a063a85c\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1387.1184000745416,
+      "retrieval_ms": 66.44909991882741,
+      "selected_chunk_uids": [
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "f9cbee4e0939d52e95eebe93a063a85c",
+        "49446816bd2ba01147d70c4fcfeaa7fc",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "3420a80f00690e841d4060ffde749ba5",
+        "2c0cc4d3bc666b5aec30bd5ffadfc2c7",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "4e4e98406eefe99581efced749bd708b"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "cadfd10c7ce0b82b9b54035419a41eba"
+            ],
+            "max_score": 3.639315605163574,
+            "sentence": "Any suspected security incident should be reported immediately to the security channel [cadfd10c7ce0b82b9b54035419a41eba].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "f9cbee4e0939d52e95eebe93a063a85c"
+            ],
+            "max_score": 5.9644951820373535,
+            "sentence": "Additionally, employees who observe a likely incident can declare one by posting in the incident channel with the word \"incident\" and a one-line description [f9cbee4e0939d52e95eebe93a063a85c].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 5549.216400133446
+    },
+    {
+      "abstained": false,
+      "answer_text": "When a vendor engagement ends, the business owner is responsible for notifying Security Engineering so that access can be revoked immediately [eee7938e3bf0085d571e51f5a07a0389].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "eee7938e3bf0085d571e51f5a07a0389"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5650,
+      "llm_ms": 4413.7444999068975,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 113,
+      "question_id": "mf005",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5650,
+          "output_tokens": 113,
+          "seconds": 4.412,
+          "text": "{\n  \"answer\": \"When a vendor engagement ends, the business owner is responsible for notifying Security Engineering so that access can be revoked immediately [eee7938e3bf0085d571e51f5a07a0389].\",\n  \"citations\": [\n    \"eee7938e3bf0085d571e51f5a07a0389\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 822.690499946475,
+      "retrieval_ms": 58.578699827194214,
+      "selected_chunk_uids": [
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "3420a80f00690e841d4060ffde749ba5",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "b9350574821da460a18df3d0a5389e65",
+        "b27f10fcc77b64d06f491ca98fd343c7"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "eee7938e3bf0085d571e51f5a07a0389"
+            ],
+            "max_score": 6.924132347106934,
+            "sentence": "When a vendor engagement ends, the business owner is responsible for notifying Security Engineering so that access can be revoked immediately [eee7938e3bf0085d571e51f5a07a0389].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 5295.013699680567
+    },
+    {
+      "abstained": false,
+      "answer_text": "Employees working remotely are provided with a laptop and, upon request, a monitor and an ergonomic chair for their home setup [5a04c330c14efaf8f4da83ebf6d6854f]. A one-time stipend is also available for a home internet upgrade if the existing connection does not meet minimum bandwidth specifications [5a04c330c14efaf8f4da83ebf6d6854f].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "5a04c330c14efaf8f4da83ebf6d6854f"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5540,
+      "llm_ms": 24484.541699988768,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 165,
+      "question_id": "mf006",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5540,
+          "output_tokens": 165,
+          "seconds": 24.483,
+          "text": "{\n  \"answer\": \"Employees working remotely are provided with a laptop and, upon request, a monitor and an ergonomic chair for their home setup [5a04c330c14efaf8f4da83ebf6d6854f]. A one-time stipend is also available for a home internet upgrade if the existing connection does not meet minimum bandwidth specifications [5a04c330c14efaf8f4da83ebf6d6854f].\",\n  \"citations\": [\n    \"5a04c330c14efaf8f4da83ebf6d6854f\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 884.6156999934465,
+      "retrieval_ms": 56.952100014314055,
+      "selected_chunk_uids": [
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "b63716038fc7ad343c814ed2e3cdc563",
+        "eeee995d9289e3401502bfc86c516b30",
+        "ad3e426ed2057b246c92f05fa8be0f13",
+        "1520a2137d9557a94fc05784da189fc0",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "3027fe56edb8a271d3c2c248a764ee3f",
+        "922b302489f00c4323d6a6ee63e27500"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "5a04c330c14efaf8f4da83ebf6d6854f"
+            ],
+            "max_score": 4.4662065505981445,
+            "sentence": "Employees working remotely are provided with a laptop and, upon request, a monitor and an ergonomic chair for their home setup [5a04c330c14efaf8f4da83ebf6d6854f].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "5a04c330c14efaf8f4da83ebf6d6854f"
+            ],
+            "max_score": 4.411912441253662,
+            "sentence": "A one-time stipend is also available for a home internet upgrade if the existing connection does not meet minimum bandwidth specifications [5a04c330c14efaf8f4da83ebf6d6854f].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 25426.109499996528
+    },
+    {
+      "abstained": false,
+      "answer_text": "The Production Database Access SOP describes the operational steps for how an engineer requests, receives, and loses production database access [da1cdb5e0e87ad69728e9d2781239d13]. It applies to every engineer needing direct read or write access to a production database, such as on-call engineers, those debugging customer issues, or running one-time data migrations [da1cdb5e0e87ad69728e9d2781239d13]. Engineers request access via the internal tools portal form, which requires sign-off from the data owner and two engineering managers (one from a different team) [da1cdb5e0e87ad69728e9d2781239d13]. Approved access is granted for three days and expires automatically [da1cdb5e0e87ad69728e9d2781239d13]. Engineers must have completed annual security training within the last ninety days [da1cdb5e0e87ad69728e9d2781239d13]. During an incident, on-call engineers can request break-glass emergency access without standard approval [da1cdb5e0e87ad69728e9d2781239d13]. All access grants are logged and reviewed weekly by Security Engineering [da1cdb5e0e87ad69728e9d2781239d13], and access can be revoked early by either approver or the data owner [91d4f121536a0880dff84e83193cd833]. Service accounts and automated jobs follow a separate process requiring data owner and two manager sign-offs, with standing access reviewed quarterly [91d4f121536a0880dff84e83193cd833].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "91d4f121536a0880dff84e83193cd833"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 2514,
+      "llm_ms": 4003.5383000504225,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 551,
+      "question_id": "mf007",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 2514,
+          "output_tokens": 551,
+          "seconds": 4.002,
+          "text": "{\n  \"answer\": \"The Production Database Access SOP describes the operational steps for how an engineer requests, receives, and loses production database access [da1cdb5e0e87ad69728e9d2781239d13]. It applies to every engineer needing direct read or write access to a production database, such as on-call engineers, those debugging customer issues, or running one-time data migrations [da1cdb5e0e87ad69728e9d2781239d13]. Engineers request access via the internal tools portal form, which requires sign-off from the data owner and two engineering managers (one from a different team) [da1cdb5e0e87ad69728e9d2781239d13]. Approved access is granted for three days and expires automatically [da1cdb5e0e87ad69728e9d2781239d13]. Engineers must have completed annual security training within the last ninety days [da1cdb5e0e87ad69728e9d2781239d13]. During an incident, on-call engineers can request break-glass emergency access without standard approval [da1cdb5e0e87ad69728e9d2781239d13]. All access grants are logged and reviewed weekly by Security Engineering [da1cdb5e0e87ad69728e9d2781239d13], and access can be revoked early by either approver or the data owner [91d4f121536a0880dff84e83193cd833]. Service accounts and automated jobs follow a separate process requiring data owner and two manager sign-offs, with standing access reviewed quarterly [91d4f121536a0880dff84e83193cd833].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"91d4f121536a0880dff84e83193cd833\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 334.9295000080019,
+      "retrieval_ms": 60.26419997215271,
+      "selected_chunk_uids": [
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "91d4f121536a0880dff84e83193cd833"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 8.047163009643555,
+            "sentence": "The Production Database Access SOP describes the operational steps for how an engineer requests, receives, and loses production database access [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 5.033441543579102,
+            "sentence": "It applies to every engineer needing direct read or write access to a production database, such as on-call engineers, those debugging customer issues, or running one-time data migrations [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 5.018916130065918,
+            "sentence": "Engineers request access via the internal tools portal form, which requires sign-off from the data owner and two engineering managers (one from a different team) [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 3.6519956588745117,
+            "sentence": "Approved access is granted for three days and expires automatically [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 5.378178596496582,
+            "sentence": "Engineers must have completed annual security training within the last ninety days [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": -2.791649341583252,
+            "sentence": "During an incident, on-call engineers can request break-glass emergency access without standard approval [da1cdb5e0e87ad69728e9d2781239d13].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "91d4f121536a0880dff84e83193cd833",
+              "da1cdb5e0e87ad69728e9d2781239d13"
+            ],
+            "max_score": 4.817862033843994,
+            "sentence": "All access grants are logged and reviewed weekly by Security Engineering [da1cdb5e0e87ad69728e9d2781239d13], and access can be revoked early by either approver or the data owner [91d4f121536a0880dff84e83193cd833].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "91d4f121536a0880dff84e83193cd833"
+            ],
+            "max_score": 4.301379203796387,
+            "sentence": "Service accounts and automated jobs follow a separate process requiring data owner and two manager sign-offs, with standing access reviewed quarterly [91d4f121536a0880dff84e83193cd833].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 4398.732000030577
+    },
+    {
+      "abstained": null,
+      "answer_text": null,
+      "attempts_used": 2,
+      "citation_coverage": null,
+      "citation_valid": null,
+      "citations": null,
+      "error": null,
+      "expected_abstain": false,
+      "grounded": null,
+      "input_tokens": 12310,
+      "llm_ms": 9762.741000158712,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "citation_invalid",
+      "output_tokens": 1025,
+      "question_id": "md001",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6155,
+          "output_tokens": 418,
+          "seconds": 2.951,
+          "text": "{\n  \"answer\": \"During an active incident, an on-call engineer may request break-glass access to production systems without waiting for the standard approval review [e3e91b1f9845f9e5b17e8e375d325dd9, da1cdb5e0e87ad69728e9d2781239d13, f9cbee4e0939d52e95eebe93a063a85c]. Unlike a normal request\u2014which requires sign-off from the data owner and two engineering managers [da1cdb5e0e87ad69728e9d2781239d13]\u2014break-glass access does not require the standard approval flow, is granted immediately, and is automatically logged for review by a security engineer on the next business day [e3e91b1f9845f9e5b17e8e375d325dd9, da1cdb5e0e87ad69728e9d2781239d13, f9cbee4e0939d52e95eebe93a063a85c].\",\n  \"citations\": [\n    \"e3e91b1f9845f9e5b17e8e375d325dd9\",\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"f9cbee4e0939d52e95eebe93a063a85c\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        },
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6155,
+          "output_tokens": 607,
+          "seconds": 6.81,
+          "text": "{\n  \"answer\": \"During an active incident, an on-call engineer may request break-glass access to production systems without waiting for the standard two-approver review [e3e91b1f9845f9e5b17e8e375d325dd9, da1cdb5e0e87ad69728e9d2781239d13, f9cbee4e0939d52e95eebe93a063a85c]. This means it does not require the standard approval flow (which normally requires sign-off from the data owner and two engineering managers) and is instead granted immediately [da1cdb5e0e87ad69728e9d2781239d13, f9cbee4e0939d52e95eebe93a063a85c]. Break-glass access is automatically logged and reviewed by a security engineer on the next business day [e3e91b1f9845f9e5b17e8e375d325dd9, da1cdb5e0e87ad69728e9d2781239d13, f9cbee4e0939d52e95eebe93a063a85c].\",\n  \"citations\": [\n    \"bdc1a9ee1fad6334d396205966574a15\",\n    \"e3e91b1f9845f9e5b17e8e375d325dd9\",\n    \"eee7938e3bf0085d571e51f5a07a0389\",\n    \"54b5200c0f4ab243c0eb22bd471d9068\",\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"cadfd10c7ce0b82b9b54035419a41eba\",\n    \"4e4e98406eefe99581efced749bd708b\",\n    \"f9cbee4e0939d52e95eebe93a063a85c\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1766.4703000336885,
+      "retrieval_ms": 64.69689984805882,
+      "selected_chunk_uids": null,
+      "semantic": null,
+      "total_ms": 11593.90820004046
+    },
+    {
+      "abstained": false,
+      "answer_text": "Remote work does not change any access rules; engineers who need production database access while working remotely still request it through the standard access request form and require sign-off from the data owner and an engineering manager, exactly as they would from the office [5a04c330c14efaf8f4da83ebf6d6854f].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "5a04c330c14efaf8f4da83ebf6d6854f"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 6038,
+      "llm_ms": 14318.013299955055,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 137,
+      "question_id": "md002",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 6038,
+          "output_tokens": 137,
+          "seconds": 14.317,
+          "text": "{\n  \"answer\": \"Remote work does not change any access rules; engineers who need production database access while working remotely still request it through the standard access request form and require sign-off from the data owner and an engineering manager, exactly as they would from the office [5a04c330c14efaf8f4da83ebf6d6854f].\",\n  \"citations\": [\n    \"5a04c330c14efaf8f4da83ebf6d6854f\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1984.187199966982,
+      "retrieval_ms": 64.90009999834001,
+      "selected_chunk_uids": [
+        "5a04c330c14efaf8f4da83ebf6d6854f",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "e3e91b1f9845f9e5b17e8e375d325dd9",
+        "cadfd10c7ce0b82b9b54035419a41eba",
+        "4e4e98406eefe99581efced749bd708b",
+        "91d4f121536a0880dff84e83193cd833",
+        "eee7938e3bf0085d571e51f5a07a0389"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "5a04c330c14efaf8f4da83ebf6d6854f"
+            ],
+            "max_score": 7.107906341552734,
+            "sentence": "Remote work does not change any access rules; engineers who need production database access while working remotely still request it through the standard access request form and require sign-off from the data owner and an engineering manager, exactly as they would from the office [5a04c330c14efaf8f4da83ebf6d6854f].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 16367.100599920377
+    },
+    {
+      "abstained": false,
+      "answer_text": "Access grant logs are retained for one year [ac735f6387ca659b3a009e78d98f0118]. In contrast, postmortems and incident timelines are retained indefinitely rather than on a fixed schedule [ac735f6387ca659b3a009e78d98f0118].",
+      "attempts_used": 1,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [
+        "ac735f6387ca659b3a009e78d98f0118"
+      ],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 5764,
+      "llm_ms": 3463.8594000134617,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "success",
+      "output_tokens": 151,
+      "question_id": "md003",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5764,
+          "output_tokens": 151,
+          "seconds": 3.462,
+          "text": "{\n  \"answer\": \"Access grant logs are retained for one year [ac735f6387ca659b3a009e78d98f0118]. In contrast, postmortems and incident timelines are retained indefinitely rather than on a fixed schedule [ac735f6387ca659b3a009e78d98f0118].\",\n  \"citations\": [\n    \"ac735f6387ca659b3a009e78d98f0118\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1891.9136000331491,
+      "retrieval_ms": 76.93059998564422,
+      "selected_chunk_uids": [
+        "ac735f6387ca659b3a009e78d98f0118",
+        "91d4f121536a0880dff84e83193cd833",
+        "b9350574821da460a18df3d0a5389e65",
+        "da1cdb5e0e87ad69728e9d2781239d13",
+        "fa6a8fa3ff7c9abfd858f139e55ab66d",
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "b27f10fcc77b64d06f491ca98fd343c7",
+        "e3e91b1f9845f9e5b17e8e375d325dd9"
+      ],
+      "semantic": {
+        "reason": null,
+        "sentence_scores": [
+          {
+            "cited_chunk_uids": [
+              "ac735f6387ca659b3a009e78d98f0118"
+            ],
+            "max_score": 1.8885629177093506,
+            "sentence": "Access grant logs are retained for one year [ac735f6387ca659b3a009e78d98f0118].",
+            "supported": null
+          },
+          {
+            "cited_chunk_uids": [
+              "ac735f6387ca659b3a009e78d98f0118"
+            ],
+            "max_score": 4.313688278198242,
+            "sentence": "In contrast, postmortems and incident timelines are retained indefinitely rather than on a fixed schedule [ac735f6387ca659b3a009e78d98f0118].",
+            "supported": null
+          }
+        ],
+        "status": "scored",
+        "unsupported_claim_rate": null
+      },
+      "total_ms": 5432.703600032255
+    },
+    {
+      "abstained": true,
+      "answer_text": "There is insufficient evidence in the retrieved documents to answer this question.",
+      "attempts_used": null,
+      "citation_coverage": 1.0,
+      "citation_valid": true,
+      "citations": [],
+      "error": null,
+      "expected_abstain": false,
+      "grounded": true,
+      "input_tokens": 0,
+      "llm_ms": null,
+      "model_name": null,
+      "outcome": "pre_llm_abstain",
+      "output_tokens": 0,
+      "question_id": "md004",
+      "raw_replies": [],
+      "rerank_ms": 1820.6925000995398,
+      "retrieval_ms": 61.37209990993142,
+      "selected_chunk_uids": [
+        "eee7938e3bf0085d571e51f5a07a0389",
+        "1520a2137d9557a94fc05784da189fc0",
+        "a406e8bef073c09e54f3c1a17ebd1352",
+        "f3db0cedd94359653e4daa1f0536c9fa",
+        "922b302489f00c4323d6a6ee63e27500",
+        "ac735f6387ca659b3a009e78d98f0118",
+        "54b5200c0f4ab243c0eb22bd471d9068",
+        "e3e91b1f9845f9e5b17e8e375d325dd9"
+      ],
+      "semantic": null,
+      "total_ms": 1882.0646000094712
+    },
+    {
+      "abstained": null,
+      "answer_text": null,
+      "attempts_used": 2,
+      "citation_coverage": null,
+      "citation_valid": null,
+      "citations": null,
+      "error": null,
+      "expected_abstain": false,
+      "grounded": null,
+      "input_tokens": 10578,
+      "llm_ms": 10175.10430002585,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "citation_invalid",
+      "output_tokens": 768,
+      "question_id": "md005",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5289,
+          "output_tokens": 386,
+          "seconds": 4.174,
+          "text": "{\n  \"answer\": \"Access to a vendor's administrative console for a vendor-managed service like a payment processor requires approval from the data owner for that integration and one engineering manager [54b5200c0f4ab243c0eb22bd471d9068, eee7938e3bf0085d571e51f5a07a0389]. It typically lasts for a seven-day standard grant window from the Production Database Access SOP, unless the vendor's tooling only supports longer-lived credentials, which requires documenting an exception and business justification [54b5200c0f4ab243c0eb22bd471d9068, eee7938e3bf0085d571e51f5a07a0389]. In comparison, standard internal production database access for engineers requires sign-off from the data owner and two engineering managers (one from a different team) and lasts for three days with automatic expiration [da1cdb5e0e87ad69728e9d2781239d13].\",\n  \"citations\": [\n    \"54b5200c0f4ab243c0eb22bd471d9068\",\n    \"eee7938e3bf0085d571e51f5a07a0389\",\n    \"da1cdb5e0e87ad69728e9d2781239d13\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        },
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5289,
+          "output_tokens": 382,
+          "seconds": 5.999,
+          "text": "{\n  \"answer\": \"Vendor access to an administrative console for a vendor-managed service like a payment processor requires approval from the data owner for that integration and one engineering manager [54b5200c0f4ab243c0eb22bd471d9068, eee7938e3bf0085d571e51f5a07a0389]. It has a seven-day standard grant window from the Production Database Access SOP, unless the vendor's tooling only supports longer-lived credentials, in which case an exception and business justification must be documented [54b5200c0f4ab243c0eb22bd471d9068, eee7938e3bf0085d571e51f5a07a0389]. In comparison, standard internal production database access for an individual engineer requires sign-off from the data owner and two engineering managers, and is granted for three days before expiring automatically [da1cdb5e0e87ad69728e9d2781239d13].\",\n  \"citations\": [\n    \"54b5200c0f4ab243c0eb22bd471d9068\",\n    \"eee7938e3bf0085d571e51f5a07a0389\",\n    \"da1cdb5e0e87ad69728e9d2781239d13\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1786.1138000153005,
+      "retrieval_ms": 74.21489991247654,
+      "selected_chunk_uids": null,
+      "semantic": null,
+      "total_ms": 12035.432999953628
+    },
+    {
+      "abstained": null,
+      "answer_text": null,
+      "attempts_used": 2,
+      "citation_coverage": null,
+      "citation_valid": null,
+      "citations": null,
+      "error": null,
+      "expected_abstain": false,
+      "grounded": null,
+      "input_tokens": 11198,
+      "llm_ms": 12766.156800091267,
+      "model_name": "gemini-3.5-flash-lite",
+      "outcome": "citation_invalid",
+      "output_tokens": 476,
+      "question_id": "md006",
+      "raw_replies": [
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5599,
+          "output_tokens": 238,
+          "seconds": 7.748,
+          "text": "{\n  \"answer\": \"Engineers requesting standard production access must have completed the security awareness training within the last ninety days [da1cdb5e0e87ad69728e9d2781239d13, fa6a8fa3ff7c9abfd858f139e55ab66d]. Every employee completes this security awareness training during onboarding, and again annually thereafter [4e4e98406eefe99581efced749bd708b].\",\n  \"citations\": [\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"fa6a8fa3ff7c9abfd858f139e55ab66d\",\n    \"4e4e98406eefe99581efced749bd708b\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        },
+        {
+          "finish_reason": "STOP",
+          "input_tokens": 5599,
+          "output_tokens": 238,
+          "seconds": 5.017,
+          "text": "{\n  \"answer\": \"Engineers requesting standard production access must have completed the security awareness training within the last ninety days [da1cdb5e0e87ad69728e9d2781239d13, fa6a8fa3ff7c9abfd858f139e55ab66d]. Every employee completes this security awareness training during onboarding and again annually thereafter [4e4e98406eefe99581efced749bd708b].\",\n  \"citations\": [\n    \"4e4e98406eefe99581efced749bd708b\",\n    \"da1cdb5e0e87ad69728e9d2781239d13\",\n    \"fa6a8fa3ff7c9abfd858f139e55ab66d\"\n  ],\n  \"sufficient_evidence\": true\n}"
+        }
+      ],
+      "rerank_ms": 1936.3309999462217,
+      "retrieval_ms": 76.93179999478161,
+      "selected_chunk_uids": null,
+      "semantic": null,
+      "total_ms": 14779.41960003227
+    }
+  ],
+  "config": {
+    "abstention_threshold": 1.4450888633728027,
+    "availability_check_error": "generation failed (HTTP 504)",
+    "availability_check_replies": [],
+    "corpus_active_chunks": 30,
+    "dev_question_count": 29,
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "gold_label": "scored against AI-written gold (Claude-written, not yet human-reviewed)",
+    "gold_provenance": "The 52 questions, their expected chunk uids, expected_abstain flags and the dev/test split, and the fixture corpus, were written by Claude (an AI assistant) in the milestone 7 and 9 commits. No person has reviewed them yet.",
+    "llm_max_output_tokens": 4096,
+    "llm_max_retries": 0,
+    "llm_model": "gemini-3.5-flash-lite",
+    "llm_temperature": 1.0,
+    "model_requests": {
+      "availability_check": 0,
+      "total": 44
+    },
+    "question_count": 52,
+    "rerank_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "rrf_k": 60,
+    "semantic_scorer_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "test_question_count": 23
+  },
+  "eval_run_id": "fd577bcb-313e-4745-b405-7efa4ba1b0c4",
+  "gold_label": "scored against AI-written gold (Claude-written, not yet human-reviewed)",
+  "metrics": {
+    "abstention": {
+      "false_negatives": 0,
+      "false_positives": 13,
+      "positive_count": 7,
+      "precision": 0.35,
+      "recall": 1.0,
+      "true_positives": 7
+    },
+    "citation_coverage_mean": 1.0,
+    "cost": null,
+    "cost_unavailable_reason": "no configured pricing for model None; set KNOWLEDGEOS_LLM_PRICING_USD_PER_MILLION_TOKENS to add a verified entry rather than treating the cost as zero",
+    "dev_question_count": 29,
+    "grounded_answer_rate": 0.7941176470588235,
+    "invalid_citation_rate": 0.20588235294117646,
+    "latency": {
+      "llm_ms": {
+        "count": 34,
+        "p50_ms": 12177.657299907878,
+        "p95_ms": 31845.692164928165
+      },
+      "rerank_ms": {
+        "count": 52,
+        "p50_ms": 1819.4635000545532,
+        "p95_ms": 1958.1258898833764
+      },
+      "retrieval_ms": {
+        "count": 52,
+        "p50_ms": 62.959350063465536,
+        "p95_ms": 88.50344498641789
+      },
+      "total_ms": {
+        "count": 52,
+        "p50_ms": 6129.443650133908,
+        "p95_ms": 28070.539585140054
+      }
+    },
+    "outcome_counts": {
+      "citation_invalid": 7,
+      "malformed_output": 0,
+      "model_blocked": 0,
+      "pre_llm_abstain": 18,
+      "provider_error": 0,
+      "success": 27
+    },
+    "provider_failures": [],
+    "scored_question_count": 52,
+    "semantic_grounding": {
+      "configured": true,
+      "scored_count": 25,
+      "unavailable_count": 0,
+      "unsupported_claim_threshold_configured": false
+    },
+    "test_question_count": 23,
+    "tokens": {
+      "count": 52,
+      "mean_input_tokens": 4707.326923076923,
+      "mean_output_tokens": 179.26923076923077,
+      "total_input_tokens": 244781,
+      "total_output_tokens": 9322
+    },
+    "total_question_count": 52,
+    "unsupported_claim_rate": null,
+    "verification": {
+      "asked_count": 34,
+      "retry_rate": 0.2647058823529412,
+      "unverified": 7,
+      "unverified_by_reason": {
+        "citation_invalid": 7,
+        "malformed_output": 0,
+        "model_blocked": 0
+      },
+      "unverified_rate": 0.20588235294117646,
+      "verified_after_retry": 2,
+      "verified_first_try": 25
+    }
+  },
+  "persisted_query_ids": [
+    "282f97e8-0649-45c7-88c6-50315da23bcd",
+    "df96515d-2117-4127-8704-d61c98bce4bd",
+    "f60477c1-9d0a-4008-b42f-acd18ea7daee",
+    "567c398f-519e-4ed4-bbe4-6016f696a024",
+    "abfc16b0-d278-49cc-bbc2-78927d6ae3d1",
+    "03a833be-37a1-4737-81fb-639556867556",
+    "b1114bb5-b5e4-44c2-90bc-a9ceee70a147",
+    "030ef5a8-d86e-4499-90f4-baf8648de410",
+    "6fd1340e-6444-476e-b1f1-63901c6e0896",
+    "9cb3105e-d80c-41b4-9f8f-ac5f3a49f6a6",
+    "33705e08-f52a-41bc-bc52-3f7c3b563c38",
+    "cdf27368-e151-4a54-ad27-029b3e233f86",
+    "33e550fc-2a8e-4927-9a29-a094be37ff67",
+    "3561e3d5-0bfa-47fc-8532-8c9775da8a76",
+    "5c1a11e7-a0e4-4de3-941e-918c07eb8696",
+    "a3b9c349-ac51-4a6c-9bbb-6ebc595deaa6",
+    "88a46aa5-041b-4217-ab97-12f19aa52c44",
+    "fe9ca291-efe7-4677-bea6-4abf6c77914d",
+    "46c4b2dd-fd4a-4e23-b327-d659f29384a7",
+    "a10df62a-8707-404b-b36a-baa566b6b659",
+    "035bedad-9b86-4ece-827e-8ee26e3db407",
+    "3aba032b-f5db-478b-9354-cd2836a79e1f",
+    "1c894d09-8370-4b74-af1d-baf08642c147",
+    "c1b0ad90-1622-4a9a-a7ce-64ac487fec0b",
+    "a85b6910-3bd4-4e0f-b706-502662e49e07",
+    "869e696a-9086-4cf0-ac4d-528a0163f0e4",
+    "829f4f39-f02f-49a7-a4b0-26f94eceda8f",
+    "f25a45c9-fbb4-45de-bfec-2f6744925d13",
+    "008bb3e1-3dac-45e4-84c5-626c1876e296",
+    "956ec24e-8983-4223-a610-0315d1bc559e",
+    "0b1a40da-edfa-41a5-895c-658030cef71a",
+    "e6fe0180-b54f-45dc-bd04-ce4f1538c25f",
+    "deb5dd19-e072-443f-a87c-85aaeb02a20c",
+    "cae42a5d-8e09-4904-9c1a-1ebb64c9fdaf",
+    "0981fe6c-029a-44ea-96a6-22804031a800",
+    "b4bc1939-3276-44da-9456-ef5599373f4f",
+    "46ca8fb9-45fc-4a91-a778-eae57840e6f3",
+    "6bd09ac6-d5ae-4b97-bb82-4f5174998828",
+    "69a6d584-b008-4e36-933f-f090521e3afd",
+    "fb38ff36-0bc7-4140-96ba-2ae24b4ae7bb",
+    "82e21e74-b3b4-4ebd-93c2-2d42ea78a2b8",
+    "65ca21e5-627f-4027-8138-2f303dbe93e3",
+    "8dba817b-a052-450b-bd6c-71bb042a83d2",
+    "e5e17fa5-ea60-4724-9d55-1f7b9f4c1676",
+    "88484401-71d4-4e56-add3-052b5047a672"
+  ],
+  "provider_errors": [],
+  "suite": "answers"
+}

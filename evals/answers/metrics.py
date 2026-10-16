@@ -289,8 +289,12 @@ class TokenSummary:
 
 def token_summary(attempts: list[AnswerAttempt]) -> TokenSummary:
     """Mean and total tokens over attempts that actually called the
-    model — a pre-LLM abstention used none."""
-    measured = [a for a in attempts if a.input_tokens is not None and a.output_tokens is not None]
+    model — a pre-LLM abstention used none (its counts are 0 but it has no model, so it is left out)."""
+    measured = [
+        a
+        for a in attempts
+        if a.model_name is not None and a.input_tokens is not None and a.output_tokens is not None
+    ]
     if not measured:
         raise ValueError("token summary is undefined with no measured attempts")
     total_in = sum(a.input_tokens for a in measured)
@@ -319,9 +323,13 @@ def cost_summary(
     Raises `PricingError` (re-raised, not caught) the moment any priced
     attempt's model has no configured entry — official cost reporting
     must be all-or-nothing, never an average that silently skipped the
-    requests it could not price.
+    requests it could not price. A pre-LLM abstention called no model and costs nothing; it is left out.
     """
-    measured = [a for a in attempts if a.input_tokens is not None and a.output_tokens is not None]
+    measured = [
+        a
+        for a in attempts
+        if a.model_name is not None and a.input_tokens is not None and a.output_tokens is not None
+    ]
     if not measured:
         raise ValueError("cost summary is undefined with no measured attempts")
 
