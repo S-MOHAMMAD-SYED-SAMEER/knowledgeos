@@ -174,8 +174,10 @@ static isolation tests that prove they never call Gemini.
   require `BAAI/bge-small-en-v1.5` and `cross-encoder/ms-marco-MiniLM-L-6-v2`
   in the local sentence-transformers cache.
 - Real generation through Google Gemini (`GEMINI_API_KEY` or
-  `GOOGLE_API_KEY`, plus `KNOWLEDGEOS_LLM_MODEL` — no credential is
-  configured in this build environment).
+  `GOOGLE_API_KEY`). The model defaults to `gemini-3.5-flash-lite`
+  (`KNOWLEDGEOS_LLM_MODEL`) at temperature 1.0 (`KNOWLEDGEOS_LLM_TEMPERATURE`),
+  the model's own default and what Google's prompting guide says to keep for
+  Gemini 3 models.
 - The production default for every provider dependency; both demo modes
   below only ever override it, at their own respective seams, never
   change what it does by default.
@@ -402,7 +404,7 @@ Docker · GitHub Actions
 | PostgreSQL 16 **with the pgvector extension** | The only datastore. A plain `postgres` image has no `vector` type. `pgvector/pgvector:pg16` is the quickest source (below). |
 | About 2 GB of disk for `pip install` | Local embeddings and reranking pull in torch. |
 | The two local models in your Hugging Face cache (about 200 MB) | The application loads them with `local_files_only=True` and never downloads while it runs. Without them every ingest and query fails with "the embedding model is unavailable". `python scripts/download_models.py` fetches them once. |
-| A Gemini key and a model ID | Only for generating answers in Live Mode. Retrieval, the evaluation of retrieval, and both demos need neither. |
+| A Gemini key | Only for generating answers in Live Mode (the model defaults to `gemini-3.5-flash-lite`). Retrieval, the evaluation of retrieval, and both demos need neither. |
 
 **Steps** (Linux, macOS and Windows; the database line works everywhere Docker does)
 
@@ -440,6 +442,15 @@ demo: `docker compose -f docker-compose.demo.yml up --build`, then open
 build fails on `pip install` with `CERTIFICATE_VERIFY_FAILED`, some antivirus
 products (AVG's web shield, for one) re-sign HTTPS traffic with a root the
 container does not trust; turn that scanning off while you build.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| A Gemini call from Python hangs for a minute or more with no error (the first request after start-up, or every one). `curl` to the same host works | The machine has an IPv6 address but no working IPv6 route to Google. Python's HTTP client tries each IPv6 address in turn, each waiting for its connect timeout, before it tries IPv4 | Prefer IPv4 for the process: on Windows, turn off IPv6 for the network adapter, or start the app through a small launcher that filters `socket.getaddrinfo` to IPv4 results. Check with `curl -6 -m 5 https://generativelanguage.googleapis.com/` (it hangs) against `curl -4 ...` (it answers) |
+| `[SSL: CERTIFICATE_VERIFY_FAILED] ... unable to get local issuer certificate` on a Gemini call, or on `pip install` / a Docker build | An antivirus or proxy that scans HTTPS (AVG's web shield is one) re-signs the traffic with its own root, which is in the Windows certificate store but not in Python's `certifi` bundle | Either turn HTTPS scanning off while you run it, or give Python a bundle that includes the Windows roots: export them to a PEM file next to `certifi`'s bundle and point `SSL_CERT_FILE` (and `REQUESTS_CA_BUNDLE`) at the combined file. Do not turn certificate verification off |
+| `503` from `POST /query` with "the language model is unavailable" | The adapter could not get an answer. The server log line `Generation failed (LLMError): generation failed (HTTP nnn)` says which status | Read the status in the log. `503 "high demand"` from Google passes: wait and try again. `404` is a wrong model ID; `400/403` is a rejected key or request |
+| `429`, or "the language model is busy right now" | Free-tier rate limit (about 15 requests a minute when measured elsewhere on this model family) | Wait; the answers evaluation paces itself (`--requests-per-minute`) |
 
 ## License
 

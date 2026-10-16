@@ -35,10 +35,9 @@ the SDK's message, in case a future SDK version ever echoes an attempted
 value into it.
 
 **The model ID is never chosen here from memory.** It is read from
-`Settings.llm_model`, which has no default (`app/config.py`) — the model
-must be supplied by whoever has actually verified it against the live
-`client.models.list()` listing, because no Gemini credential was available
-in the environment this adapter was written in to verify one.
+`Settings.llm_model` (`app/config.py`). Its default, `gemini-3.5-flash-lite`,
+was verified against the live API on 2026-10-16 (`models.get`, then one real
+call); any other model must be verified the same way before it is set.
 
 **What happens when a call goes wrong** (each case is a distinct, tested
 outcome; none leaks the prompt, the evidence, a key or the SDK's own message):

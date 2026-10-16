@@ -24,6 +24,8 @@ from pathlib import Path
 
 import httpx
 
+from app.config import get_settings
+
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "docs" / "results"
 
 # (id, category, question, filters, intent)
@@ -184,7 +186,8 @@ def main(argv: list[str] | None = None) -> int:
         "date": datetime.now(UTC).strftime("%Y-%m-%d"),
         "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
         "models": models,
-        "temperature": "unset: the model's own default (KNOWLEDGEOS_LLM_TEMPERATURE not set)",
+        "temperature": get_settings().llm_temperature,
+        "temperature_note": "the server's configured value (KNOWLEDGEOS_LLM_TEMPERATURE); read from this process's settings, so it matches the server only if both use the same environment",
         "provenance": (
             "Questions and intents written by Claude Code (AI assistant); not part of the frozen "
             "evaluation set; no gold labels; nothing is scored."
