@@ -269,7 +269,9 @@ def run_query(
                 detail="the language model did not answer in time; please try again",
             ) from exc
         except LLMError as exc:
-            logger.warning("Generation failed (%s).", type(exc).__name__)
+            # The adapter's messages name the status and never the prompt, the evidence or a key
+            # ("generation failed (HTTP 503)"), so the message is safe to log and says which it was.
+            logger.warning("Generation failed (%s): %s", type(exc).__name__, exc)
             raise HTTPException(
                 status_code=503, detail="the language model is unavailable"
             ) from exc

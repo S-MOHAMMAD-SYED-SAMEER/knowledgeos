@@ -250,6 +250,29 @@ def test_the_unmodified_endpoint_reaches_for_the_real_gemini_provider(
     assert "language model is unavailable" in response.json()["detail"]
 
 
+def test_a_generation_failure_logs_why_without_the_prompt_or_the_evidence(
+    client: TestClient, migrated_engine: Engine, storage, embeddings, caplog
+) -> None:
+    """The 503 body stays generic; the server log says what the adapter said (the status), which is
+    what made a failed live run impossible to diagnose when it logged only the exception class."""
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings, text="SUPERSECRET production access policy")
+
+    class BrokenLLM:
+        model_name = "broken"
+
+        def complete(self, *, system, user, max_tokens, json_schema=None):
+            raise LLMError("generation failed (HTTP 503)")
+
+    with caplog.at_level("WARNING", logger="app.api.query"):
+        response = _post(client, embeddings, BrokenLLM())
+
+    assert response.status_code == 503
+    assert "generation failed (HTTP 503)" in caplog.text
+    assert "SUPERSECRET" not in caplog.text and "production database access" not in caplog.text
+    assert "HTTP 503" not in response.text
+
+
 def _post(client, embeddings, llm):
     _override_all(client, embeddings, llm)
     try:
