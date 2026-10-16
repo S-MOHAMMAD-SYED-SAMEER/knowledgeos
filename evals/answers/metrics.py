@@ -43,6 +43,10 @@ class AttemptOutcome(StrEnum):
     CITATION_INVALID = "citation_invalid"
     MALFORMED_OUTPUT = "malformed_output"
     MODEL_BLOCKED = "model_blocked"
+    # The provider failed on this question (an HTTP 5xx, a timeout): the model never answered. Recorded
+    # with its error and reported on its own, and left out of every rate below, because it says nothing
+    # about what the model does with the question. The report states how many questions it covers.
+    PROVIDER_ERROR = "provider_error"
 
 
 @dataclass(frozen=True)
@@ -82,6 +86,8 @@ class AnswerAttempt:
     # Every raw reply the model returned for this question, before parsing or validation, with its
     # tokens and finish reason: one entry, or two after a rejected first reply.
     raw_replies: list[dict] | None = None
+    # For a PROVIDER_ERROR: the adapter's message ("generation failed (HTTP 503)"), never the prompt.
+    error: str | None = None
 
 
 UNVERIFIED_OUTCOMES = frozenset(
