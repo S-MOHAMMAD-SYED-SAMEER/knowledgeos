@@ -58,6 +58,8 @@ from evals.answers.pacing import (
     PacedLLMProvider,
     describe_call_budget,
 )
+from evals.answers.recording import RecordingLLMProvider
+from evals.answers.report import GOLD_LABEL
 from evals.answers.semantic import check_semantic_scorer_available
 from evals.answers.splits import SplitError, apply_split
 from evals.answers.suite import DEFAULT_MAX_CONSECUTIVE_FAILURES, run_answers_suite
@@ -199,9 +201,14 @@ def run_answers(
     if requests_per_minute > 0:
         llm = PacedLLMProvider(llm, requests_per_minute=requests_per_minute)
 
+    # Outermost, so every raw reply is kept (it changes nothing that is sent or received).
+    llm = RecordingLLMProvider(llm)
+
     llm_reason = _llm_unavailable_reason(llm)
     if llm_reason is not None:
         return _fail(llm_reason, suite_label="answer")
+    # The availability check is a request too: recorded with the run, never scored.
+    canary_calls = llm.take_calls()
 
     # Semantic grounding (D2) is a softer requirement than the three models
     # above: its own unavailability is an explicit reported state, not a
@@ -302,6 +309,22 @@ def run_answers(
         RerankError,
     ) as exc:
         return _fail(str(exc), suite_label="answer")
+
+    result.config.update(
+        {
+            "llm_temperature": settings.llm_temperature,
+            "llm_max_retries": settings.llm_max_retries,
+            "llm_max_output_tokens": settings.llm_max_output_tokens,
+            "gold_label": GOLD_LABEL,
+            "gold_provenance": (
+                "The 52 questions, their expected chunk uids, expected_abstain flags and the "
+                "dev/test split, and the fixture corpus, were written by Claude (an AI assistant) "
+                "in the milestone 7 and 9 commits. No person has reviewed them yet."
+            ),
+            "model_requests": {"total": llm.total_calls, "availability_check": len(canary_calls)},
+            "availability_check_replies": canary_calls,
+        }
+    )
 
     if not result.complete:
         _save(result.attempts, result.persisted_query_ids, result.stopped_early)

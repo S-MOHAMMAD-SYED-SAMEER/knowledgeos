@@ -174,6 +174,7 @@ def run_answers_suite(
         with stage_timer() as rerank_timer:
             reranked = rerank(normalized_text, result.candidates, reranker_provider)
 
+        take_calls = getattr(llm, "take_calls", None)
         try:
             with stage_timer() as llm_timer:
                 answer = generate_answer(
@@ -186,7 +187,16 @@ def run_answers_suite(
         except LLMError as exc:
             # The provider failed, not the model's output. Leave the question pending.
             consecutive_failures += 1
-            provider_errors.append({"question_id": question.id, "error": type(exc).__name__})
+            provider_errors.append(
+                {
+                    "question_id": question.id,
+                    "error": type(exc).__name__,
+                    # The adapter's own message: a status such as "generation failed (HTTP 503)",
+                    # never the prompt.
+                    "message": str(exc),
+                    "raw_replies": take_calls() if take_calls else None,
+                }
+            )
             logger.warning(
                 "The provider failed on question %s (%s); %d failure(s) in a row.",
                 question.id,
@@ -195,11 +205,12 @@ def run_answers_suite(
             )
             if consecutive_failures >= max_consecutive_failures:
                 stopped_early = (
-                    f"{consecutive_failures} provider failures in a row (last: {type(exc).__name__}); "
+                    f"{consecutive_failures} provider failures in a row (last: {type(exc).__name__}: {exc}); "
                     "stopped instead of retrying in a loop"
                 )
                 break
             continue
+        raw_replies = take_calls() if take_calls else None
         if answer.model_name is not None:
             # The provider answered. (A question that never reached it, a pre-LLM abstention,
             # says nothing about whether it is back, so it does not end a run of failures.)
@@ -217,6 +228,7 @@ def run_answers_suite(
                     rerank_timer.ms,
                     answer=answer,
                     llm_ms=llm_timer.ms,
+                    raw_replies=raw_replies,
                 )
             )
             if on_progress is not None:
@@ -264,6 +276,12 @@ def run_answers_suite(
                 llm_ms=llm_ms,
                 total_ms=total_ms,
                 attempts_used=answer.attempts if answer.model_name is not None else None,
+                answer_text=answer.answer_text,
+                citations=list(answer.citations),
+                selected_chunk_uids=[
+                    item.candidate.evidence.chunk_uid for item in answer.selected if item.selected
+                ],
+                raw_replies=raw_replies,
             )
         )
 
@@ -322,7 +340,9 @@ _UNVERIFIED_OUTCOME = {
 }
 
 
-def _failed_attempt(question, outcome, retrieval_ms, rerank_ms, *, answer, llm_ms) -> AnswerAttempt:
+def _failed_attempt(
+    question, outcome, retrieval_ms, rerank_ms, *, answer, llm_ms, raw_replies=None
+) -> AnswerAttempt:
     """A question whose answer could not be verified. The tokens are real (the model was
     asked), so they count towards cost; there is no answer to describe, so every field about
     the answer is None, and the abstention score treats it as a predicted non-abstention."""
@@ -343,6 +363,7 @@ def _failed_attempt(question, outcome, retrieval_ms, rerank_ms, *, answer, llm_m
         llm_ms=llm_ms,
         total_ms=retrieval_ms + rerank_ms + llm_ms,
         attempts_used=answer.attempts,
+        raw_replies=raw_replies,
     )
 
 
