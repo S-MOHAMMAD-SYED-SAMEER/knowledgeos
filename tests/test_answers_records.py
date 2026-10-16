@@ -103,3 +103,29 @@ def test_the_report_carries_the_gold_label_every_attempt_and_survives_a_checkpoi
     # A checkpoint written mid-run keeps the same fields, so a resumed run loses no raw reply.
     restored = _attempt_from_dict(json.loads(json.dumps(_attempt_to_dict(result.attempts[0]))))
     assert restored == result.attempts[0]
+
+
+def test_a_question_that_never_reached_the_model_is_left_out_of_tokens_and_cost() -> None:
+    """A pre-LLM abstention has token counts of 0 but no model; counting it priced a model called None
+    and pulled the mean tokens down. Only questions the model answered are measured."""
+    from app.observability.pricing import PricingError
+    from evals.answers.metrics import AnswerAttempt, cost_summary, token_summary
+
+    def attempt(qid, outcome, model, tokens_in, tokens_out):
+        return AnswerAttempt(
+            question_id=qid, expected_abstain=False, outcome=outcome, abstained=False, citation_valid=True,
+            citation_coverage=1.0, grounded=True, semantic=None, model_name=model, input_tokens=tokens_in,
+            output_tokens=tokens_out, retrieval_ms=1.0, rerank_ms=1.0, llm_ms=None, total_ms=2.0,
+        )
+
+    attempts = [
+        attempt("a", AttemptOutcome.SUCCESS, "gemini-x", 1000, 100),
+        attempt("b", AttemptOutcome.PRE_LLM_ABSTAIN, None, 0, 0),
+    ]
+    summary = token_summary(attempts)
+    assert (summary.count, summary.mean_input_tokens, summary.total_output_tokens) == (1, 1000, 100)
+
+    table = {"gemini-x": {"input": 1.0, "output": 2.0}}
+    assert cost_summary(attempts, pricing_table=table).total_cost_usd == pytest.approx(0.0012)
+    with pytest.raises(PricingError, match="gemini-x"):
+        cost_summary(attempts, pricing_table={})

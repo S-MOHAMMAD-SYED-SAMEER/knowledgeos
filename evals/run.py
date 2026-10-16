@@ -26,6 +26,7 @@ the same result object, so they can never disagree with each other.
 """
 
 import argparse
+import re
 import sys
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -41,7 +42,7 @@ from app.providers.bge import BgeEmbeddingProvider
 from app.providers.cross_encoder import CrossEncoderRerankProvider
 from app.providers.embeddings import EmbeddingError
 from app.providers.gemini_llm import GeminiLLMProvider
-from app.providers.llm import LLMError
+from app.providers.llm import LLMError, LLMTimeout
 from app.providers.passthrough_reranker import PassthroughRerankProvider
 from app.providers.reranker import Candidate, RerankError
 from app.storage import get_storage
@@ -62,7 +63,11 @@ from evals.answers.recording import RecordingLLMProvider
 from evals.answers.report import GOLD_LABEL
 from evals.answers.semantic import check_semantic_scorer_available
 from evals.answers.splits import SplitError, apply_split
-from evals.answers.suite import DEFAULT_MAX_CONSECUTIVE_FAILURES, run_answers_suite
+from evals.answers.suite import (
+    DEFAULT_MAX_CONSECUTIVE_FAILURES,
+    is_rate_limit,
+    run_answers_suite,
+)
 from evals.retrieval import report
 from evals.retrieval.corpus import CorpusError, ensure_corpus_seeded
 from evals.retrieval.questions import QuestionSetError, load_question_set
@@ -100,14 +105,25 @@ def _unavailable_reason(
     return None
 
 
-def _llm_unavailable_reason(llm: GeminiLLMProvider) -> str | None:
+def _llm_unavailable_reason(llm: GeminiLLMProvider) -> tuple[str | None, str | None]:
     """The same canary discipline, for the generation provider the
-    `answers` suite also requires."""
+    `answers` suite also requires. Returns `(fatal_reason, transient_error)`.
+
+    A 429/quota error, a rejected key or request (HTTP 4xx) or a missing credential ends the run
+    before it starts. A 5xx or a timeout does not: it is the same kind of failure the suite records
+    and carries on from, and the suite's own stop rule (two different questions in a row) is what
+    ends a run against a provider that is really down. It is returned as `transient_error`, kept with
+    the run, so the report says the availability check failed.
+    """
     try:
         llm.complete(system="availability check", user=_CANARY_TEXT, max_tokens=16)
     except LLMError as exc:
-        return f"the language model ({llm.model_name}) is unavailable: {exc}"
-    return None
+        reason = f"the language model ({llm.model_name}) is unavailable: {exc}"
+        transient = isinstance(exc, LLMTimeout) or re.search(r"HTTP 5\d\d", str(exc)) is not None
+        if transient and not is_rate_limit(exc):
+            return None, str(exc)
+        return reason, None
+    return None, None
 
 
 def _fail(message: str, *, suite_label: str = "retrieval") -> int:
@@ -204,9 +220,15 @@ def run_answers(
     # Outermost, so every raw reply is kept (it changes nothing that is sent or received).
     llm = RecordingLLMProvider(llm)
 
-    llm_reason = _llm_unavailable_reason(llm)
+    llm_reason, availability_error = _llm_unavailable_reason(llm)
     if llm_reason is not None:
         return _fail(llm_reason, suite_label="answer")
+    if availability_error is not None:
+        print(
+            f"Availability check failed with a server error ({availability_error}); carrying on: the "
+            "questions decide whether the provider is down.",
+            flush=True,
+        )
     # The availability check is a request too: recorded with the run, never scored.
     canary_calls = llm.take_calls()
 
@@ -323,6 +345,7 @@ def run_answers(
             ),
             "model_requests": {"total": llm.total_calls, "availability_check": len(canary_calls)},
             "availability_check_replies": canary_calls,
+            "availability_check_error": availability_error,
         }
     )
 

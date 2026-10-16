@@ -243,7 +243,7 @@ class FlakyLLM:
 
     model_name = "flaky-test-double"
 
-    def __init__(self, failing_calls: set[int], error: type[LLMError] = LLMRateLimited) -> None:
+    def __init__(self, failing_calls: set[int], error: type[LLMError] = LLMError) -> None:
         self._inner = AutoCitingLLMProvider()
         self._failing = failing_calls
         self._error = error
@@ -252,7 +252,7 @@ class FlakyLLM:
     def complete(self, *, system, user, max_tokens, json_schema=None):
         self.calls += 1
         if self.calls in self._failing:
-            raise self._error("simulated")
+            raise self._error("generation failed (HTTP 503)")
         return self._inner.complete(system=system, user=user, max_tokens=max_tokens)
 
 
@@ -279,30 +279,32 @@ def test_a_healthy_run_is_complete_with_nothing_pending(session, storage, embedd
     assert result.provider_errors == []
 
 
-def test_it_stops_after_the_configured_number_of_failures_in_a_row(session, storage, embeddings) -> None:
+def test_it_stops_when_two_different_questions_fail_in_a_row(session, storage, embeddings) -> None:
     llm = FlakyLLM(failing_calls=set(range(4, 100)))  # three questions answered, then nothing works
 
     result = _run(session, storage, embeddings, llm, max_consecutive_failures=2)
 
     assert not result.complete
-    assert len(result.attempts) == 3
-    assert llm.calls == 5  # three answered, then two failures, then it stopped asking
-    assert "2 provider failures in a row" in result.stopped_early
-    assert "LLMRateLimited" in result.stopped_early
-    assert [e["error"] for e in result.provider_errors] == ["LLMRateLimited", "LLMRateLimited"]
-    assert len(result.pending_question_ids) == result.total_question_count - 3
+    assert llm.calls == 5  # three answered, then two failures, then it stopped asking: no retries
+    assert len(result.attempts) == 5  # the two failures are results too, with their error
+    failed = [a for a in result.attempts if a.outcome == AttemptOutcome.PROVIDER_ERROR]
+    assert len(failed) == 2 and len({a.question_id for a in failed}) == 2
+    assert all(a.error == "generation failed (HTTP 503)" for a in failed)
+    assert "2 different questions failed in a row" in result.stopped_early
+    assert [e["message"] for e in result.provider_errors] == ["generation failed (HTTP 503)"] * 2
+    assert len(result.pending_question_ids) == result.total_question_count - 5
 
 
-def test_a_single_failure_is_survived_and_leaves_exactly_that_question_pending(session, storage, embeddings) -> None:
+def test_a_single_failure_is_recorded_and_the_run_carries_on_to_the_end(session, storage, embeddings) -> None:
     llm = FlakyLLM(failing_calls={5})
 
     result = _run(session, storage, embeddings, llm, max_consecutive_failures=2)
 
-    assert result.total_question_count - len(result.attempts) == 1  # every other question was answered
-    assert len(result.pending_question_ids) == 1
-    assert len(result.provider_errors) == 1
-    assert not result.complete  # one hole makes the run incomplete, so it must not be reported
-    assert "the provider failed on them" in result.stopped_early
+    assert result.complete and result.stopped_early is None  # every question has a result
+    assert len(result.attempts) == result.total_question_count
+    failed = [a for a in result.attempts if a.outcome == AttemptOutcome.PROVIDER_ERROR]
+    assert len(failed) == 1 and failed[0].error == "generation failed (HTTP 503)"
+    assert llm.calls == result.total_question_count  # nothing was asked twice
 
 
 def test_a_success_between_failures_resets_the_count(session, storage, embeddings) -> None:
@@ -311,7 +313,43 @@ def test_a_success_between_failures_resets_the_count(session, storage, embedding
     result = _run(session, storage, embeddings, llm, max_consecutive_failures=2)
 
     assert len(result.provider_errors) == 3
-    assert len(result.attempts) == result.total_question_count - 3  # it kept going the whole way
+    assert result.complete  # it kept going the whole way
+    assert sum(1 for a in result.attempts if a.outcome == AttemptOutcome.PROVIDER_ERROR) == 3
+
+
+def test_a_rate_limit_or_quota_error_stops_the_run_at_once(session, storage, embeddings) -> None:
+    llm = FlakyLLM(failing_calls={4}, error=LLMRateLimited)
+
+    result = _run(session, storage, embeddings, llm, max_consecutive_failures=2)
+
+    assert not result.complete
+    assert llm.calls == 4  # the 429 was the last request
+    assert "rate limit / quota" in result.stopped_early
+    assert result.attempts[-1].outcome == AttemptOutcome.PROVIDER_ERROR
+
+
+def test_a_429_that_arrives_as_a_plain_error_stops_the_run_too(session, storage, embeddings) -> None:
+    class Quota(FlakyLLM):
+        def complete(self, **kwargs):
+            self.calls += 1
+            if self.calls == 3:
+                raise LLMError("generation failed (HTTP 429)")
+            return self._inner.complete(**{k: v for k, v in kwargs.items() if k != "json_schema"})
+
+    result = _run(session, storage, embeddings, Quota(failing_calls=set()), max_consecutive_failures=2)
+
+    assert "rate limit / quota" in result.stopped_early
+
+
+def test_failed_questions_are_listed_and_left_out_of_the_rates(session, storage, embeddings) -> None:
+    from evals.answers.report import metrics_payload
+
+    result = _run(session, storage, embeddings, FlakyLLM(failing_calls={5, 9}), max_consecutive_failures=2)
+
+    payload = metrics_payload(result, pricing_table={})
+    assert payload["outcome_counts"]["provider_error"] == 2
+    assert [f["error"] for f in payload["provider_failures"]] == ["generation failed (HTTP 503)"] * 2
+    assert payload["scored_question_count"] == result.total_question_count - 2
 
 
 def test_progress_is_reported_after_every_answered_question(session, storage, embeddings) -> None:
@@ -344,7 +382,7 @@ def test_a_stopped_run_resumes_and_matches_an_uninterrupted_one(session, storage
     assert resumed.complete
     assert {a.question_id for a in resumed.attempts} == {q.id for q in load_question_set()}
     # The questions answered before the stop were not asked again, and nothing was persisted twice.
-    assert resumed.attempts[:3] == first.attempts
+    assert resumed.attempts[:3] == first.attempts[:3]  # the two failed questions are asked again
     assert len(session.execute(select(Query)).scalars().all()) == queries_after_first + (len(resumed.attempts) - 3)
     assert len(set(resumed.persisted_query_ids)) == len(resumed.persisted_query_ids)
 
@@ -360,7 +398,8 @@ def test_resuming_asks_the_model_only_for_what_is_left(session, storage, embeddi
 
     _run(session, storage, embeddings, llm, resume_from=(first.attempts, first.persisted_query_ids))
 
-    assert llm.calls == len(first.pending_question_ids)
+    # What was never reached, plus the two questions the provider failed on.
+    assert llm.calls == first.total_question_count - 3
 
 
 # --- the CLI ------------------------------------------------------------------------------------
@@ -409,7 +448,7 @@ def test_a_run_that_stops_early_writes_a_checkpoint_and_nothing_official(session
     assert len(checkpoints) == 1
     saved = json.loads(checkpoints[0].read_text(encoding="utf-8"))
     assert 0 < len(saved["attempts"]) < 52  # what was done is kept; the rest is pending
-    assert "provider failures in a row" in saved["stopped_early"]
+    assert "different questions failed in a row" in saved["stopped_early"]
     err = capsys.readouterr().err
     assert "stopped early" in err
     assert "No eval_runs row was written" in err
@@ -505,4 +544,39 @@ def test_a_question_that_never_reached_the_model_does_not_end_a_run_of_failures(
     result = _run(session, storage, embeddings, llm, max_consecutive_failures=2)
 
     assert result.stopped_early is not None
-    assert "2 provider failures in a row" in result.stopped_early
+    assert "2 different questions failed in a row" in result.stopped_early
+
+
+# --- the availability check ----------------------------------------------------------------------
+
+
+def test_a_server_error_on_the_availability_check_does_not_end_the_run_before_it_starts(
+    session, tmp_path, monkeypatch, capsys
+) -> None:
+    _patch(monkeypatch, tmp_path, lambda: FlakyLLM(failing_calls={1}))  # call 1 is the availability check
+
+    assert _unpaced(session) == 0
+
+    assert "Availability check failed with a server error" in capsys.readouterr().out
+    report = json.loads(next((tmp_path / "eval_runs").glob("answers-*.json")).read_text(encoding="utf-8"))
+    assert report["config"]["availability_check_error"] == "generation failed (HTTP 503)"
+    assert report["config"]["model_requests"]["availability_check"] == 0  # it failed, so it has no reply
+    assert report["config"]["model_requests"]["total"] > 1  # the questions were asked
+
+
+@pytest.mark.parametrize(
+    "error",
+    [LLMRateLimited("slow down"), LLMError("generation failed (HTTP 429)"), LLMError("generation failed (HTTP 403)")],
+)
+def test_a_rate_limit_or_a_rejected_request_on_the_availability_check_still_ends_the_run(
+    session, tmp_path, monkeypatch, capsys, error
+) -> None:
+    class Refusing(FlakyLLM):
+        def complete(self, **kwargs):
+            raise error
+
+    _patch(monkeypatch, tmp_path, lambda: Refusing(failing_calls=set()))
+
+    assert _unpaced(session) == 1
+    assert "answer evaluation cannot run" in capsys.readouterr().err
+    assert session.execute(select(EvalRun)).scalars().all() == []

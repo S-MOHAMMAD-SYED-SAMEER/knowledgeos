@@ -63,13 +63,21 @@ def _semantic_section(attempts) -> dict:
 
 
 def metrics_payload(result: AnswerSuiteResult, *, pricing_table: dict) -> dict:
-    attempts = result.attempts
+    # A provider failure (the model never answered) is not the model's behaviour: it is counted and
+    # listed below, and left out of every rate, which are over the questions the model did answer.
+    provider_failed = [a for a in result.attempts if a.outcome == AttemptOutcome.PROVIDER_ERROR]
+    attempts = [a for a in result.attempts if a.outcome != AttemptOutcome.PROVIDER_ERROR]
     payload: dict = {
         "total_question_count": result.total_question_count,
         "dev_question_count": result.dev_question_count,
         "test_question_count": result.test_question_count,
+        "scored_question_count": len(attempts),
+        "provider_failures": [
+            {"question_id": a.question_id, "expected_abstain": a.expected_abstain, "error": a.error}
+            for a in provider_failed
+        ],
         "outcome_counts": {
-            outcome.value: sum(1 for a in attempts if a.outcome == outcome)
+            outcome.value: sum(1 for a in result.attempts if a.outcome == outcome)
             for outcome in AttemptOutcome
         },
     }
@@ -211,6 +219,13 @@ def render_console_summary(
         f"dev={result.dev_question_count} test={result.test_question_count}"
     )
     lines.append(f"  outcomes:         {metrics['outcome_counts']}")
+    lines.append(
+        f"  scored questions: {metrics['scored_question_count']} of {result.total_question_count}"
+    )
+    for failure in metrics["provider_failures"]:
+        lines.append(
+            f"  PROVIDER FAILED, not scored: {failure['question_id']} ({failure['error']})"
+        )
     lines.append("")
 
     def _fmt(value, suffix: str = "") -> str:

@@ -55,7 +55,7 @@ from app.generation.persistence import persist_query
 from app.observability.timing import stage_timer
 from app.parsing import normalize
 from app.providers.embeddings import EmbeddingProvider
-from app.providers.llm import LLMError, LLMProvider
+from app.providers.llm import LLMError, LLMProvider, LLMRateLimited
 from app.providers.reranker import RerankProvider
 from app.reranking.pipeline import rerank
 from app.retrieval.filters import RetrievalFilters
@@ -149,7 +149,10 @@ def run_answers_suite(
     questions = load_question_set(questions_dir)
     split = apply_split(questions, splits_path)
 
-    attempts: list[AnswerAttempt] = list(resume_from[0]) if resume_from else []
+    # A question the provider failed on is asked again on resume; every other result is kept.
+    attempts: list[AnswerAttempt] = (
+        [a for a in resume_from[0] if a.outcome != AttemptOutcome.PROVIDER_ERROR] if resume_from else []
+    )
     persisted_query_ids: list[UUID] = list(resume_from[1]) if resume_from else []
     already_done = {a.question_id for a in attempts}
     provider_errors: list[dict] = []
@@ -185,7 +188,9 @@ def run_answers_suite(
                     max_tokens=max_tokens,
                 )
         except LLMError as exc:
-            # The provider failed, not the model's output. Leave the question pending.
+            # The provider failed, not the model's output. Record the question as failed (with the
+            # adapter's message) and carry on. Stop only on a 429 / quota error at once, or when two
+            # different questions in a row have failed; nothing is retried.
             consecutive_failures += 1
             provider_errors.append(
                 {
@@ -203,9 +208,35 @@ def run_answers_suite(
                 type(exc).__name__,
                 consecutive_failures,
             )
+            attempts.append(
+                AnswerAttempt(
+                    question_id=question.id,
+                    expected_abstain=question.expected_abstain,
+                    outcome=AttemptOutcome.PROVIDER_ERROR,
+                    abstained=None,
+                    citation_valid=None,
+                    citation_coverage=None,
+                    grounded=None,
+                    semantic=None,
+                    model_name=llm.model_name,
+                    input_tokens=None,
+                    output_tokens=None,
+                    retrieval_ms=retrieval_timer.ms,
+                    rerank_ms=rerank_timer.ms,
+                    llm_ms=None,
+                    total_ms=None,
+                    error=str(exc),
+                    raw_replies=provider_errors[-1]["raw_replies"],
+                )
+            )
+            if on_progress is not None:
+                on_progress(attempts, persisted_query_ids)
+            if is_rate_limit(exc):
+                stopped_early = f"rate limit / quota error on {question.id} ({exc}); stopped, nothing retried"
+                break
             if consecutive_failures >= max_consecutive_failures:
                 stopped_early = (
-                    f"{consecutive_failures} provider failures in a row (last: {type(exc).__name__}: {exc}); "
+                    f"{consecutive_failures} different questions failed in a row (last: {question.id}: {exc}); "
                     "stopped instead of retrying in a loop"
                 )
                 break
@@ -303,8 +334,6 @@ def run_answers_suite(
 
     answered = {a.question_id for a in attempts}
     pending = [q.id for q in questions if q.id not in answered]
-    if pending and stopped_early is None and provider_errors:
-        stopped_early = f"{len(pending)} question(s) have no result because the provider failed on them"
 
     config = {
         "embedding_model": embeddings.model_name,
@@ -331,6 +360,12 @@ def run_answers_suite(
         stopped_early=stopped_early,
         provider_errors=provider_errors,
     )
+
+
+def is_rate_limit(exc: LLMError) -> bool:
+    """A 429 or a quota error: the one kind of failure that ends a run at once."""
+    text = str(exc).lower()
+    return isinstance(exc, LLMRateLimited) or "429" in text or "quota" in text or "resource_exhausted" in text
 
 
 _UNVERIFIED_OUTCOME = {
@@ -367,4 +402,4 @@ def _failed_attempt(
     )
 
 
-__all__ = ["AnswerSuiteResult", "run_answers_suite"]
+__all__ = ["AnswerSuiteResult", "is_rate_limit", "run_answers_suite"]
