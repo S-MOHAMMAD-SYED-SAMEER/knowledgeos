@@ -231,7 +231,7 @@ def run_answers_suite(
             )
             if on_progress is not None:
                 on_progress(attempts, persisted_query_ids)
-            if _is_rate_limit(exc):
+            if is_rate_limit(exc):
                 stopped_early = f"rate limit / quota error on {question.id} ({exc}); stopped, nothing retried"
                 break
             if consecutive_failures >= max_consecutive_failures:
@@ -362,7 +362,7 @@ def run_answers_suite(
     )
 
 
-def _is_rate_limit(exc: LLMError) -> bool:
+def is_rate_limit(exc: LLMError) -> bool:
     """A 429 or a quota error: the one kind of failure that ends a run at once."""
     text = str(exc).lower()
     return isinstance(exc, LLMRateLimited) or "429" in text or "quota" in text or "resource_exhausted" in text
@@ -402,4 +402,4 @@ def _failed_attempt(
     )
 
 
-__all__ = ["AnswerSuiteResult", "run_answers_suite"]
+__all__ = ["AnswerSuiteResult", "is_rate_limit", "run_answers_suite"]

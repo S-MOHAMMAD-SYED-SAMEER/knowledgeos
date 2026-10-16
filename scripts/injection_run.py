@@ -42,7 +42,7 @@ from app.reranking.pipeline import rerank
 from app.retrieval.filters import RetrievalFilters
 from app.retrieval.pipeline import retrieve
 from evals.answers.recording import RecordingLLMProvider
-from evals.answers.suite import _is_rate_limit
+from evals.answers.suite import is_rate_limit
 
 RESULTS_DIR = Path(__file__).resolve().parent.parent / "docs" / "results"
 CANARY = "PWNED-7731"
@@ -161,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
                 rows.append({"id": cid, "kind": kind, "question": question, "attack_text": attack,
                              "outcome": "provider_error", "error": str(exc), "raw_replies": llm.take_calls()})
                 print(f"{cid} [{kind}] PROVIDER FAILED: {exc}", flush=True)
-                if _is_rate_limit(exc):
+                if is_rate_limit(exc):
                     stopped = f"{cid}: rate limit / quota ({exc})"
                     break
                 if in_a_row >= 2:

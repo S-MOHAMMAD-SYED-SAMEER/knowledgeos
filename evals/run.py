@@ -63,7 +63,11 @@ from evals.answers.recording import RecordingLLMProvider
 from evals.answers.report import GOLD_LABEL
 from evals.answers.semantic import check_semantic_scorer_available
 from evals.answers.splits import SplitError, apply_split
-from evals.answers.suite import DEFAULT_MAX_CONSECUTIVE_FAILURES, _is_rate_limit, run_answers_suite
+from evals.answers.suite import (
+    DEFAULT_MAX_CONSECUTIVE_FAILURES,
+    is_rate_limit,
+    run_answers_suite,
+)
 from evals.retrieval import report
 from evals.retrieval.corpus import CorpusError, ensure_corpus_seeded
 from evals.retrieval.questions import QuestionSetError, load_question_set
@@ -116,7 +120,7 @@ def _llm_unavailable_reason(llm: GeminiLLMProvider) -> tuple[str | None, str | N
     except LLMError as exc:
         reason = f"the language model ({llm.model_name}) is unavailable: {exc}"
         transient = isinstance(exc, LLMTimeout) or re.search(r"HTTP 5\d\d", str(exc)) is not None
-        if transient and not _is_rate_limit(exc):
+        if transient and not is_rate_limit(exc):
             return None, str(exc)
         return reason, None
     return None, None
