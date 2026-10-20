@@ -3,6 +3,12 @@
 # "the policy" doesn't name which one. expected_chunk_uids lists every
 # chunk a reasonable reading could point to, since a good retriever should
 # surface the plausible candidates rather than guess a single one.
+#
+# Gold Review 2 (2026-10-16, decision by Sameer): am001-am005 stay as DELIBERATE
+# ambiguity tests with expected_abstain false. Intended behaviour: answer the
+# main plausible case(s), cite the supporting source(s), and say that the
+# question is ambiguous or ask which is meant; do not abstain just because the
+# wording is broad.
 
 - id: am001
   text: "What's the approval process for access?"

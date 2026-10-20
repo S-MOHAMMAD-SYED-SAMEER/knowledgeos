@@ -12,6 +12,7 @@ real providers directly (which would make overriding impossible — see
 `app/ui/routes.py`'s own docstring on why).
 """
 
+import re
 import uuid
 
 import pytest
@@ -287,13 +288,66 @@ def test_feedback_form_rejects_an_invalid_rating_safely(
 # --- evaluation results page ---------------------------------------------
 
 
-def test_eval_page_honest_empty_state_with_no_recorded_runs(
+def test_eval_page_reads_the_committed_results_and_shows_counts_with_their_samples(
     fake_client, migrated_engine: Engine
 ) -> None:
     body = fake_client.get("/ui/evals").text
-    assert "no evaluation run has been recorded" in body.lower()
-    # No fabricated numbers: no percentage sign anywhere near a metric claim.
-    assert "recall@5" not in body.lower() or "no evaluation run" in body.lower()
+    lowered = body.lower()
+    # The committed files are shown, each figure as a count over a named denominator.
+    assert "Answers (real model)" in body
+    assert "Grounded answers" in body
+    assert re.search(r"<strong>\d+ of \d+</strong>", body)
+    assert "Abstention recall" in body and "Abstention precision" in body
+    # And what they are scored against, and that the threshold is in-sample.
+    assert "gold" in lowered
+    assert "in-sample" in lowered
+    # The database list is honest when nothing was recorded there.
+    assert "Runs recorded in this database" in body
+    assert "None. A run you start here" in body
+
+
+def test_eval_page_headline_numbers_come_from_the_results_file_not_the_template(
+    fake_client, migrated_engine: Engine, tmp_path, monkeypatch
+) -> None:
+    import json
+
+    import app.ui.results_view as results_view
+
+    (tmp_path / "2099-01-01-answers-eval-x.json").write_text(
+        json.dumps(
+            {
+                "suite": "answers",
+                "gold_label": "a label",
+                "config": {
+                    "llm_model": "some-model",
+                    "prompt_version": "knowledge_answer_v9",
+                    "gold_version": "gold-v9",
+                    "abstention_threshold": 1.5,
+                    "question_count": 10,
+                    "dev_question_count": 6,
+                    "test_question_count": 4,
+                    "model_requests": {"total": 12},
+                },
+                "metrics": {
+                    "total_question_count": 10,
+                    "verification": {"asked_count": 8, "unverified": 3, "verified_after_retry": 1},
+                    "abstention": {"true_positives": 2, "false_positives": 1, "positive_count": 3},
+                    "outcome_counts": {"pre_llm_abstain": 2},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(results_view, "RESULTS_DIR", tmp_path)
+
+    body = fake_client.get("/ui/evals").text
+
+    assert "knowledge_answer_v9" in body and "gold-v9" in body
+    assert "<strong>5 of 8</strong>" in body  # grounded: 8 reached the model, 3 rejected
+    assert "<strong>3 of 8</strong>" in body  # rejected by the citation check
+    assert "<strong>2 of 3</strong>" in body  # abstention recall
+    assert "<strong>2 of 3</strong>" in body  # abstention precision: 2 of (2 + 1)
+    assert "1.5000" in body
 
 
 def test_eval_page_shows_a_recorded_run_verbatim(
@@ -563,7 +617,7 @@ def test_a_deployment_can_replace_the_example_questions(fake_client) -> None:
     assert "work remotely" not in body
 
 
-def test_selected_passages_are_open_and_the_rest_are_collapsed(
+def test_evidence_is_collapsed_by_default_and_a_citation_link_opens_it(
     fake_client, migrated_engine: Engine, storage, embeddings
 ) -> None:
     with Session(migrated_engine) as session:
@@ -571,9 +625,70 @@ def test_selected_passages_are_open_and_the_rest_are_collapsed(
 
     body = fake_client.post("/ui/query", data={"query": "production database access"}).text
 
-    assert "<details open>" in body  # what the model was given
-    assert "Passage sent to the model" in body
-    assert "production database access requires manager approval" in body  # the text is still there
+    # Nothing is open on arrival: the page stays short however many passages were retrieved.
+    assert "<details open>" not in body
+    assert re.search(r"\d+ passages retrieved, \d+ sent to the model", body)
+    # The text is still in the page (collapsed, not removed), and a link to a passage opens it.
+    assert "production database access requires manager approval" in body
+    assert "node.open = true" in body
+
+
+def test_citations_show_the_document_and_a_snippet_and_keep_the_id_in_a_tooltip(
+    fake_client, migrated_engine: Engine, storage, embeddings
+) -> None:
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    body = fake_client.post("/ui/query", data={"query": "production database access"}).text
+
+    assert "<h2>Sources</h2>" in body
+    # A numbered source with its document title; the 32-character id is only ever in a title attribute
+    # or an anchor, never printed as text a person has to read.
+    assert re.search(r'<li id="cite-1" value="1" title="chunk [0-9a-f]{32}">', body)
+    assert "snippet" in body
+    visible = re.sub(r"<[^>]*>", " ", body)  # the text between tags
+    assert not re.search(r"[0-9a-f]{32}", visible)
+
+
+def test_cited_turns_markers_into_numbered_links_and_escapes_everything_else() -> None:
+    from app.ui.routes import citation_numbers, cited
+
+    uid_a, uid_b = "a" * 32, "b" * 32
+    text = f"Two days <b>[{uid_a}] and a week [{uid_b}] [{uid_a}] [not-a-marker]"
+    numbers = citation_numbers(text, [uid_b, uid_a])
+
+    assert numbers == {uid_a: 1, uid_b: 2}  # in order of first appearance in the text
+    html = str(cited(text, numbers))
+    assert f'href="#evidence-{uid_a}"' in html and f'title="chunk {uid_a}">[1]</a>' in html
+    assert ">[2]</a>" in html
+    assert "&lt;b&gt;" in html  # the answer's own markup is text, not markup
+    assert "[not-a-marker]" in html
+
+
+def test_a_generation_failure_shows_the_model_is_busy_with_a_retry_button_not_error_503(
+    fake_client, migrated_engine: Engine, storage, embeddings
+) -> None:
+    from app.api.query import llm_provider
+    from app.providers.llm import LLMError
+
+    class Failing:
+        model_name = "failing"
+
+        def complete(self, *, system, user, max_tokens, json_schema=None):
+            raise LLMError("generation failed (HTTP 503)")
+
+    with Session(migrated_engine) as session:
+        _seed(session, storage, embeddings)
+
+    fake_client.app.dependency_overrides[llm_provider] = lambda: Failing()
+    response = fake_client.post("/ui/query", data={"query": "production database access"})
+
+    assert response.status_code == 503  # still a 503 on the wire
+    body = response.text
+    assert "The model is busy" in body and "try again" in body
+    assert "Error 503" not in body
+    assert ">Retry</button>" in body
+    assert "production database access" in body  # the question is kept for the retry
 
 
 def test_the_badge_says_citations_were_verified_not_that_the_answer_is_true(
@@ -587,3 +702,18 @@ def test_the_badge_says_citations_were_verified_not_that_the_answer_is_true(
     assert "Citations verified" in body
     assert "Grounded in evidence" not in body
     assert "does not check that the passage supports the sentence" in body
+
+
+def test_the_snippet_is_the_sentence_that_matches_the_answer_not_the_start_of_the_document() -> None:
+    from app.ui.routes import _snippet
+
+    passage = (
+        "# Policy\n\nThis policy describes the company and who owns it. "
+        "Standard production access lasts three days and then expires. "
+        "Contact the security team with questions."
+    )
+    assert _snippet(passage, "Standard access lasts three days.") == "Standard production access lasts three days and then expires."
+    # Nothing shared: the first sentence, with the heading left out.
+    assert _snippet(passage, "unrelated words entirely").startswith("This policy describes")
+    long = "word " * 80 + "end."
+    assert len(_snippet(long, "")) <= 152 and _snippet(long, "").endswith("…")

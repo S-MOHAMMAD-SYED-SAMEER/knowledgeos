@@ -6,6 +6,8 @@ project adds a third, pre-LLM case: zero retrieved candidates must never
 reach the model at all.
 """
 
+from app.abstention_constants import CALIBRATED_RERANK_MODEL, effective_threshold
+from app.config import get_settings
 from app.generation.abstention import (
     DEFAULT_ABSTENTION_RERANK_THRESHOLD,
     REASON_NO_CANDIDATES,
@@ -16,9 +18,25 @@ from app.generation.abstention import (
 )
 
 
-def test_the_default_threshold_is_none_never_invented() -> None:
-    """Locked project decision D6: never a chosen number."""
-    assert DEFAULT_ABSTENTION_RERANK_THRESHOLD is None
+def test_the_default_threshold_is_the_calibrated_one_and_its_provenance_is_written_down() -> None:
+    """D6 still holds: the number is a calibration result, not a taste. It is 1.4451, calibrated on
+    the dev split of the 2026-10-16 answers evaluation, and the constants module says it is in-sample."""
+    from app import abstention_constants
+
+    assert DEFAULT_ABSTENTION_RERANK_THRESHOLD == 1.4451
+    assert get_settings().abstention_rerank_threshold == 1.4451
+    doc = abstention_constants.__doc__ or ""
+    assert "in-sample" in doc
+    assert "same 52 questions" in doc
+
+
+def test_a_threshold_is_applied_only_on_the_scale_it_was_calibrated_on() -> None:
+    assert effective_threshold(1.4451, CALIBRATED_RERANK_MODEL) == 1.4451
+    # The passthrough reranker and the test doubles score on other scales.
+    assert effective_threshold(1.4451, "passthrough") is None
+    assert effective_threshold(1.4451, "fake-reranker") is None
+    # No threshold configured stays off.
+    assert effective_threshold(None, CALIBRATED_RERANK_MODEL) is None
 
 
 # --- pre-LLM: zero candidates --------------------------------------------

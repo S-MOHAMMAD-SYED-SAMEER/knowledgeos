@@ -37,13 +37,28 @@ class LoadedPrompt:
     text: str
 
 
-def load_prompt(path: Path = DEFAULT_PROMPT_PATH) -> LoadedPrompt:
+def prompt_path(version: str) -> Path:
+    """The file for a prompt version (the filename stem), refusing anything that is not one of the files."""
+    candidate = PROMPT_DIR / f"{version}.md"
+    if candidate.parent != PROMPT_DIR or not candidate.exists():
+        known = ", ".join(sorted(p.stem for p in PROMPT_DIR.glob("*.md")))
+        raise PromptError(f"no prompt version {version!r} (have: {known})")
+    return candidate
+
+
+def load_prompt(path: Path | None = None) -> LoadedPrompt:
     """Read the versioned prompt file.
 
+    With no `path`, the version named by `Settings.prompt_version` is read.
     `version` is the filename stem (`knowledge_answer_v1`); `content_hash`
     is a sha256 prefix of the file's exact bytes, so a content edit is
     detectable independently of whether the filename was ever bumped.
     """
+    if path is None:
+        # Imported here: `app.config` has no reason to import generation, and this keeps it that way.
+        from app.config import get_settings
+
+        path = prompt_path(get_settings().prompt_version)
     if not path.exists():
         raise PromptError(f"prompt file not found: {path.name}")
     raw = path.read_bytes()

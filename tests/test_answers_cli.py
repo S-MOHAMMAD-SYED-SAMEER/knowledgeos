@@ -154,6 +154,7 @@ class _StubSettings:
     llm_max_retries = 2
     llm_retry_max_wait_seconds = 15.0
     llm_temperature = None
+    abstention_rerank_threshold = 1.4451  # the shipped default
     llm_pricing_usd_per_million_tokens: dict = {}
 
 
@@ -209,3 +210,91 @@ def test_a_successful_answers_run_records_the_calibration_result(session, tmp_pa
     row = session.execute(select(EvalRun)).scalars().one()
     assert "calibration" in row.config
     assert row.config["calibration"]["threshold"] is not None
+
+
+def test_a_run_records_the_gold_the_prompt_and_where_its_threshold_came_from(session, tmp_path, monkeypatch) -> None:
+    import json
+
+    from evals.gold import gold_digest
+
+    report_dir = tmp_path / "eval_runs"
+    _patch_stub_providers(monkeypatch)
+    monkeypatch.setattr(run_module.answers_report, "DEFAULT_REPORT_DIR", report_dir)
+
+    assert run_module.run_answers(session, requests_per_minute=0) == 0
+
+    config = json.loads(next(report_dir.glob("answers-*.json")).read_text(encoding="utf-8"))["config"]
+    assert config["gold_version"] == "gold-v2"
+    assert config["gold_sha256"] == gold_digest()[0]
+    assert config["prompt_version"].startswith("knowledge_answer_v")
+    assert config["prompt_content_hash"]
+    assert config["abstention_threshold_in_sample"] is True
+    assert config["strict"] is False and config["request_cap"] is None
+
+
+def test_the_shipped_threshold_is_used_when_the_cross_encoder_is_the_calibrated_one(
+    session, tmp_path, monkeypatch
+) -> None:
+    import json
+
+    from app.abstention_constants import CALIBRATED_RERANK_MODEL
+
+    class _CalibratedCrossEncoder(_StubCrossEncoderProvider):
+        @property
+        def model_name(self) -> str:
+            return CALIBRATED_RERANK_MODEL
+
+    report_dir = tmp_path / "eval_runs"
+    _patch_stub_providers(monkeypatch)
+    monkeypatch.setattr(run_module, "CrossEncoderRerankProvider", _CalibratedCrossEncoder)
+    monkeypatch.setattr(run_module.answers_report, "DEFAULT_REPORT_DIR", report_dir)
+
+    assert run_module.run_answers(session, requests_per_minute=0) == 0
+    config = json.loads(next(report_dir.glob("answers-*.json")).read_text(encoding="utf-8"))["config"]
+    assert config["abstention_threshold"] == 1.4451
+    assert "application default" in config["abstention_threshold_source"]
+    # The fresh calibration is recorded beside it (on the eval_runs row) for reference; it is not what was used.
+    from sqlalchemy import select
+
+    row = session.execute(select(EvalRun)).scalars().one()
+    assert row.config["calibration"]["threshold"] is not None
+
+
+def test_recalibrate_uses_the_fresh_calibration_instead(session, tmp_path, monkeypatch) -> None:
+    import json
+
+    from app.abstention_constants import CALIBRATED_RERANK_MODEL
+
+    class _CalibratedCrossEncoder(_StubCrossEncoderProvider):
+        @property
+        def model_name(self) -> str:
+            return CALIBRATED_RERANK_MODEL
+
+    report_dir = tmp_path / "eval_runs"
+    _patch_stub_providers(monkeypatch)
+    monkeypatch.setattr(run_module, "CrossEncoderRerankProvider", _CalibratedCrossEncoder)
+    monkeypatch.setattr(run_module.answers_report, "DEFAULT_REPORT_DIR", report_dir)
+
+    assert run_module.run_answers(session, requests_per_minute=0, recalibrate=True) == 0
+    config = json.loads(next(report_dir.glob("answers-*.json")).read_text(encoding="utf-8"))["config"]
+    from sqlalchemy import select
+
+    row = session.execute(select(EvalRun)).scalars().one()
+    assert config["abstention_threshold"] == row.config["calibration"]["threshold"]
+    assert "recalibrated" in config["abstention_threshold_source"]
+
+
+def test_the_request_cap_stops_a_run_before_the_request_that_would_exceed_it(
+    session, tmp_path, monkeypatch
+) -> None:
+    from evals.answers.budget import RequestBudget
+
+    _patch_stub_providers(monkeypatch)
+    monkeypatch.setattr(run_module.answers_report, "DEFAULT_REPORT_DIR", tmp_path / "eval_runs")
+    ledger = tmp_path / "ledger.json"
+    monkeypatch.setattr("evals.answers.budget.DEFAULT_LEDGER", ledger)
+
+    exit_code = run_module.run_answers(session, requests_per_minute=0, request_cap=3)
+
+    assert exit_code == 2  # stopped early: a partial run is not a result
+    assert RequestBudget(3, ledger).used == 3  # exactly the cap, never one more

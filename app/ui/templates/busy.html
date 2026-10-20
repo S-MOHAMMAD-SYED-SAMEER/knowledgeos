@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}The model is busy &mdash; KnowledgeOS{% endblock %}
+{% block content %}
+  <h1>The model is busy &mdash; try again</h1>
+  <div class="error-box" role="status">
+    <p>
+      The documents were searched, but the service that writes the answer did not respond. This is
+      usually temporary.{% if retry_after %} It asked for about {{ retry_after }} second(s) before another try.{% endif %}
+    </p>
+    <p class="muted">Your question is kept below.</p>
+  </div>
+  <form method="post" action="/ui/query">
+    <p>
+      <label for="query">Question</label><br>
+      <textarea id="query" name="query" rows="3" style="width: 100%;" required>{{ query_text }}</textarea>
+    </p>
+    <button type="submit">Retry</button>
+    <a href="/ui/query" style="margin-left: 1rem;">&larr; Back to the question page</a>
+  </form>
+{% endblock %}

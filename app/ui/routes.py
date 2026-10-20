@@ -24,7 +24,9 @@ plain text through Jinja's default autoescaping (`autoescape=True` below,
 matching Starlette's own `select_autoescape()` default) — model answers,
 document titles, chunk text, and feedback reasons all pass through
 unescaped Python strings and are escaped by the template engine, never by
-this module. **No template in this package uses `|safe` anywhere.** A
+this module. **No template in this package uses `|safe` anywhere.** The one place a
+hyperlink is built from model text, the `cited` filter, escapes everything that is not a
+32-hex marker and builds the anchor itself with `Markup.format`. A
 citation link is built only from an already-validated `chunk_uid` (32 lower
 -case hex characters, `app/generation/citations.py`'s own validated shape)
 used as an HTML anchor fragment — never from raw model output.
@@ -35,6 +37,7 @@ public-facing string the JSON API returns to its own callers; this module
 renders it as-is in `error.html` and nothing more.
 """
 
+import re
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,6 +46,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup, escape
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -68,11 +72,57 @@ from app.models.feedback import MAX_REASON_LENGTH, RATINGS
 from app.providers.embeddings import EmbeddingProvider
 from app.providers.llm import LLMProvider
 from app.providers.reranker import RerankProvider
+from app.ui.results_view import load_results
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 router = APIRouter(prefix="/ui", tags=["ui"], include_in_schema=False)
+
+_MARKER = re.compile(r"\[([0-9a-f]{32})\]")
+
+
+def citation_numbers(answer_text: str, citations: list[str]) -> dict[str, int]:
+    """A short number for each cited chunk, in the order the answer first cites it.
+
+    The 32-character id is not something a person reads; the answer shows `[1]`, `[2]` and the id
+    stays in the tooltip. Citations the text never marks (the check refuses those, so this is only
+    defensive) follow in the order they were declared.
+    """
+    numbers: dict[str, int] = {}
+    for uid in _MARKER.findall(answer_text or ""):
+        numbers.setdefault(uid, len(numbers) + 1)
+    for uid in citations:
+        numbers.setdefault(uid, len(numbers) + 1)
+    return numbers
+
+
+def cited(answer_text: str, numbers: dict[str, int]) -> Markup:
+    """The answer text with each `[chunk_uid]` marker shown as a numbered link to its passage.
+
+    Everything that is not a marker is escaped as plain text; a marker becomes a link only if it is
+    one of the known 32-hex ids, and the id goes only into the anchor fragment and the tooltip.
+    """
+    out: list[Markup | str] = []
+    position = 0
+    for match in _MARKER.finditer(answer_text or ""):
+        out.append(escape((answer_text or "")[position : match.start()]))
+        uid = match.group(1)
+        number = numbers.get(uid)
+        if number is None:
+            out.append(escape(match.group(0)))
+        else:
+            out.append(
+                Markup('<a class="cite" href="#evidence-{uid}" title="chunk {uid}">[{number}]</a>').format(
+                    uid=uid, number=number
+                )
+            )
+        position = match.end()
+    out.append(escape((answer_text or "")[position:]))
+    return Markup("").join(out)
+
+
+templates.env.filters["cited"] = cited
 
 
 def _error(request: Request, exc: HTTPException) -> "object":
@@ -81,6 +131,26 @@ def _error(request: Request, exc: HTTPException) -> "object":
         "error.html",
         {"status_code": exc.status_code, "detail": exc.detail},
         status_code=exc.status_code,
+    )
+
+
+def _is_generation_failure(exc: HTTPException) -> bool:
+    """The language model failed (busy, rate limited, timed out, unavailable). `run_query` words all
+    of these as "the language model ...", and none of them says anything the person can act on
+    except "try again"."""
+    return exc.status_code in (429, 503) and str(exc.detail).startswith("the language model")
+
+
+def _busy(request: Request, exc: HTTPException, query_text: str):
+    """"The model is busy -- try again", with the question kept and a Retry button, instead of
+    "Error 503". Still a 503 on the wire, with `Retry-After` when the service gave one."""
+    retry_after = (exc.headers or {}).get("Retry-After")
+    return templates.TemplateResponse(
+        request,
+        "busy.html",
+        {"query_text": query_text, "retry_after": retry_after},
+        status_code=exc.status_code,
+        headers=exc.headers,
     )
 
 
@@ -172,6 +242,8 @@ def ui_query_submit(
             llm,
         )
     except HTTPException as exc:
+        if _is_generation_failure(exc):
+            return _busy(request, exc, query)
         return _error(request, exc)
 
     return RedirectResponse(
@@ -200,6 +272,66 @@ class EvidenceRow:
     document_category: str | None
     version_number: int
     version_status: str
+
+
+@dataclass(frozen=True)
+class CitationRow:
+    """One cited source as the answer page lists it: a number, the document, and a short snippet."""
+
+    number: int
+    chunk_uid: str
+    title: str
+    version_number: int | None
+    section: str | None
+    snippet: str
+
+
+SNIPPET_LENGTH = 150
+
+
+_SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+")
+_WORD = re.compile(r"[a-z0-9]{4,}")
+
+
+def _snippet(text: str, answer_text: str = "") -> str:
+    """One sentence of the passage, in one line, headings left out (a heading only repeats the title).
+
+    The sentence that shares the most words with the answer, so the snippet shows what the citation is
+    about rather than the start of the document; the first sentence when nothing is shared. Cut to
+    `SNIPPET_LENGTH` characters at a word boundary.
+    """
+    body = " ".join(
+        line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")
+    )
+    sentences = [s for s in _SENTENCE_BREAK.split(" ".join(body.split())) if s]
+    if not sentences:
+        return ""
+    wanted = set(_WORD.findall(answer_text.lower()))
+    best = max(sentences, key=lambda s: len(wanted & set(_WORD.findall(s.lower()))))
+    chosen = best if wanted & set(_WORD.findall(best.lower())) else sentences[0]
+    return chosen if len(chosen) <= SNIPPET_LENGTH else chosen[:SNIPPET_LENGTH].rsplit(" ", 1)[0] + "…"
+
+
+def citation_rows(
+    numbers: dict[str, int], evidence: list["EvidenceRow"], citations: list[str], answer_text: str = ""
+) -> list[CitationRow]:
+    by_uid = {row.chunk_uid: row for row in evidence}
+    rows = []
+    for uid, number in sorted(numbers.items(), key=lambda item: item[1]):
+        if uid not in citations:
+            continue
+        found = by_uid.get(uid)
+        rows.append(
+            CitationRow(
+                number=number,
+                chunk_uid=uid,
+                title=found.document_title if found else "Cited source",
+                version_number=found.version_number if found else None,
+                section=found.section if found else None,
+                snippet=_snippet(found.text, answer_text) if found else "",
+            )
+        )
+    return rows
 
 
 def _citation_label(row: EvidenceRow) -> str:
@@ -256,6 +388,11 @@ def ui_answer_page(
 
     evidence = _evidence_for(session, query_id)
     citation_labels = {row.chunk_uid: _citation_label(row) for row in evidence}
+    answer_citations = list(answer_row.citations) if answer_row is not None and answer_row.citations else []
+    numbers = citation_numbers(answer_row.answer_text if answer_row is not None else "", answer_citations)
+    citations_view = citation_rows(
+        numbers, evidence, answer_citations, answer_row.answer_text if answer_row is not None else ""
+    )
     feedback_rows = []
     if answer_row is not None:
         feedback_rows = list(
@@ -276,6 +413,9 @@ def ui_answer_page(
             "answer": answer_row,
             "evidence": evidence,
             "citation_labels": citation_labels,
+            "citation_numbers": numbers,
+            "citations_view": citations_view,
+            "selected_count": sum(1 for row in evidence if row.selected),
             "feedback_rows": feedback_rows,
             "ratings": RATINGS,
             "max_reason_length": MAX_REASON_LENGTH,
@@ -341,17 +481,20 @@ def ui_submit_feedback(
 def ui_eval_results(
     request: Request, session: Annotated[Session, Depends(get_session)]
 ):
-    """Reads `eval_runs` through `app.models.EvalRun` only -- never
-    `evals/`, preserving the existing guard that no `app` module imports
-    the evaluation package. An honest empty state when nothing has been
-    recorded (D5); recorded values, verbatim, when it has -- never a
-    placeholder number."""
+    """The committed results (`docs/results/*.json`, read by `app.ui.results_view`, which does not
+    import `evals/`) with the sample size behind every figure, then any runs recorded in this
+    database through `app.models.EvalRun`. Recorded values verbatim -- never a placeholder number."""
     runs = list(
         session.execute(select(EvalRun).order_by(EvalRun.created_at.desc()))
         .scalars()
         .all()
     )
-    return templates.TemplateResponse(request, "evals.html", {"runs": runs})
+    answers, retrieval = load_results()
+    return templates.TemplateResponse(
+        request,
+        "evals.html",
+        {"runs": runs, "answers": answers, "retrieval": retrieval},
+    )
 
 
 def error_page(request: Request, *, status_code: int, detail: str):

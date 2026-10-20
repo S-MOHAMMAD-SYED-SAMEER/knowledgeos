@@ -30,6 +30,7 @@ from evals.answers.metrics import (
     verification_summary,
 )
 from evals.answers.suite import AnswerSuiteResult
+from evals.gold import provenance as gold_provenance
 
 DEFAULT_REPORT_DIR = Path("var") / "eval_runs"
 
@@ -147,9 +148,12 @@ def report_filename(*, when: datetime | None = None) -> str:
     return f"answers-{moment.strftime('%Y%m%dT%H%M%SZ')}.json"
 
 
-# Printed on every result, because it is what the numbers mean: the questions, the expected chunks
-# and the abstain flags were written by an AI assistant, and no person has reviewed them yet.
-GOLD_LABEL = "scored against AI-written gold (Claude-written, not yet human-reviewed)"
+# Printed on every result, because it is what the numbers mean. The gold is the 52 questions, their
+# expected chunks and abstain flags, the split and the corpus: written by Claude, reviewed with ChatGPT
+# assistance, final decisions by Sameer, facts checked against the fixtures (`evals/fixtures/PROVENANCE.yaml`).
+# It is not an independent human review, and it is small and written by one author.
+_PROVENANCE = gold_provenance()
+GOLD_LABEL = f"scored against {_PROVENANCE['dataset_version']}: {_PROVENANCE['label']}"
 
 
 def _attempt_record(attempt) -> dict:

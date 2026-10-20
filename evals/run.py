@@ -34,6 +34,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.abstention_constants import effective_threshold
 from app.config import get_settings
 from app.db.session import get_sessionmaker
 from app.generation.prompt import load_prompt
@@ -47,6 +48,7 @@ from app.providers.passthrough_reranker import PassthroughRerankProvider
 from app.providers.reranker import Candidate, RerankError
 from app.storage import get_storage
 from evals.answers import report as answers_report
+from evals.answers.budget import BudgetedLLMProvider, RequestBudget
 from evals.answers.calibration import calibrate_threshold, collect_dev_observations
 from evals.answers.checkpoint import (
     CheckpointError,
@@ -68,6 +70,8 @@ from evals.answers.suite import (
     is_rate_limit,
     run_answers_suite,
 )
+from evals.gold import gold_digest
+from evals.gold import provenance as gold_provenance
 from evals.retrieval import report
 from evals.retrieval.corpus import CorpusError, ensure_corpus_seeded
 from evals.retrieval.questions import QuestionSetError, load_question_set
@@ -151,6 +155,10 @@ def run_retrieval(session: Session) -> int:
     except (CorpusError, QuestionSetError, EmbeddingError, RerankError) as exc:
         return _fail(str(exc))
 
+    # Which gold this run was scored against, so a later reader cannot mistake it for an older one.
+    gold_sha256, _ = gold_digest()
+    result.config.update({"gold_version": gold_provenance()["dataset_version"], "gold_sha256": gold_sha256})
+
     eval_run = EvalRun(
         suite=RETRIEVAL_SUITE,
         prompt_version=None,
@@ -175,6 +183,9 @@ def run_answers(
     requests_per_minute: float = DEFAULT_REQUESTS_PER_MINUTE,
     max_consecutive_failures: int = DEFAULT_MAX_CONSECUTIVE_FAILURES,
     resume: Path | None = None,
+    request_cap: int | None = None,
+    strict: bool = False,
+    recalibrate: bool = False,
 ) -> int:
     """The `answers` suite (D1, D8): the frozen milestone 7 questions
     through the real retrieve -> rerank -> generate pipeline, scored by
@@ -214,6 +225,12 @@ def run_answers(
         retry_max_wait_seconds=settings.llm_retry_max_wait_seconds,
         temperature=settings.llm_temperature,
     )
+    # Innermost, so every request that reaches Gemini is counted before it is sent, including a
+    # retry the generator makes after a rejected reply.
+    budget = RequestBudget(request_cap) if request_cap is not None else None
+    if budget is not None:
+        print(f"Request cap: {budget.limit} for this piece of work, {budget.used} already used, {budget.remaining} left.", flush=True)
+        llm = BudgetedLLMProvider(llm, budget, label="answers-eval")
     if requests_per_minute > 0:
         llm = PacedLLMProvider(llm, requests_per_minute=requests_per_minute)
 
@@ -221,6 +238,10 @@ def run_answers(
     llm = RecordingLLMProvider(llm)
 
     llm_reason, availability_error = _llm_unavailable_reason(llm)
+    if llm_reason is None and availability_error is not None and strict:
+        # Strict: any error at the availability check ends the run before a question is asked.
+        llm_reason = f"the language model ({llm.model_name}) failed its availability check ({availability_error}); stopped, nothing retried"
+        availability_error = None
     if llm_reason is not None:
         return _fail(llm_reason, suite_label="answer")
     if availability_error is not None:
@@ -263,12 +284,21 @@ def run_answers(
     except (CorpusError, EmbeddingError, RerankError) as exc:
         return _fail(str(exc), suite_label="answer")
 
+    # The threshold the run uses. By default the one the application ships with (1.4451, calibrated
+    # on 2026-10-16 and in-sample); the calibration just run on this gold's dev split is recorded
+    # beside it for reference but not used. `--recalibrate` uses the fresh calibration instead.
+    shipped = effective_threshold(settings.abstention_rerank_threshold, cross_encoder.model_name)
+    if recalibrate or shipped is None:
+        run_threshold, threshold_source = calibration.threshold, "recalibrated on this gold's dev split at the start of this run"
+    else:
+        run_threshold, threshold_source = shipped, "the application default (calibrated 2026-10-16 on the dev split of the 52 questions; in-sample)"
+
     # What makes two partial runs one run, and where the progress is kept.
     expected = fingerprint(
         llm_model=llm.model_name,
         embedding_model=embeddings.model_name,
         rerank_model=cross_encoder.model_name,
-        abstention_threshold=calibration.threshold,
+        abstention_threshold=run_threshold,
         question_ids=[q.id for q in questions],
     )
     resume_from = None
@@ -317,7 +347,7 @@ def run_answers(
             cross_encoder,
             llm,
             semantic_scorer=semantic_scorer,
-            abstention_threshold=calibration.threshold,
+            abstention_threshold=run_threshold,
             max_tokens=settings.llm_max_output_tokens,
             max_consecutive_failures=max_consecutive_failures,
             resume_from=resume_from,
@@ -332,8 +362,18 @@ def run_answers(
     ) as exc:
         return _fail(str(exc), suite_label="answer")
 
+    gold_sha256, gold_files = gold_digest()
+    prompt = load_prompt()
     result.config.update(
         {
+            "prompt_version": prompt.version,
+            "prompt_content_hash": prompt.content_hash,
+            "abstention_threshold_source": threshold_source,
+            "abstention_threshold_in_sample": True,
+            "gold_version": gold_provenance()["dataset_version"],
+            "gold_sha256": gold_sha256,
+            "request_cap": request_cap,
+            "strict": strict,
             "llm_temperature": settings.llm_temperature,
             "llm_max_retries": settings.llm_max_retries,
             "llm_max_output_tokens": settings.llm_max_output_tokens,
@@ -417,6 +457,24 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="answers suite: continue from the checkpoint a stopped run printed",
     )
+    parser.add_argument(
+        "--request-cap",
+        type=int,
+        default=None,
+        help="answers suite: a hard cap on model requests for the whole piece of work, kept in "
+        "var/request_ledger.json; the request after the cap is never sent",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="answers suite: stop at the first provider error of any kind, including a 5xx at the "
+        "availability check (use with --max-consecutive-failures 1)",
+    )
+    parser.add_argument(
+        "--recalibrate",
+        action="store_true",
+        help="answers suite: use a threshold calibrated on this run's dev split instead of the application default",
+    )
     args = parser.parse_args(argv)
     if args.requests_per_minute < 0 or args.max_consecutive_failures < 1:
         parser.error("--requests-per-minute must be >= 0 and --max-consecutive-failures >= 1")
@@ -431,6 +489,9 @@ def main(argv: list[str] | None = None) -> int:
                 requests_per_minute=args.requests_per_minute,
                 max_consecutive_failures=args.max_consecutive_failures,
                 resume=args.resume,
+                request_cap=args.request_cap,
+                strict=args.strict,
+                recalibrate=args.recalibrate,
             )
         raise AssertionError(f"unhandled suite {args.suite!r}")  # argparse guards this
 

@@ -22,6 +22,8 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.abstention_constants import DEFAULT_ABSTENTION_RERANK_THRESHOLD
+
 # The local development database. Every developer's checkout points here
 # until something says otherwise; nothing in this repository has ever pointed
 # anywhere else.
@@ -173,14 +175,19 @@ class Settings(BaseSettings):
     llm_temperature: float | None = Field(default=1.0, ge=0, le=2)
 
     # The specification's own words: the abstention threshold "is calibrated
-    # on a dev split of the eval questions, not chosen by taste." No
-    # calibration has been run in this build (it needs the real local
-    # cross-encoder, absent from this environment's model cache — the same
-    # condition milestones 4, 6 and 7 already documented). `None` means the
-    # rerank-score abstention trigger is inactive; only a genuinely
-    # calibrated run may set this, and the calibration must be documented
-    # when it does.
-    abstention_rerank_threshold: float | None = None
+    # on a dev split of the eval questions, not chosen by taste." The default
+    # is the number that calibration produced on 2026-10-16 (1.4451, dev split
+    # of the answers evaluation). It is IN-SAMPLE: calibrated on the same 52
+    # questions it is evaluated on. `app/abstention_constants.py` has the full
+    # provenance. It is on the cross-encoder's score scale and is applied only
+    # when that cross-encoder did the reranking. `None` turns the trigger off.
+    abstention_rerank_threshold: float | None = DEFAULT_ABSTENTION_RERANK_THRESHOLD
+
+    # Which versioned prompt file generation uses: the stem of a file in
+    # `app/generation/prompts/`. v1 is the original; v2 was written from the
+    # 2026-10-16 failure analysis (see docs/PROMPTS.md). `docs/EVAL.md` says which
+    # one the default is, and why.
+    prompt_version: str = "knowledge_answer_v1"
 
     # --- Observability / cost (milestone 9) ---
     # `{"<model name>": {"input": <usd per 1M tokens>, "output": <usd per
