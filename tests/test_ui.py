@@ -703,6 +703,18 @@ def test_the_badge_says_citations_were_verified_not_that_the_answer_is_true(
     assert "Grounded in evidence" not in body
     assert "does not check that the passage supports the sentence" in body
 
+    # An abstention cites nothing, so there is nothing to verify: the abstention badge, and no green one.
+    from app.providers.fake_llm import FakeLLMProvider
+    from tests.generation_fixtures import valid_json
+
+    fake_client.app.dependency_overrides[llm_provider] = lambda: FakeLLMProvider(
+        [valid_json("There is insufficient evidence in the retrieved documents to answer this question.", [], sufficient_evidence=False)]
+    )
+    abstained = fake_client.post("/ui/query", data={"query": "production database access"}).text
+    assert "Abstained" in abstained
+    assert "Citations verified" not in abstained
+    assert "Citation check not passed" not in abstained
+
 
 def test_the_snippet_is_the_sentence_that_matches_the_answer_not_the_start_of_the_document() -> None:
     from app.ui.routes import _snippet
@@ -717,3 +729,8 @@ def test_the_snippet_is_the_sentence_that_matches_the_answer_not_the_start_of_th
     assert _snippet(passage, "unrelated words entirely").startswith("This policy describes")
     long = "word " * 80 + "end."
     assert len(_snippet(long, "")) <= 152 and _snippet(long, "").endswith("…")
+    # The passage is Markdown; the snippet is plain text.
+    marked = "Once approved, access is now granted for **three days**, not seven, and expires automatically."
+    assert _snippet(marked, "three days") == "Once approved, access is now granted for three days, not seven, and expires automatically."
+    assert "`" not in _snippet("Use the `break-glass` role only in an incident.", "role incident")
+

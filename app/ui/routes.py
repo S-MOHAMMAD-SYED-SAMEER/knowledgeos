@@ -291,6 +291,7 @@ SNIPPET_LENGTH = 150
 
 _SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+")
 _WORD = re.compile(r"[a-z0-9]{4,}")
+_MARKDOWN_MARKS = re.compile(r"\*\*|__|`")
 
 
 def _snippet(text: str, answer_text: str = "") -> str:
@@ -303,6 +304,8 @@ def _snippet(text: str, answer_text: str = "") -> str:
     body = " ".join(
         line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")
     )
+    # The passage is Markdown; the snippet is a quotation shown as plain text, so the emphasis marks go.
+    body = _MARKDOWN_MARKS.sub("", body)
     sentences = [s for s in _SENTENCE_BREAK.split(" ".join(body.split())) if s]
     if not sentences:
         return ""
