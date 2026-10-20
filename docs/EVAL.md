@@ -67,9 +67,9 @@ the application default (`app/abstention_constants.py`, `Settings.abstention_rer
 
 `app/generation/prompts/knowledge_answer_v1.md` is the original. `knowledge_answer_v2.md` was written from the
 2026-10-16 failure analysis; `docs/PROMPTS.md` says what changed and why. It was committed before any run that uses it.
-Which one is the default is decided by the runs below.
+Which one is the default was decided by the runs below: **`knowledge_answer_v2`**.
 
-### How the default prompt will be chosen (written before any run)
+### How the default prompt was chosen (rule written before any run)
 
 Two runs, one per prompt, on the frozen gold-v2, same model, same settings, same threshold. Both are published whatever they
 show. The default becomes `knowledge_answer_v2` only if, **in these two runs**, all of the following hold; otherwise it
@@ -103,4 +103,53 @@ KNOWLEDGEOS_PROMPT_VERSION=knowledge_answer_v2 python -m evals.run --suite answe
 
 ## Results
 
-See the end of this file once the runs have been made.
+Full write-up, including the question-by-question differences: [docs/results/2026-10-20-answers-eval.md](results/2026-10-20-answers-eval.md).
+Both runs are published; neither was selected from several.
+
+Scored against **gold-v2**: gold written by Claude; reviewed with ChatGPT assistance; final decisions by Sameer; facts checked
+against fixtures. Model `gemini-3.5-flash-lite`, temperature 1.0, adapter retries 0, threshold 1.4451 (**in-sample**: calibrated
+on the dev split of the same 52 questions it is scored on), 2026-10-20, one machine, **one run per prompt**.
+
+| Measure | prompt v1 | prompt v2 |
+|---|---|---|
+| Reached the model | 33 of 52 | 33 of 52 |
+| Grounded answers (citation check passed) | 29 of 33 (87.9%) | 32 of 33 (97.0%) |
+| Rejected by the citation check | 4 of 33 | 1 of 33 |
+| Replies with a comma-grouped marker | 11 of 40 | 0 of 34 |
+| Abstention recall | 7 of 7 | 7 of 7 |
+| Abstention precision | 7 of 20 (0.35) | 7 of 19 (0.37) |
+| Answerable questions abstained on | 13 of 45 | 12 of 45 |
+| Model requests | 41 | 35 |
+
+**Default prompt: `knowledge_answer_v2`.** All three conditions of the rule above were met in these two runs: fewer rejections
+(1 against 4), no fewer grounded answers (32 against 29), abstention not worse (recall 7 of 7 in both; 12 against 13 answerable
+questions abstained on). The gap is small in absolute terms and comes from one run each at temperature 1.0; on 2026-10-16 the
+same v1 prompt had 7 of 34 rejected (against gold-v1), so run-to-run spread on an unchanged prompt is itself about this size.
+
+**Known limit: the answerable questions abstained on.** Twelve of the 45 answerable questions are stopped by the threshold before
+the model is asked, the same twelve in both runs (the model abstained on a thirteenth in v1). The threshold is in-sample, so
+recall of 7 of 7 is partly the threshold having been fitted to these questions, and about a quarter of the answerable questions
+get no answer as the price. No prompt changes that. Five of the twelve are ambiguous or adversarial questions that Gold Review 2
+deliberately kept as "answerable".
+
+What does not show: an unsupported-claim rate (no threshold is calibrated), any other model, a larger corpus, an independent
+annotator, or whether v2's gain holds on a second run. "Grounded" means the citation check passed, not that a person checked the
+cited passage supports the sentence.
+
+### The first v2 attempt stopped on a 503
+
+The first v2 attempt (09:28 UTC) stopped at its second question, `adv002`, on an HTTP 503 from the provider. By the stopping rule
+nothing was retried and it was not resumed. After at least 30 minutes v2 was run again **fresh** from the start with the same
+settings (one attempt), and that is the v2 run above. The first attempt's checkpoint is kept in
+`docs/results/2026-10-20-answers-eval-v2-attempt1-stopped-503.partial.json`. Model requests for the whole piece of work: **78 of
+the 100-request cap** (41 for v1, 2 for the stopped attempt, 35 for v2).
+
+### Notes on the saved run files
+
+The `gold_provenance` text inside the two JSON files still says no person has reviewed the gold; that was stale by then, the
+harness now writes a corrected text, and the files were left as they were. The `gold_label`, `gold_version` and `gold_sha256`
+beside it are the accurate statements. The model name in the local `.env` was mistyped at the start (`gemini-3.5-flash-liten`);
+both runs set `gemini-3.5-flash-lite` explicitly and record it, and `.env` has been corrected.
+
+Earlier runs: the retrieval runs of 2026-10-14 (gold-v1) and 2026-10-20 (gold-v2) are in `docs/results/`, and the answers run of
+2026-10-16 (gold-v1, prompt v1, 52 questions, 27 of 34 verified) is in `docs/results/2026-10-16-answers-eval.md`.

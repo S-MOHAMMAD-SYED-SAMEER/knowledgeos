@@ -381,7 +381,9 @@ def run_answers(
             "gold_provenance": (
                 "The 52 questions, their expected chunk uids, expected_abstain flags and the "
                 "dev/test split, and the fixture corpus, were written by Claude (an AI assistant) "
-                "in the milestone 7 and 9 commits. No person has reviewed them yet."
+                "in the milestone 7 and 9 commits, reviewed with ChatGPT assistance, and decided by "
+                "Sameer (Gold Review 2, decided 2026-10-16, applied 2026-10-20). Per-question history: "
+                "evals/fixtures/PROVENANCE.yaml."
             ),
             "model_requests": {"total": llm.total_calls, "availability_check": len(canary_calls)},
             "availability_check_replies": canary_calls,

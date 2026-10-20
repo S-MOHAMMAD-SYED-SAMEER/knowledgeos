@@ -63,8 +63,9 @@ def test_the_default_path_points_at_the_specified_filename() -> None:
 
 
 def test_the_version_is_the_filename_stem() -> None:
-    prompt = load_prompt()
-    assert prompt.version == "knowledge_answer_v1"
+    """The default is v2 (chosen by the 2026-10-20 runs in docs/EVAL.md); v1 is still loadable by path."""
+    assert load_prompt().version == "knowledge_answer_v2"
+    assert load_prompt(DEFAULT_PROMPT_PATH).version == "knowledge_answer_v1"
 
 
 def test_the_content_hash_is_stable_across_loads() -> None:

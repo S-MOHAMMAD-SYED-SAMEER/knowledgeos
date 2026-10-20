@@ -7,7 +7,7 @@ only from your own documents — the exact chunk behind every claim, citations
 checked programmatically before the answer is shown, and an explicit refusal
 when the knowledge base does not contain the answer.
 
-**Status:** v1 is built and tested. A real Gemini answer has not been produced yet; see **Current limitations**. MIT licensed.
+**Status:** v1 is built and tested, and measured with a real model on a small fixture corpus (see **Results** below, with its limits). MIT licensed.
 **GitHub** [S-MOHAMMAD-SYED-SAMEER/knowledgeos](https://github.com/S-MOHAMMAD-SYED-SAMEER/knowledgeos) ·
 **Live demo** No public instance is deployed — two independent, local, keyless demo modes exist instead, see **Running modes** below ·
 **[Engineering deep dive](docs/ENGINEERING.md)**
@@ -125,7 +125,9 @@ official: no `eval_runs` row, no report. A reply the model could not make
 verifiable ("I couldn't verify this answer") is counted on its own, never as an
 abstention.
 
-**Results.** Retrieval has been measured. Answer quality has not.
+**Results.** Both suites have been run, against AI-written gold, on a 30-chunk corpus.
+
+### Retrieval
 
 The retrieval suite (`python -m evals.run --suite retrieval`, offline, no API
 key, real BGE and cross-encoder) was run twice against the fixture corpus: on
@@ -155,9 +157,38 @@ with BM25 or any other baseline, only with and without the reranker. Full record
 [gold-v1, 2026-10-14](docs/results/2026-10-14-retrieval-eval.md) and
 [gold-v2, 2026-10-20](docs/results/2026-10-20-retrieval-eval.md).
 
-**No answer-quality number exists.** The answers suite (grounded-answer rate,
-citation validity, abstention precision and recall) needs a Gemini model and has
-not been run: no Gemini call has succeeded yet (see **Current limitations**).
+### Answers (real model)
+
+The answers suite (`python -m evals.run --suite answers`) was run on **2026-10-20** against the frozen **gold-v2** with
+**`gemini-3.5-flash-lite`** (Google AI Studio free tier, temperature 1.0, adapter retries off), once per prompt version. Both
+runs are published; the better one by the rule written in [docs/EVAL.md](docs/EVAL.md) before either was made is the default.
+
+| Measure | prompt v1 | prompt v2 (default) |
+| --- | --- | --- |
+| Questions that reached the model | 33 of 52 | 33 of 52 |
+| Grounded answers (citation check passed) | 29 of 33 (87.9%) | **32 of 33** (97.0%) |
+| Rejected by the citation check ("couldn't verify") | 4 of 33 | **1 of 33** |
+| Abstention recall (questions with no answer in the documents) | 7 of 7 | 7 of 7 |
+| Abstention precision | 7 of 20 | 7 of 19 |
+| Answerable questions abstained on | 13 of 45 | 12 of 45 |
+
+**Limits, next to the numbers.**
+- The gold is **Claude-drafted, reviewed by ChatGPT and Claude, and approved by Sameer**; it is one author's question set, not
+  an independent annotation. The 52 questions and 12 documents are fictional and labelled as such.
+- The abstention threshold (1.4451) was calibrated on the dev split of **the same 52 questions** it is scored on: the abstention
+  figures are **in-sample**. Recall of 7 of 7 rests on 7 questions, and one flip would move it by 14 points.
+- **Twelve of the 45 answerable questions get no answer** because the threshold stops them before the model is asked (the same
+  twelve with both prompts). That is a known cost of this threshold; no prompt changes it.
+- "Grounded" means the citation check passed (every marker points at a chunk the model was given, and every sentence has one).
+  It does not check that the cited passage supports the sentence, and **no unsupported-claim rate is claimed.**
+- **One model, one machine, one day, one run per prompt**, at temperature 1.0. The gap between the prompts (4 rejected against 1)
+  is small in absolute terms and could change on a second run; on 2026-10-16 the same v1 prompt had 7 of 34 rejected.
+- The first v2 attempt stopped on an HTTP 503 from the provider at its second question and was restarted fresh after more than
+  30 minutes; the checkpoint is kept. 78 of the 100-request cap were used in total.
+
+Full records, with the question-by-question differences:
+[docs/results/2026-10-20-answers-eval.md](docs/results/2026-10-20-answers-eval.md); the earlier run of 2026-10-16 (gold-v1, prompt
+v1) is in [docs/results/2026-10-16-answers-eval.md](docs/results/2026-10-16-answers-eval.md).
 
 ## Running modes
 
@@ -285,7 +316,7 @@ pull request; no API key anywhere):
 | --- | --- |
 | **CI, Linux** (`test`: real PostgreSQL + pgvector, no models in the cache) | 1,313 collected: **1,309 passed**, 4 skipped, 0 failed |
 | **CI, Windows** (`windows`: everything that needs neither PostgreSQL nor the models) | 835 passed, 478 skipped, 0 failed |
-| **Windows laptop**, both models cached | 1,313 collected: **1,311 passed**, 2 skipped, 0 failed |
+| **Windows laptop**, both models cached | 1,318 collected: **1,316 passed**, 2 skipped, 0 failed |
 
 (The earlier "models not in the cache" laptop row was not re-measured for this
 commit, so it is not repeated here.)
@@ -317,11 +348,11 @@ Windows.
 | Alembic migrations / database tables | 7 / 9 |
 | Continuous integration | Four jobs: test (Linux), windows, docker-build, audit; no API key set anywhere |
 | Retrieval metrics | Produced, 2026-10-14 ([results](docs/results/2026-10-14-retrieval-eval.md)) |
-| Answer-quality metrics | **None produced**, in any environment |
+| Answer-quality metrics | Produced, 2026-10-20, `gemini-3.5-flash-lite`, against AI-written gold ([results](docs/results/2026-10-20-answers-eval.md)) |
 
 These are results about the engineering: the code does what its tests say, the
-image builds and the demo answers. They are not results about answer quality: no
-Gemini call has succeeded yet. See **Current limitations** below for exactly what
+image builds and the demo answers. The answer-quality figures are in **Results**
+above, with their limits. See **Current limitations** below for exactly what
 remains unverified, and **Running modes** above for which claim belongs to which
 demo.
 
@@ -344,21 +375,15 @@ demo.
   quality has been independently measured** in any environment — both
   are verified only at the code-path/component level described in
   **Running modes** above.
-- **Live Mode has been exercised through real BGE embedding, real retrieval,
-  real CrossEncoder reranking** — all confirmed working inside a real
-  `docker-compose.yml` (Live Mode) container, against the canonical corpus
-  seeded through the real ingestion pipeline. **A real Gemini credential was
-  then configured and a genuine `generate_content()` call was attempted,
-  twice** — confirmed as a real API call by the SDK's own automatic
-  function-calling advisory, which only fires on an actual call. **Both
-  attempts failed with a `ServerError`** (the exception class name the
-  `google-genai` SDK raised; the underlying cause has not been determined
-  and is not claimed here — see [docs/ENGINEERING.md](docs/ENGINEERING.md)
-  for the full diagnostic detail). **Successful real Gemini generation, and
-  therefore complete Live Mode answer generation end to end, remain
-  unverified.**
-- **No answer-quality numbers have been produced**, and none are claimed. The retrieval
-  numbers above come from a 30-chunk corpus and say little about scale.
+- **Live Mode has been exercised end to end with a real model**: real BGE embedding, real retrieval, real CrossEncoder
+  reranking and real Gemini generation (`gemini-3.5-flash-lite`). Earlier attempts failed with a `ServerError` from the
+  provider (cause not determined); generation worked on 2026-10-16, and the answers evaluation of 2026-10-20 is
+  the current record ([docs/results/2026-10-20-answers-eval.md](docs/results/2026-10-20-answers-eval.md)). Google's API returns
+  intermittent HTTP 503s ("high demand"): one stopped the first v2 attempt, and 8 of 9 live-check questions answered on
+  2026-10-16. The integrated `Settings.demo_mode` and the demos use no model.
+- **The answer-quality figures are narrow.** They are scored against AI-written gold on a 30-chunk corpus, with an in-sample
+  abstention threshold, one model, one day, one run per prompt (see **Results** for each limit). The retrieval numbers come from
+  the same small corpus and say little about scale.
 - **The standalone demo stack (`docker-compose.demo.yml`) has been built and
   run successfully**, on a Windows Docker Desktop 29.8.1 / Compose 5.5.1
   laptop: all three images built, the full `db → migrate → seed → app` chain
@@ -372,9 +397,7 @@ demo.
   **`docker-compose.yml` (Live Mode) has since been built and run
   successfully too**, on the same laptop: the database, migrations, corpus
   seeding, health/readiness, real BGE embedding, real retrieval, and real
-  CrossEncoder reranking all passed inside that container. Gemini
-  generation remains unverified (see above) — this is the
-  one stage Live Mode has not yet completed successfully. **The integrated
+  CrossEncoder reranking all passed inside that container. **The integrated
   `Settings.demo_mode` demo running in Docker has still not been attempted
   in any environment**, and no public instance of anything in this
   repository is deployed.
@@ -478,10 +501,9 @@ docker compose up --build app
 **This image has since been built and run from `docker-compose.yml` (Live
 Mode, shown above)**, on a Windows Docker Desktop laptop: the database,
 migrations, corpus seeding, health/readiness, real BGE embedding, real
-retrieval, and real CrossEncoder reranking all passed. **Real Gemini
-generation was attempted with a real credential and failed with a
-`ServerError`**, so complete Live Mode answer generation remains
-unverified. The separate standalone demo stack (`docker-compose.demo.yml`)
+retrieval, and real CrossEncoder reranking all passed. Real Gemini
+generation has since worked (see **Results**), run from a local Python
+environment, not from this container. The separate standalone demo stack (`docker-compose.demo.yml`)
 has also been built and run successfully — see
 **Current limitations** above and full detail in
 [docs/ENGINEERING.md](docs/ENGINEERING.md).
