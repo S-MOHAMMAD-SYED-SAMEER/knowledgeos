@@ -21,7 +21,7 @@ a model has been run against it. `tests/test_gold_frozen.py` recomputes the dige
 
 ```
 gold-version: gold-v2
-gold-sha256: 2db847142d903c53c08cf7c8f9d781c204e98e1578c0a2a2919537eba3a6b037
+gold-sha256: 643dc9cecb0de518a1ed03cf3886bfbad04a81515ccd63e5ab04b4620e34eb86
 ```
 
 The digest is the sha256 over the sorted `path<NUL>sha256(file)` lines of every file under `evals/fixtures/`, with line

@@ -22,7 +22,10 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 def gold_files() -> list[Path]:
     """Every file in the gold set, in a fixed order."""
-    return sorted(path for path in FIXTURES.rglob("*") if path.is_file() and "__pycache__" not in path.parts)
+    # Sorted by the posix path as a plain string: `Path` ordering is case-insensitive on Windows and
+    # case-sensitive on Linux, which would hash the same files in a different order on each.
+    found = (path for path in FIXTURES.rglob("*") if path.is_file() and "__pycache__" not in path.parts)
+    return sorted(found, key=lambda path: path.relative_to(FIXTURES).as_posix())
 
 
 def file_digest(path: Path) -> str:

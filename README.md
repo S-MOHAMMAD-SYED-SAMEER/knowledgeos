@@ -278,15 +278,17 @@ static isolation tests that prove they never call Gemini.
 
 ## Verified project facts
 
-Nothing estimated. Test results, by where they were run (2026-10-14, commit
-`94e1cd7`, no API key anywhere):
+Nothing estimated. Test results, by where they were run (2026-10-20, the Phase A
+pull request; no API key anywhere):
 
 | Where | Result |
 | --- | --- |
-| **CI, Linux** (`test`: real PostgreSQL + pgvector, no models in the cache) | 1,263 collected: **1,259 passed**, 4 skipped, 0 failed |
-| **CI, Windows** (`windows`: everything that needs neither PostgreSQL nor the models) | 803 passed, 460 skipped, 0 failed |
-| **Windows laptop**, models not in the cache | 1,258 passed, 5 skipped, 0 failed |
-| **Windows laptop**, both models cached | 1,261 passed, 2 skipped, 0 failed |
+| **CI, Linux** (`test`: real PostgreSQL + pgvector, no models in the cache) | 1,313 collected: **1,309 passed**, 4 skipped, 0 failed |
+| **CI, Windows** (`windows`: everything that needs neither PostgreSQL nor the models) | 835 passed, 478 skipped, 0 failed |
+| **Windows laptop**, both models cached | 1,313 collected: **1,311 passed**, 2 skipped, 0 failed |
+
+(The earlier "models not in the cache" laptop row was not re-measured for this
+commit, so it is not repeated here.)
 
 What is skipped, and why: on Linux CI, the three tests that load the real BGE
 or cross-encoder (CI never downloads weights) and the opt-in Gemini smoke test

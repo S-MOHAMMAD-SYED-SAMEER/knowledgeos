@@ -13,8 +13,8 @@ Raw record: [`2026-10-20-retrieval-eval.json`](2026-10-20-retrieval-eval.json), 
 | | |
 |---|---|
 | Command | `python -m evals.run --suite retrieval` |
-| Run ID | `6e790012-1118-4f26-ae99-f6d54bc09986` |
-| Gold | gold-v2, sha256 `2db847142d903c53c08cf7c8f9d781c204e98e1578c0a2a2919537eba3a6b037` |
+| Run ID | `0b9c9c06-f542-40a1-bed0-d03bc037bf89` |
+| Gold | gold-v2, sha256 `643dc9cecb0de518a1ed03cf3886bfbad04a81515ccd63e5ab04b4620e34eb86` |
 | Embedding model | `BAAI/bge-small-en-v1.5` (384 dimensions, local) |
 | Reranker | `cross-encoder/ms-marco-MiniLM-L-6-v2` (local), compared with a passthrough that keeps the fused order |
 | Fusion | Reciprocal Rank Fusion, k = 60; top 50 lexical + top 50 vector, then top 20 |
