@@ -10,7 +10,8 @@ when the knowledge base does not contain the answer.
 **Status:** v1 is built and tested, and measured with a real model on a small fixture corpus (see **Results** below, with its limits). MIT licensed.
 **GitHub** [S-MOHAMMAD-SYED-SAMEER/knowledgeos](https://github.com/S-MOHAMMAD-SYED-SAMEER/knowledgeos) ·
 **Live demo** No public instance is deployed — two independent, local, keyless demo modes exist instead, see **Running modes** below ·
-**[Engineering deep dive](docs/ENGINEERING.md)**
+**[Engineering deep dive](docs/ENGINEERING.md)** ·
+**[Setup](docs/SETUP.md)** · **[Testing](docs/TESTING.md)** · **[Evaluation](docs/EVAL.md)** · **[Prompts](docs/PROMPTS.md)**
 
 > **Two demo modes, not one.** This repository has two independent,
 > keyless ways to try the real query pipeline with no Gemini credential
@@ -425,6 +426,8 @@ Docker · GitHub Actions
 > the one adapter file is vendor-shaped.
 
 ## Running locally
+
+The full procedure, with the Windows notes and the evaluation commands, is in [docs/SETUP.md](docs/SETUP.md); the tests are described in [docs/TESTING.md](docs/TESTING.md). The short version:
 
 **What you need first**
 
