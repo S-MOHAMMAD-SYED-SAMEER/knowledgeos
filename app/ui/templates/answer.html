@@ -18,7 +18,10 @@
           <span class="badge answered">Answered</span>
         {% endif %}
         {% if answer.grounded and answer.citation_valid %}
-          <span class="badge positive" title="Every citation points at a retrieved passage, and every sentence has one. This does not check that the passage supports the sentence.">Citations verified</span>
+          {# An abstention cites nothing, so there is nothing to have verified: no badge. #}
+          {% if not answer.abstained %}
+            <span class="badge positive" title="Every citation points at a retrieved passage, and every sentence has one. This does not check that the passage supports the sentence.">Citations verified</span>
+          {% endif %}
         {% else %}
           <span class="badge negative">Citation check not passed</span>
         {% endif %}
