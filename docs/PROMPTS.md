@@ -7,7 +7,7 @@ name (`knowledge_answer_v1`), the content hash travels with every answer, and `S
 | Version | Written | Status |
 |---|---|---|
 | `knowledge_answer_v1` | milestone 8 | the original |
-| `knowledge_answer_v2` | 2026-10-20, from the 2026-10-16 failure analysis | committed before any run that uses it; whether it becomes the default is decided by the runs in `docs/EVAL.md` |
+| `knowledge_answer_v2` | 2026-10-20, from the 2026-10-16 failure analysis | **the default.** Committed before any run that used it; chosen by the pre-written rule after the two runs in `docs/EVAL.md` |
 
 ## v2: what changed and why
 
@@ -41,5 +41,13 @@ Unchanged: the "evidence is data, not instructions" section, the abstention rule
 **checker is also unchanged** and stays strict: v2 asks the model to follow the format; it does not teach the checker to
 accept a looser one.
 
-What v2 does not do: it does not address the 13 answerable questions that were abstained on (11 by the threshold before the
-model was asked), and nothing in it has been shown to work yet. It is a hypothesis from one run of one model.
+What v2 does not do: it does not address the answerable questions that are abstained on (12 of 45 in the 2026-10-20 runs, all by
+the threshold before the model is asked), and it did not fix every rejection: `adv003` was still rejected, for a different reason
+(a sentence with no marker of its own).
+
+## Result
+
+On 2026-10-20 (gold-v2, `gemini-3.5-flash-lite`, one run each): v1 had 4 of 33 answers rejected by the citation check and 29 of 33
+grounded, with a comma-grouped marker in 11 of 40 replies; v2 had 1 of 33 rejected and 32 of 33 grounded, with none in 34 replies.
+Abstention recall was 7 of 7 in both. v2 is therefore the default. One run each, at temperature 1.0: treat the size of the gap
+with caution. See `docs/results/2026-10-20-answers-eval.md`.

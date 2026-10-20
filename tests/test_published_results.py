@@ -60,7 +60,68 @@ def test_the_readme_links_to_the_results_page_and_the_page_exists(run_path: path
     assert f"docs/results/{page.name}" in _text(ROOT / "README.md")
 
 
-def test_the_readme_does_not_claim_answer_quality_was_measured() -> None:
+ANSWER_RUNS = {
+    "v1": ROOT / "docs" / "results" / "2026-10-20-answers-eval-v1-gemini-3.5-flash-lite.json",
+    "v2": ROOT / "docs" / "results" / "2026-10-20-answers-eval-v2-gemini-3.5-flash-lite.json",
+}
+
+
+def _figures(run: dict) -> dict[str, str]:
+    """The counts the README and EVAL.md print for one answers run, as printed ("29 of 33")."""
+    metrics = run["metrics"]
+    verification = metrics["verification"]
+    abstention = metrics["abstention"]
+    asked, unverified = verification["asked_count"], verification["unverified"]
+    tp, fp = abstention["true_positives"], abstention["false_positives"]
+    return {
+        "grounded": f"{asked - unverified} of {asked}",
+        "rejected": f"{unverified} of {asked}",
+        "recall": f"{tp} of {abstention['positive_count']}",
+        "precision": f"{tp} of {tp + fp}",
+        "abstained_on_answerable": f"{fp} of {metrics['total_question_count'] - abstention['positive_count']}",
+    }
+
+
+@pytest.mark.parametrize("name", sorted(ANSWER_RUNS))
+def test_the_committed_answers_runs_are_on_the_frozen_gold_and_within_the_cap(name: str) -> None:
+    run = json.loads(_text(ANSWER_RUNS[name]))
+    config = run["config"]
+
+    assert run["suite"] == "answers"
+    assert config["gold_version"] == "gold-v2"
+    assert config["gold_sha256"] in _text(ROOT / "docs" / "EVAL.md")
+    assert config["llm_model"] == "gemini-3.5-flash-lite"
+    assert config["llm_temperature"] == 1.0 and config["llm_max_retries"] == 0
+    assert config["abstention_threshold"] == 1.4451 and config["abstention_threshold_in_sample"] is True
+    assert config["prompt_version"] == f"knowledge_answer_{name}"
+    assert run["metrics"]["total_question_count"] == 52
+    assert run["metrics"]["provider_failures"] in (0, None) or not run["provider_errors"]
+
+
+@pytest.mark.parametrize("name", sorted(ANSWER_RUNS))
+def test_the_readme_and_eval_md_quote_the_committed_answers_figures(name: str) -> None:
+    figures = _figures(json.loads(_text(ANSWER_RUNS[name])))
+    readme = _text(ROOT / "README.md")
+    eval_md = _text(ROOT / "docs" / "EVAL.md")
+    report = _text(ROOT / "docs" / "results" / "2026-10-20-answers-eval.md")
+
+    for key, figure in figures.items():
+        for where, text in (("README", readme), ("EVAL.md", eval_md), ("results page", report)):
+            assert figure in text, f"{name}: {key} '{figure}' is not in the {where}"
+
+
+def test_the_two_answers_runs_used_no_more_than_the_request_cap() -> None:
+    used = sum(json.loads(_text(path))["config"]["model_requests"]["total"] for path in ANSWER_RUNS.values())
+    stopped_attempt = 2  # the first v2 attempt: the availability check and the question that returned a 503
+    assert used + stopped_attempt == 78 <= 100
+    for text in (_text(ROOT / "README.md"), _text(ROOT / "docs" / "EVAL.md")):
+        assert "78 of the 100" in " ".join(text.split())
+
+
+def test_the_readme_states_the_limits_beside_the_answer_figures() -> None:
     readme = _text(ROOT / "README.md")
 
-    assert "No answer-quality number exists" in readme
+    for phrase in ("in-sample", "Claude-drafted", "approved by Sameer", "one run per prompt", "no unsupported-claim rate"):
+        assert phrase in readme, phrase
+    assert "No answer-quality number exists" not in readme
+    assert "no Gemini call has succeeded" not in readme

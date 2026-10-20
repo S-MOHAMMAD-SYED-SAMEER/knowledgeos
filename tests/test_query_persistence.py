@@ -107,7 +107,7 @@ def test_the_query_row_records_the_model_and_prompt_version(
     )
 
     assert query_row.model == fake_llm.model_name
-    assert query_row.prompt_version == "knowledge_answer_v1"
+    assert query_row.prompt_version == "knowledge_answer_v2"
     assert query_row.input_tokens is not None
     assert query_row.output_tokens is not None
 

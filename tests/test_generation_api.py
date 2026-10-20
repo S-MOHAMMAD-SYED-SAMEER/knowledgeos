@@ -80,7 +80,7 @@ def test_a_successful_query_returns_a_grounded_cited_answer(
     assert body["grounded"] is True
     assert set(body["citations"]) == set(uids)
     assert body["model"] == fake_llm.model_name
-    assert body["prompt_version"] == "knowledge_answer_v1"
+    assert body["prompt_version"] == "knowledge_answer_v2"
     assert body["query_id"]
     assert body["answer_id"]
 

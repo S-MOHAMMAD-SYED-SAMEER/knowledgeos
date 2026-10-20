@@ -143,7 +143,7 @@ def test_a_valid_well_formed_answer_is_accepted() -> None:
     assert answer.grounded
     assert set(answer.citations) == set(uids)
     assert answer.model_name == fake.model_name
-    assert answer.prompt_version == "knowledge_answer_v1"
+    assert answer.prompt_version == "knowledge_answer_v2"
     assert answer.input_tokens > 0
     assert answer.output_tokens > 0
 

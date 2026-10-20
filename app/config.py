@@ -187,7 +187,7 @@ class Settings(BaseSettings):
     # `app/generation/prompts/`. v1 is the original; v2 was written from the
     # 2026-10-16 failure analysis (see docs/PROMPTS.md). `docs/EVAL.md` says which
     # one the default is, and why.
-    prompt_version: str = "knowledge_answer_v1"
+    prompt_version: str = "knowledge_answer_v2"
 
     # --- Observability / cost (milestone 9) ---
     # `{"<model name>": {"input": <usd per 1M tokens>, "output": <usd per
