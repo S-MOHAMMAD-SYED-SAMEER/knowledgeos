@@ -314,8 +314,8 @@ pull request; no API key anywhere):
 
 | Where | Result |
 | --- | --- |
-| **CI, Linux** (`test`: real PostgreSQL + pgvector, no models in the cache) | 1,313 collected: **1,309 passed**, 4 skipped, 0 failed |
-| **CI, Windows** (`windows`: everything that needs neither PostgreSQL nor the models) | 835 passed, 478 skipped, 0 failed |
+| **CI, Linux** (`test`: real PostgreSQL + pgvector, no models in the cache) | 1,318 collected: **1,314 passed**, 4 skipped, 0 failed |
+| **CI, Windows** (`windows`: everything that needs neither PostgreSQL nor the models) | 840 passed, 478 skipped, 0 failed |
 | **Windows laptop**, both models cached | 1,318 collected: **1,316 passed**, 2 skipped, 0 failed |
 
 (The earlier "models not in the cache" laptop row was not re-measured for this
