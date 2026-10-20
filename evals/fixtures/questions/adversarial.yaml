@@ -28,6 +28,10 @@
   expected_abstain: false
   filters: {}
 
+# Gold Review 2 (2026-10-16, decision by Sameer): adv004 and adv005 stay as
+# DELIBERATE false-premise tests. They attribute a rule to the wrong policy; the
+# intended behaviour is to correct the misattributed policy name and answer from
+# the source that actually holds the rule, not to affirm the false premise.
 - id: adv004
   text: "Under the Remote Work Policy, how is mileage for a personal vehicle used on business travel reimbursed?"
   category: adversarial

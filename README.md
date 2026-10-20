@@ -128,27 +128,32 @@ abstention.
 **Results.** Retrieval has been measured. Answer quality has not.
 
 The retrieval suite (`python -m evals.run --suite retrieval`, offline, no API
-key, real BGE and cross-encoder) was run on 2026-10-14 against the fixture
-corpus: 30 chunks from 10 documents, 45 scored questions out of 52 (the other 7
-are "the documents don't say" questions with no chunk to find).
+key, real BGE and cross-encoder) was run twice against the fixture corpus: on
+2026-10-14 against the original question set (gold-v1) and on 2026-10-20 against
+the frozen gold-v2 (see [docs/EVAL.md](docs/EVAL.md)), which changed the expected
+chunks or wording of four questions. The corpus is 30 chunks from 10 documents,
+and 45 questions out of 52 are scored (the other 7 are "the documents don't say"
+questions with no chunk to find). Both runs are published:
 
-| Metric | Without reranking | With the cross-encoder |
-| --- | --- | --- |
-| Recall@5 | 0.8667 | **0.9333** |
-| Recall@10 | 0.9519 | **0.9926** |
-| MRR | 0.7375 | **0.9081** |
-| nDCG@10 | 0.7823 | **0.9076** |
-| Precision@5 | 0.2311 | 0.2533 |
+| Metric | Without reranking, gold-v1 | With the cross-encoder, gold-v1 | Without reranking, gold-v2 | With the cross-encoder, gold-v2 |
+| --- | --- | --- | --- | --- |
+| Recall@5 | 0.8667 | **0.9333** | 0.8889 | **0.9444** |
+| Recall@10 | 0.9519 | **0.9926** | 0.9630 | **0.9926** |
+| MRR | 0.7375 | **0.9081** | 0.7375 | **0.9081** |
+| nDCG@10 | 0.7823 | **0.9076** | 0.7927 | **0.9142** |
+| Precision@5 | 0.2311 | 0.2533 | 0.2311 | 0.2489 |
 
-Metadata-filter correctness is 1.0000 over the 9 filtered questions. The
-reranker lifts MRR from 0.74 to 0.91 on the same candidates.
+Metadata-filter correctness is 1.0000 over the 9 filtered questions in both runs. The
+reranker lifts MRR from 0.74 to 0.91 on the same candidates. A change in the
+question set that raises a score is not an improvement in the retriever.
 
 **Read this with the corpus in mind:** 30 chunks, with top 10 covering a third of
 the corpus, so Recall@10 is easy and is not a prediction for a corpus of
 thousands of documents; the questions and their expected chunks were written by
 the same author against the same fixtures; and the retriever is not compared
-with BM25 or any other baseline, only with and without the reranker. Full record, environment, caveats
-and reproduction: [docs/results/2026-10-14-retrieval-eval.md](docs/results/2026-10-14-retrieval-eval.md).
+with BM25 or any other baseline, only with and without the reranker. Full records:
+[gold-v1, 2026-10-14](docs/results/2026-10-14-retrieval-eval.md) and
+[gold-v2, 2026-10-20](docs/results/2026-10-20-retrieval-eval.md).
 
 **No answer-quality number exists.** The answers suite (grounded-answer rate,
 citation validity, abstention precision and recall) needs a Gemini model and has

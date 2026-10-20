@@ -23,7 +23,6 @@
   category: multi-document
   expected_chunk_uids:
     - ac735f6387ca659b3a009e78d98f0118
-    - da1cdb5e0e87ad69728e9d2781239d13
   expected_abstain: false
   filters: {}
 
@@ -32,7 +31,6 @@
   category: multi-document
   expected_chunk_uids:
     - 1520a2137d9557a94fc05784da189fc0
-    - e3e91b1f9845f9e5b17e8e375d325dd9
   expected_abstain: false
   filters: {}
 

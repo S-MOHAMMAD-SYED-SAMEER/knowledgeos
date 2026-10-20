@@ -1,0 +1,39 @@
+{
+  "config": {
+    "chunk_overlap_tokens": 64,
+    "chunk_size_tokens": 512,
+    "corpus_active_chunks": 30,
+    "cross_encoder_rerank_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "gold_sha256": "2db847142d903c53c08cf7c8f9d781c204e98e1578c0a2a2919537eba3a6b037",
+    "gold_version": "gold-v2",
+    "ndcg_depth": 10,
+    "passthrough_rerank_model": "passthrough",
+    "precision_depth": 5,
+    "question_count": 52,
+    "rrf_k": 60
+  },
+  "eval_run_id": "6e790012-1118-4f26-ae99-f6d54bc09986",
+  "metrics": {
+    "cross_encoder": {
+      "mrr": 0.9081481481481481,
+      "ndcg_at_10": 0.914154491534681,
+      "precision_at_5": 0.2488888888888889,
+      "recall_at_10": 0.9925925925925926,
+      "recall_at_5": 0.9444444444444444
+    },
+    "evaluated_question_count": 45,
+    "excluded_question_count": 7,
+    "filtered_question_count": 9,
+    "metadata_filter_correctness": 1.0,
+    "passthrough": {
+      "mrr": 0.7374603174603174,
+      "ndcg_at_10": 0.7926807675755854,
+      "precision_at_5": 0.23111111111111113,
+      "recall_at_10": 0.962962962962963,
+      "recall_at_5": 0.8888888888888888
+    },
+    "total_question_count": 52
+  },
+  "suite": "retrieval"
+}

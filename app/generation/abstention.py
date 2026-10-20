@@ -15,12 +15,12 @@ already-computed values and return a decision.
 
 from dataclasses import dataclass
 
-# Locked project decision (D6): never invented. `None` means the
-# rerank-score trigger is inactive — no threshold has been genuinely
-# calibrated against a dev split in this build, and the specification is
-# explicit that the number must come from calibration, "not chosen by
-# taste." Only a documented calibration run may change this default.
-DEFAULT_ABSTENTION_RERANK_THRESHOLD: float | None = None
+from app.abstention_constants import DEFAULT_ABSTENTION_RERANK_THRESHOLD
+
+# Locked project decision (D6): never invented. The default comes from a
+# calibration run, not from taste; `app/abstention_constants.py` says which one,
+# and that it is in-sample. `None` would mean the rerank-score trigger is
+# inactive. Only a documented calibration run may change this default.
 
 # The deterministic text used when a query abstains without ever reaching
 # the model — there is no model output to abstain *with*. Fixed and

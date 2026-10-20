@@ -412,6 +412,7 @@ class _StubSettings:
     llm_max_retries = 2
     llm_retry_max_wait_seconds = 15.0
     llm_temperature = None
+    abstention_rerank_threshold = 1.4451  # the shipped default
     llm_pricing_usd_per_million_tokens: dict = {}
 
 

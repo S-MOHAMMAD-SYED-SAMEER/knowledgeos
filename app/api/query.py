@@ -49,6 +49,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.abstention_constants import effective_threshold
 from app.api.rate_limit import rate_limit_demo_query
 from app.api.schemas import (
     AnswerDetailOut,
@@ -237,7 +238,13 @@ def run_query(
                 query_text=normalized_query,
                 candidates=reranked,
                 llm=llm,
-                abstention_threshold=settings.abstention_rerank_threshold,
+                # The integrated demo answers fixed scenarios, so the score gate (which stops a
+                # question before the model is asked) is not applied to it.
+                abstention_threshold=(
+                    None
+                    if settings.demo_mode
+                    else effective_threshold(settings.abstention_rerank_threshold, reranker.model_name)
+                ),
                 max_tokens=settings.llm_max_output_tokens,
             )
         except DemoAnswerNotAvailable:

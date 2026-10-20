@@ -933,6 +933,8 @@ falling below a threshold, or the model's own `sufficient_evidence=false`.
 A third, structurally necessary case this project adds: **zero retrieved
 candidates never reach the model at all** — there is nothing to send.
 
+> **Update, 2026-10-20:** this is no longer true. The threshold now has a default, the result of the calibration run on the dev split of the 2026-10-16 answers evaluation (the number is in `docs/EVAL.md`). It is in-sample (calibrated on the same 52 questions it is scored on) and is applied only to the cross-encoder's score scale. See `docs/EVAL.md` and `app/abstention_constants.py`.
+
 `KNOWLEDGEOS_ABSTENTION_RERANK_THRESHOLD` has **no default** —
 `app/generation/abstention.py::DEFAULT_ABSTENTION_RERANK_THRESHOLD` is
 `None`, meaning the score-based trigger is inactive. The specification is
@@ -1115,6 +1117,8 @@ a dev split") but gives no formula for what "calibrated" optimizes, and
 recall is what the specification's own abstention gate (§18: "≥ 90% recall
 on expected-abstain questions") measures directly.
 
+> **Update, 2026-10-20:** this is no longer true. The threshold now has a default, the result of the calibration run on the dev split of the 2026-10-16 answers evaluation (the number is in `docs/EVAL.md`). It is in-sample (calibrated on the same 52 questions it is scored on) and is applied only to the cross-encoder's score scale. See `docs/EVAL.md` and `app/abstention_constants.py`.
+
 `KNOWLEDGEOS_ABSTENTION_RERANK_THRESHOLD` still has no default. Calibration
 only ever runs as part of an official `--suite answers` run, against the
 real embedding and reranking models this environment does not have — so no
@@ -1245,7 +1249,7 @@ through `GET /queries/{id}`.
 
 - **No official answer, grounding, abstention, or cost evaluation has been
   run.** See the box above for the exact blocking reason.
-- **The calibrated abstention threshold does not exist in this
+- **(Out of date: see the 2026-10-20 update above; the default is now a calibrated value, in-sample.)** **The calibrated abstention threshold does not exist in this
   environment.** Calibration is implemented and unit-tested; it has never
   run against the real models, so `abstention_rerank_threshold` stays
   `None`, the same as milestone 8 left it.

@@ -24,15 +24,18 @@
         {% endif %}
       {% endif %}
     </p>
-    <p>{{ answer.answer_text }}</p>
+    <p>{{ answer.answer_text | cited(citation_numbers) }}</p>
 
-    <h2>Citations</h2>
-    {% if answer.citations %}
-      <ul>
-        {% for uid in answer.citations %}
-          <li><a href="#evidence-{{ uid }}">{{ citation_labels.get(uid, "Cited source") }}</a></li>
+    <h2>Sources</h2>
+    {% if citations_view %}
+      <ol class="citations">
+        {% for c in citations_view %}
+          <li id="cite-{{ c.number }}" value="{{ c.number }}" title="chunk {{ c.chunk_uid }}">
+            <a href="#evidence-{{ c.chunk_uid }}"><strong>{{ c.title }}</strong>{% if c.version_number %} &mdash; v{{ c.version_number }}{% endif %}{% if c.section and c.section != c.title %} &middot; {{ c.section }}{% endif %}</a>
+            {% if c.snippet %}<br><span class="muted snippet">&ldquo;{{ c.snippet }}&rdquo;</span>{% endif %}
+          </li>
         {% endfor %}
-      </ul>
+      </ol>
     {% else %}
       <p class="muted">No citations.</p>
     {% endif %}
@@ -42,7 +45,6 @@
       <pre>{{ answer.grounding_detail | tojson(indent=2) }}</pre>
     </details>
 
-    <h2>Model</h2>
     <p class="muted">
       model: {{ query.model or "—" }} &nbsp;
       prompt_version: {{ query.prompt_version or "—" }}
@@ -53,34 +55,27 @@
 
   <h1>Retrieved evidence</h1>
   {% if evidence %}
-    {% for row in evidence %}
-      <div class="evidence{% if row.selected %} selected{% endif %}" id="evidence-{{ row.chunk_uid }}">
-        <p>
-          <strong>#{{ row.final_rank }}</strong> &nbsp;
-          <span class="badge">{{ "selected" if row.selected else "not selected" }}</span> &nbsp;
-          <span class="muted">rerank score {{ "%.3f"|format(row.rerank_score) }}</span>
-        </p>
-        <p class="muted">
-          {{ row.document_title }} &mdash; v{{ row.version_number }}
-          <span class="badge {{ row.version_status }}">{{ row.version_status }}</span>
-          {% if row.document_department %} &middot; {{ row.document_department }}{% endif %}
-          {% if row.document_category %} &middot; {{ row.document_category }}{% endif %}
-          {% if row.page %} &middot; page {{ row.page }}{% endif %}
-          {% if row.section %} &middot; {{ row.section }}{% endif %}
-        </p>
-        {% if row.selected %}
-          <details open>
-            <summary>Passage sent to the model</summary>
-            <p>{{ row.text }}</p>
-          </details>
-        {% else %}
-          <details>
-            <summary>{{ row.text[:160] }}{% if row.text|length > 160 %}&hellip;{% endif %} <span class="muted">(not sent to the model; show all)</span></summary>
-            <p>{{ row.text }}</p>
-          </details>
-        {% endif %}
-      </div>
-    {% endfor %}
+    <details id="evidence-section">
+      <summary>{{ evidence | length }} passages retrieved, {{ selected_count }} sent to the model &mdash; show them</summary>
+      {% for row in evidence %}
+        <details class="evidence{% if row.selected %} selected{% endif %}" id="evidence-{{ row.chunk_uid }}">
+          <summary>
+            <strong>#{{ row.final_rank }}</strong>
+            {{ row.document_title }} &mdash; v{{ row.version_number }}{% if row.section %} &middot; {{ row.section }}{% endif %}
+            <span class="badge">{{ "sent to the model" if row.selected else "not sent" }}</span>
+            <span class="muted">rerank score {{ "%.3f"|format(row.rerank_score) }}</span>
+          </summary>
+          <p class="muted">
+            <span class="badge {{ row.version_status }}">{{ row.version_status }}</span>
+            {% if row.document_department %} &middot; {{ row.document_department }}{% endif %}
+            {% if row.document_category %} &middot; {{ row.document_category }}{% endif %}
+            {% if row.page %} &middot; page {{ row.page }}{% endif %}
+            <span title="chunk {{ row.chunk_uid }}">&middot; chunk id on hover</span>
+          </p>
+          <p>{{ row.text }}</p>
+        </details>
+      {% endfor %}
+    </details>
   {% else %}
     <p class="muted">No evidence was retrieved for this query.</p>
   {% endif %}
@@ -117,4 +112,21 @@
       </ul>
     {% endif %}
   {% endif %}
+
+  {# A link to a passage (a citation, or [1] in the answer) opens the passages and that one. #}
+  <script>
+    (function () {
+      function openTarget() {
+        var id = location.hash.slice(1);
+        var target = id && document.getElementById(id);
+        if (!target) return;
+        for (var node = target; node; node = node.parentElement) {
+          if (node.tagName === "DETAILS") node.open = true;
+        }
+        target.scrollIntoView();
+      }
+      window.addEventListener("hashchange", openTarget);
+      openTarget();
+    })();
+  </script>
 {% endblock %}

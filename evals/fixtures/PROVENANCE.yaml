@@ -1,0 +1,274 @@
+# Provenance of the answers-evaluation gold set (questions, expected chunks, abstention flags, splits).
+#
+# Overall label, to be quoted wherever a number scored against this gold is shown:
+#   Gold written by Claude; reviewed with ChatGPT assistance; final decisions by Sameer; facts checked against fixtures.
+#
+# History: gold-v1 is the set as Claude wrote it (milestones 7 and 9). Gold Review 2 (decided 2026-10-16, applied
+# 2026-10-20) produced gold-v2: four items changed by Sameer's decision, twelve kept by his decision, and the facts
+# and filter metadata below checked against the fixture corpus (text in evals/fixtures/knowledge_base/*.md, metadata
+# in manifest.yaml). Nothing was changed after any model output for gold-v2 was seen. The set is frozen: see
+# docs/EVAL.md and tests/test_gold_frozen.py.
+#
+# Event kinds: claude-written (the original item), changed-by-sameer (a decision that altered the item),
+# decided-by-sameer (a decision to keep it as it is), fact-checked (what was checked, against what).
+dataset_version: gold-v2
+label: "Gold written by Claude; reviewed with ChatGPT assistance; final decisions by Sameer; facts checked against fixtures."
+questions:
+  adv001:
+    category: adversarial
+    events:
+      - kind: claude-written
+  adv002:
+    category: adversarial
+    events:
+      - kind: claude-written
+  adv003:
+    category: adversarial
+    events:
+      - kind: claude-written
+  adv004:
+    category: adversarial
+    events:
+      - kind: claude-written
+      - kind: decided-by-sameer
+        note: "Kept as a deliberate false-premise test: correct the misattributed policy name and answer from the source that holds the rule."
+  adv005:
+    category: adversarial
+    events:
+      - kind: claude-written
+      - kind: decided-by-sameer
+        note: "Kept as a deliberate false-premise test: correct the misattributed policy name and answer from the source that holds the rule."
+  adv006:
+    category: adversarial
+    events:
+      - kind: claude-written
+  am001:
+    category: ambiguous
+    events:
+      - kind: claude-written
+      - kind: decided-by-sameer
+        note: "Kept as a deliberate ambiguity test, expected_abstain false. Intended behaviour: answer the plausible cases, cite the sources, flag the ambiguity; do not abstain just because the wording is broad."
+  am002:
+    category: ambiguous
+    events:
+      - kind: claude-written
+      - kind: decided-by-sameer
+        note: "Kept as a deliberate ambiguity test, expected_abstain false. Intended behaviour: answer the plausible cases, cite the sources, flag the ambiguity; do not abstain just because the wording is broad."
+  am003:
+    category: ambiguous
+    events:
+      - kind: claude-written
+      - kind: decided-by-sameer
+        note: "Kept as a deliberate ambiguity test, expected_abstain false. Intended behaviour: answer the plausible cases, cite the sources, flag the ambiguity; do not abstain just because the wording is broad."
+  am004:
+    category: ambiguous
+    events:
+      - kind: claude-written
+      - kind: decided-by-sameer
+        note: "Kept as a deliberate ambiguity test, expected_abstain false. Intended behaviour: answer the plausible cases, cite the sources, flag the ambiguity; do not abstain just because the wording is broad."
+  am005:
+    category: ambiguous
+    events:
+      - kind: claude-written
+      - kind: decided-by-sameer
+        note: "Kept as a deliberate ambiguity test, expected_abstain false. Intended behaviour: answer the plausible cases, cite the sources, flag the ambiguity; do not abstain just because the wording is broad."
+  cs001:
+    category: citation-sensitive
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "incident-response.md: executive notification within thirty minutes for severity one"
+  cs002:
+    category: citation-sensitive
+    events:
+      - kind: claude-written
+  cs003:
+    category: citation-sensitive
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "security-policy.md: critical security patches within forty-eight hours of release"
+  cs004:
+    category: citation-sensitive
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "incident-response.md: secondary paged after ten minutes, incident commander after twenty minutes if neither acknowledges"
+  cs005:
+    category: citation-sensitive
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "expense-policy.md: under one hundred dollars requires only manager approval"
+  cv001:
+    category: conflicting versions
+    events:
+      - kind: claude-written
+  cv002:
+    category: conflicting versions
+    events:
+      - kind: claude-written
+  cv003:
+    category: conflicting versions
+    events:
+      - kind: claude-written
+  cv004:
+    category: conflicting versions
+    events:
+      - kind: claude-written
+  cv005:
+    category: conflicting versions
+    events:
+      - kind: claude-written
+  da001:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da002:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da003:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da004:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da005:
+    category: directly answerable
+    events:
+      - kind: claude-written
+      - kind: changed-by-sameer
+        note: "Reworded to ask for the typical contractual window (the source says the window is typically seventy-two hours, not an unqualified rule). Expected chunks unchanged."
+      - kind: fact-checked
+        what: "vendor-access.md says vendors notify within a specified window, typically seventy-two hours"
+  da006:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da007:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da008:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da009:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da010:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da011:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  da012:
+    category: directly answerable
+    events:
+      - kind: claude-written
+  ie001:
+    category: insufficient evidence
+    events:
+      - kind: claude-written
+  ie002:
+    category: insufficient evidence
+    events:
+      - kind: claude-written
+  ie003:
+    category: insufficient evidence
+    events:
+      - kind: claude-written
+  ie004:
+    category: insufficient evidence
+    events:
+      - kind: claude-written
+  ie005:
+    category: insufficient evidence
+    events:
+      - kind: claude-written
+  ie006:
+    category: insufficient evidence
+    events:
+      - kind: claude-written
+  mf001:
+    category: metadata-filtered
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "filter metadata: filter department Engineering; the expected chunk is in Production Database Access SOP (Engineering)"
+  mf002:
+    category: metadata-filtered
+    events:
+      - kind: claude-written
+      - kind: changed-by-sameer
+        note: "Reworded to name a data category: how long database backups are retained (thirty days, rolling). Filter stays category Policy; expected chunk stays Data Retention Policy chunk 0."
+      - kind: fact-checked
+        what: "data-retention.md: database backups are retained for thirty days on a rolling basis; the document's category is Policy, so the filter admits it"
+      - kind: fact-checked
+        what: "filter metadata: filter category Policy; Data Retention Policy is category Policy"
+  mf003:
+    category: metadata-filtered
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "on-call-rotation.md: primary on-call is paid a flat stipend regardless of incident count; it states no amount, so a good answer must not invent one"
+      - kind: fact-checked
+        what: "filter metadata: filter department Engineering; On-Call Rotation is Engineering"
+  mf004:
+    category: metadata-filtered
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "filter metadata: filter tags [security]; Security Policy carries the tag security"
+  mf005:
+    category: metadata-filtered
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "filter metadata: filter department Security; Vendor Access Policy is Security"
+  mf006:
+    category: metadata-filtered
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "filter metadata: filter department People; Remote Work Policy is People"
+  mf007:
+    category: metadata-filtered
+    events:
+      - kind: claude-written
+      - kind: fact-checked
+        what: "filter metadata: filter document_id 2a840e3d-7eea-4fac-85f3-7b5021547cee; that is the Production Database Access SOP's id in the manifest"
+  md001:
+    category: multi-document
+    events:
+      - kind: claude-written
+  md002:
+    category: multi-document
+    events:
+      - kind: claude-written
+  md003:
+    category: multi-document
+    events:
+      - kind: claude-written
+      - kind: changed-by-sameer
+        note: "Expected chunk is Data Retention Policy chunk 0 only; Production Database Access SOP v2 chunk 0 removed (the retention policy states both periods directly)."
+  md004:
+    category: multi-document
+    events:
+      - kind: claude-written
+      - kind: changed-by-sameer
+        note: "Expected chunk is Employee Handbook chunk 1 only; Security Policy chunk 0 removed (the handbook chunk covers notice, equipment return and access revocation)."
+  md005:
+    category: multi-document
+    events:
+      - kind: claude-written
+  md006:
+    category: multi-document
+    events:
+      - kind: claude-written

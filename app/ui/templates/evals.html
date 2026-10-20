@@ -3,28 +3,85 @@
 {% block content %}
   <h1>Evaluation results</h1>
 
+  <p class="muted">
+    Read from the committed results files in <code>docs/results/</code>, newest first. Every figure is a
+    count with the sample behind it. They are small samples, scored against a question set written by an AI
+    and reviewed by people with AI help, so read them as a record of how the system behaved, not as a
+    measure of accuracy in general.
+  </p>
+
+  <h2>Answers (real model)</h2>
+  {% if answers %}
+    {% for run in answers %}
+      <div class="evidence{% if loop.first %} selected{% endif %}">
+        <h3>{{ run.date }} &mdash; {{ run.model }}, prompt {{ run.prompt_version }}, {{ run.gold_version }}</h3>
+        <p class="muted">{{ run.gold_label }}</p>
+        <table>
+          <tbody>
+            {% for f in run.figures %}
+              <tr>
+                <th>{{ f.label }}</th>
+                <td><strong>{{ f.value }}</strong></td>
+                <td class="muted">{{ f.detail }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="muted">
+          {{ run.threshold_note }}
+          One model, one run.
+          {% if run.requests %}Model requests used: {{ run.requests }}.{% endif %}
+          <span title="{{ run.file }}">Source file: <code>{{ run.file }}</code></span>
+        </p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="muted">No answers evaluation is committed in this install.</p>
+  {% endif %}
+
+  <h2>Retrieval (local models, no API)</h2>
+  {% if retrieval %}
+    {% for run in retrieval %}
+      <div class="evidence{% if loop.first %} selected{% endif %}">
+        <h3>{{ run.date }} &mdash; {{ run.gold_version }}</h3>
+        <table>
+          <tbody>
+            {% for f in run.figures %}
+              <tr>
+                <th>{{ f.label }}</th>
+                <td><strong>{{ f.value }}</strong></td>
+                <td class="muted">{{ f.detail }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="muted">{{ run.caveat }} <span>Source file: <code>{{ run.file }}</code></span></p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="muted">No retrieval evaluation is committed in this install.</p>
+  {% endif %}
+
+  <h2>Runs recorded in this database</h2>
   {% if runs %}
     <p class="muted">{{ runs | length }} recorded evaluation run(s), newest first. Every number below is read verbatim from the persisted <code>eval_runs</code> row that produced it.</p>
     {% for run in runs %}
-      <h2>{{ run.suite }} &mdash; {{ run.created_at }}</h2>
-      <p class="muted">
-        eval_run_id: {{ run.id }}
-        {% if run.prompt_version %} &middot; prompt_version: {{ run.prompt_version }}{% endif %}
-      </p>
-      <h3>Config</h3>
-      <pre>{{ run.config | tojson(indent=2) }}</pre>
-      <h3>Metrics</h3>
-      <pre>{{ run.metrics | tojson(indent=2) }}</pre>
+      <details>
+        <summary>{{ run.suite }} &mdash; {{ run.created_at }}</summary>
+        <p class="muted">
+          eval_run_id: {{ run.id }}
+          {% if run.prompt_version %} &middot; prompt_version: {{ run.prompt_version }}{% endif %}
+        </p>
+        <h3>Config</h3>
+        <pre>{{ run.config | tojson(indent=2) }}</pre>
+        <h3>Metrics</h3>
+        <pre>{{ run.metrics | tojson(indent=2) }}</pre>
+      </details>
     {% endfor %}
   {% else %}
     <p class="muted">
-      No evaluation run has been recorded in this database. This is an
-      honest empty state, not a placeholder: KnowledgeOS never displays a
-      fabricated or estimated evaluation number here. Once
-      <code>python -m evals.run --suite retrieval</code> or
-      <code>python -m evals.run --suite answers</code> has been run
-      successfully against the real models, its results appear on this
-      page automatically.
+      None. A run you start here with <code>python -m evals.run</code> is stored in this database and appears
+      in this list; the committed results above do not depend on it.
     </p>
   {% endif %}
 {% endblock %}

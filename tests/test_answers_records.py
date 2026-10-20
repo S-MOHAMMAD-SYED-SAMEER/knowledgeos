@@ -92,7 +92,8 @@ def test_the_report_carries_the_gold_label_every_attempt_and_survives_a_checkpoi
     json.dumps(report)  # serialisable as it stands
 
     assert report["gold_label"] == GOLD_LABEL
-    assert "AI-written" in GOLD_LABEL and "not yet human-reviewed" in GOLD_LABEL
+    assert "gold-v2" in GOLD_LABEL
+    assert "Gold written by Claude" in GOLD_LABEL and "final decisions by Sameer" in GOLD_LABEL
     assert len(report["attempts"]) == result.total_question_count
     first = next(a for a in report["attempts"] if a["outcome"] == "success")
     assert first["raw_replies"] and first["answer_text"]

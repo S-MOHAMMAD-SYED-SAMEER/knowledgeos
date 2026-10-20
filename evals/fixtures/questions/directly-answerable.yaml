@@ -32,7 +32,7 @@
   filters: {}
 
 - id: da005
-  text: "Within how many hours must a vendor notify the company of a security incident on the vendor's side?"
+  text: "What is the typical contractual window for a vendor to notify the company of a security incident on the vendor's side?"
   category: directly answerable
   expected_chunk_uids:
     - 54b5200c0f4ab243c0eb22bd471d9068

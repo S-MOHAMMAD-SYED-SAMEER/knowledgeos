@@ -232,7 +232,8 @@ def run_answers_suite(
             if on_progress is not None:
                 on_progress(attempts, persisted_query_ids)
             if is_rate_limit(exc):
-                stopped_early = f"rate limit / quota error on {question.id} ({exc}); stopped, nothing retried"
+                what = "request cap reached" if "request cap" in str(exc) else "rate limit / quota error"
+                stopped_early = f"{what} on {question.id} ({exc}); stopped, nothing retried"
                 break
             if consecutive_failures >= max_consecutive_failures:
                 stopped_early = (

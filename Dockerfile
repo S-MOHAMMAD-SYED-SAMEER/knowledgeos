@@ -25,6 +25,8 @@ COPY alembic.ini ./
 # `[tool.setuptools.packages.find]` in pyproject.toml) -- plain source
 # next to `app/`, run with `python -m` from this WORKDIR.
 COPY evals ./evals
+# The committed evaluation results, which the Evaluation page reads.
+COPY docs/results ./docs/results
 # Demo Mode (P3) and its committed, precomputed fixtures -- the same
 # `demo.app:app` and `python -m demo.seed` this image can now serve and
 # seed, so the deterministic keyless demo runs from this image as well as

@@ -12,7 +12,7 @@
     department: Engineering
 
 - id: mf002
-  text: "How long is data retained?"
+  text: "How long are database backups retained before older backups are automatically deleted?"
   category: metadata-filtered
   expected_chunk_uids: ["ac735f6387ca659b3a009e78d98f0118"]
   expected_abstain: false
