@@ -140,7 +140,8 @@ def _answers_view(path: Path, data: dict) -> AnswersRunView | None:
         "Abstention threshold "
         + (f"{threshold:.4f}" if isinstance(threshold, (int, float)) else "not recorded")
         + (f": {source}" if source else ", calibrated on the dev split of the same 52 questions it is scored on")
-        + ". It is in-sample: calibrated on questions drawn from the same 52 it is scored on."
+        + ("" if source and "in-sample" in source else ". It is in-sample.")
+        + (" The 52 questions it was calibrated on are the ones it is scored on." if source and "in-sample" in source else "")
     )
 
     return AnswersRunView(
