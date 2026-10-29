@@ -809,7 +809,7 @@ Gemini** (`google-genai`) instead. This is an explicit, authorized,
 documented **deviation from that wording** — not from the specification's
 *behavioural* requirements for generation. §9, the section that actually
 specifies what generation must do (a versioned prompt, structured output,
-three citation rules, two grounding layers, abstention on two triggers),
+three citation rules, a deterministic grounding check and a semantic one that runs only in the evaluation, abstention on two triggers),
 names no vendor anywhere. Every one of those requirements is implemented
 exactly as specified, unchanged by which vendor answers the request.
 
@@ -980,7 +980,7 @@ failed generation, a parsing failure, or a rejected citation leaves **no**
 partial to clean up, because nothing was ever written.
 
 > **Since updated (K3a-3):** a rejected answer is still never shown, never
-> stored and never repaired, but it no longer ends in an error page. The
+> stored in the application's database (the evaluation result files keep the model's raw replies, rejected ones included) and never repaired, but it no longer ends in an error page. The
 > request is retried once; if the second reply is rejected too, `POST /query`
 > answers `200` with a fixed reply, "I couldn't verify this answer ...", and
 > `verified: false` (with `grounding_detail.generation` saying why). That row

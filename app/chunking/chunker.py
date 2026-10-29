@@ -1,6 +1,6 @@
 """Deterministic chunking.
 
-The contract, from the specification: fixed size by token count, 512 by
+The contract, from the specification: fixed size by "token" count (here a whitespace-delimited word, see below), 512 by
 default with 64 of overlap, both configurable; paragraph boundaries respected
 where a break falls within 20% of the target; page and section metadata
 carried through from parsing; missing page information left null, never

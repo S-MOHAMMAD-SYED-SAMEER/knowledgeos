@@ -1,6 +1,6 @@
 """Saving an answers run as it goes, so a stopped run can be resumed instead of paid for twice.
 
-A run of 52 questions is about 53 model calls. If the provider fails part-way (a daily quota, an
+A run of 52 questions is at most about 53 model calls (the abstention threshold stops some before the model is asked). If the provider fails part-way (a daily quota, an
 outage), the questions already answered are real, paid-for results. After every question the run
 writes its attempts so far to a checkpoint file; `--resume <file>` skips what is done and carries on.
 
