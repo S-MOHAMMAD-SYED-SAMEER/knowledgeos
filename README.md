@@ -3,8 +3,9 @@
 **Retrieval-grounded answers over internal documents, with citation validation and honest abstention.**
 
 Ask "how do I request production database access?" and get an answer built
-only from your own documents — the exact chunk behind every claim, citations
-checked programmatically before the answer is shown, and an explicit refusal
+only from your own documents — a citation to a retrieved chunk after every sentence, the citations
+checked programmatically before the answer is shown (that they point at a chunk the model was given, not that the
+chunk supports the sentence), and an explicit refusal
 when the knowledge base does not contain the answer.
 
 **Status:** v1 is built and tested, and measured with a real model on a small fixture corpus (see **Results** below, with its limits). MIT licensed.
@@ -34,8 +35,8 @@ indistinguishable from a right one.**
 
 ## The solution
 
-KnowledgeOS answers only from retrieved documents, cites the exact chunk
-behind each claim, validates those citations in Python before returning the
+KnowledgeOS answers only from retrieved documents, cites a retrieved chunk
+after each sentence, validates those citations in Python before returning the
 answer, and abstains when the evidence is insufficient.
 
 Four things are measured separately, because they fail separately:
@@ -56,9 +57,9 @@ neither.
 | --- | --- |
 | **Hybrid retrieval** | Postgres full-text search + pgvector similarity, fused by Reciprocal Rank Fusion. No second datastore. |
 | **Citation validation** | Every cited chunk ID is checked against the retrieved, *selected* evidence set. An invalid citation rejects the answer rather than displaying it: the model is asked once more, and if that reply fails too the person sees "I couldn't verify this answer", never the rejected text. |
-| **Honest abstention** | Refuses on insufficient evidence — zero candidates, a calibrated rerank-score threshold, or the model's own `sufficient_evidence=false`. |
+| **Honest abstention** | Refuses on insufficient evidence — zero candidates, a rerank-score threshold (calibrated on the dev split of the same 52 questions it is scored on, so in-sample; see the results), or the model's own `sufficient_evidence=false`. |
 | **Document versioning** | Only the active version answers; superseded versions stay queryable for audit. One active version per document, enforced by a partial unique index. |
-| **Dual evaluation harnesses** | Separate retrieval and answer suites, run from the CLI, offline, with no API credential. |
+| **Dual evaluation harnesses** | Separate retrieval and answer suites, run from the CLI. The retrieval suite is offline and needs no credential; the answers suite calls a model and needs one. |
 | **Server-rendered UI** | Jinja2, no build step: documents, version history, query box, answer page with citations and evidence, evaluation results. |
 
 ## How the pipeline works
@@ -69,11 +70,11 @@ Ingest → Parse → Chunk → Index → Retrieve → Rerank → Generate → Ci
 
 | Stage | Detail |
 | --- | --- |
-| Chunk | Fixed-size by token count (512/64 overlap), paragraph-aware. `chunk_uid = sha256(version:sequence:text)[:32]` makes re-indexing idempotent. |
+| Chunk | Fixed-size by word count (512/64 overlap; a "token" in the settings is a whitespace-delimited word, not a model token), paragraph-aware. `chunk_uid = sha256(version:sequence:text)[:32]` makes re-indexing idempotent. |
 | Retrieve | Top 50 lexical + top 50 vector → RRF fusion → dedupe → top 20. Metadata filters are SQL `WHERE` clauses, never an instruction to the model to ignore results. |
 | Rerank | Local cross-encoder behind an interface, plus a passthrough implementation so reranking's contribution is a measured number rather than an assumption. |
 | Generate | Versioned prompt file, structured output (`answer`, `citations`, `sufficient_evidence`), parsed and validated in Python. |
-| Cite | Three deterministic rules plus a check that the declared citations match the markers in the text, then two grounding layers (deterministic and semantic) reported separately. |
+| Cite | Three deterministic rules plus a check that the declared citations match the markers in the text, then a deterministic grounding check. A semantic grounding layer exists only in the answers evaluation; in a live query it is always reported as unavailable. |
 
 ## Architecture
 
@@ -100,8 +101,9 @@ as pure functions over fixture data.
   partial unique index, and the suite builds its schema by running the real
   migration — a schema that could not enforce it would fail the tests.
 - **Nothing is fabricated.** No metric, threshold, price or model ID appears
-  unless measured or verified; unknown pricing raises a config error rather
-  than silently becoming zero.
+  unless measured or verified; unknown pricing is never silently priced at
+  zero: the cost function raises an error, a live query stores its cost as unknown (null), and the evaluation
+  reports "cost unavailable".
 
 ## Evaluation approach
 
@@ -112,12 +114,13 @@ conflicting versions, metadata-filtered, citation-sensitive, and adversarial.
 
 Deterministic checks (citation validity, metadata-filter correctness,
 abstention triggering) are kept separate from model-judged checks, and the
-reports say which is which. Both suites run offline from the CLI:
+reports say which is which. Both suites run from the CLI:
 `python -m evals.run --suite retrieval | answers`.
 
-The retrieval suite needs no key. The answers suite calls a model about 53 times
-(one availability check, one call per question, a second call for any reply that
-has to be retried). It prints that budget before it starts, spaces the calls
+The retrieval suite needs no key. The answers suite calls a model at most about 53 times
+(one availability check, one call per question that reaches the model, a second call for any reply that
+has to be retried); the abstention threshold stops 19 of the 52 questions before the model is asked, so the recorded
+runs used 41 requests (prompt v1) and 35 (v2). It prints that budget before it starts, spaces the calls
 (`--requests-per-minute`, default 10, under a free tier's 15), stops after two
 provider failures in a row (`--max-consecutive-failures`), and saves its progress
 after every question, so `--resume <file>` continues without paying for the
@@ -175,7 +178,7 @@ runs are published; the better one by the rule written in [docs/EVAL.md](docs/EV
 
 **Limits, next to the numbers.**
 - The gold is **Claude-drafted, reviewed by ChatGPT and Claude, and approved by Sameer**; it is one author's question set, not
-  an independent annotation. The 52 questions and 12 documents are fictional and labelled as such.
+  an independent annotation. The 52 questions and 10 documents (11 versions, 30 active chunks) are fictional and labelled as such.
 - The abstention threshold (1.4451) was calibrated on the dev split of **the same 52 questions** it is scored on: the abstention
   figures are **in-sample**. Recall of 7 of 7 rests on 7 questions, and one flip would move it by 14 points.
 - **Twelve of the 45 answerable questions get no answer** because the threshold stops them before the model is asked (the same
@@ -404,8 +407,11 @@ demo.
   repository is deployed.
 - Postgres full-text search is **not BM25**; ranking behaviour differs and
   this README does not claim otherwise.
-- Semantic grounding is approximate and will miss subtle unsupported claims;
-  the deterministic citation checks are the exact layer.
+- In a live query there is no semantic grounding: only the deterministic layer runs (the semantic scorer lives in the
+  answers evaluation). A passed check means every sentence has a well-formed citation to a retrieved chunk, not that
+  the chunk supports the sentence; the deterministic citation checks are the exact layer.
+- A "token" in chunking is a whitespace-delimited word, so 512 of them can exceed the embedding model's input window
+  (recorded as a known risk in [docs/ENGINEERING.md](docs/ENGINEERING.md)); it is not solved.
 - Fixed-size chunking with overlap; semantic chunking is deferred because it
   cannot be evaluated meaningfully at this corpus size.
 - Evaluated on a small fixture corpus; behaviour at 100k+ chunks is untested.
